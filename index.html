@@ -2430,14 +2430,16 @@ function startFirestoreSync() {
           }
         }
 
-        // Merge fresh state — but keep any players that only exist locally
-        // (new accounts whose Firestore write is still in-flight / debounced)
-        // Skip this merge if a wipe is in progress to avoid re-uploading wiped data
-        const localOnly = _wipeInProgress ? [] : S.players.filter(lp => !fresh.players.some(fp => fp.id === lp.id));
+        // Only preserve the current user's own player record if it's not in Firestore yet
+        // (e.g. just signed up and the write is still in-flight)
+        // Never preserve other players — that would re-upload data after a wipe
+        const myMissingRecord = (!_wipeInProgress && currentUser)
+          ? S.players.find(lp => lp.id === currentUser.id && !fresh.players.some(fp => fp.id === lp.id))
+          : null;
         Object.assign(S, fresh);
-        if (localOnly.length) {
-          S.players = [...S.players, ...localOnly];
-          _saveToFirestore(); // push them up to the cloud immediately
+        if (myMissingRecord) {
+          S.players = [...S.players, myMissingRecord];
+          _saveToFirestore();
         }
         try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
 
