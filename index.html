@@ -2490,18 +2490,20 @@ function startFirestoreSync() {
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
           if (S.live && !S.live.over) {
-            // If the game just started (setup panel still visible), do a full switch
+            const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
             const liveActive = document.getElementById('live-active');
             const liveSetup  = document.getElementById('live-setup');
-            if (liveActive && liveActive.style.display === 'none') {
-              // Game just appeared — flip panels and start the board
+            // Only flip setup→active for the two players (not the judge — they join via inbox)
+            if (isPlayer && liveActive && liveActive.style.display === 'none') {
               if (liveSetup)  liveSetup.style.display  = 'none';
               liveActive.style.display = 'block';
               document.getElementById('live-over-section').style.display = 'none';
               document.getElementById('live-log').innerHTML = '';
             }
-            restoreLog();
-            drawBoard();
+            if (liveActive && liveActive.style.display !== 'none') {
+              restoreLog();
+              drawBoard();
+            }
           } else if (S.live && S.live.over) {
             restoreLog();
             drawBoard();
