@@ -3961,7 +3961,7 @@ function drawBoard() {
   const judger    = g.judgeId ? amIJudge : (amICopier || amISetter); // who gets judge buttons
 
   // Determine display role label for each player panel
-  const nonSetPhases = ['copying','judging-setter','revenge'];
+  const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge'];
   const judgePlayer = g.judgeId ? byId(g.judgeId) : null;
   document.getElementById('live-board').innerHTML = `
     ${playerPanel(p1, g, g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
@@ -3980,7 +3980,15 @@ function drawBoard() {
       document.getElementById(id).style.display = 'none';
     });
 
-    if (g.phase === 'setting') {
+    if (g.phase === 'waiting-for-judge') {
+      // Both players wait for the judge to join
+      const judgeName = g.judgeId ? (byId(g.judgeId)?.name || 'the judge') : 'the judge';
+      document.getElementById('phase-wait').style.display = 'block';
+      document.getElementById('phase-wait-msg').innerHTML =
+        `⚖️ Waiting for <strong style="color:var(--primary);">${judgeName}</strong> to join…<br>
+         <span style="font-size:12px;color:var(--text-muted);">The judge needs to accept their invite in their inbox</span>`;
+
+    } else if (g.phase === 'setting') {
       if (amISetter) {
         document.getElementById('phase-set').style.display = 'block';
         document.getElementById('setter-label').textContent = byId(g.setterId).name;
@@ -5549,24 +5557,18 @@ function acceptLiveInvite(inviteId) {
   const inv = S.liveInvites.find(i => i.id === inviteId);
   if (!inv) return;
 
-  // If this is a judge invite, mark accepted and go to live-game
+  // If this is a judge invite, mark accepted, advance phase and go to live-game
   if (inv.role === 'judge') {
     inv.status = 'accepted';
+    // Advance the game from waiting-for-judge to setting so players can start
+    if (S.live && S.live.phase === 'waiting-for-judge') {
+      S.live.phase = 'setting';
+      addLog('⚖️', `${currentUser.name} has joined as judge — game on!`);
+    }
     save();
     checkNotifications();
     toast(`You're the judge! ⚖️`, 'ok');
     nav('live-game');
-    // If game hasn't started yet, show a waiting message instead of the setup form
-    if (!S.live) {
-      const form = document.getElementById('live-invite-form');
-      const wait = document.getElementById('live-invite-waiting');
-      if (form) form.style.display = 'none';
-      if (wait) {
-        wait.style.display = 'block';
-        document.getElementById('live-invite-waiting-text').textContent =
-          `Waiting for ${byId(inv.p1Id)?.name || 'the players'} to start the game…`;
-      }
-    }
     return;
   }
 
@@ -5577,7 +5579,8 @@ function acceptLiveInvite(inviteId) {
     letters:  { [inv.p1Id]: 0, [inv.p2Id]: 0 },
     setterId: inv.p1Id,
     trick:    null,
-    phase:    'setting',
+    // If there's a judge, hold in waiting-for-judge phase until they join
+    phase:    inv.judgeId ? 'waiting-for-judge' : 'setting',
     log:      [],
     over:     false,
     resort:   inv.resort || '',
