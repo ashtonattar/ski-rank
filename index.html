@@ -2385,12 +2385,18 @@ function startFirestoreSync() {
   _loadAvatars().then(() => {
     _firestoreUnsub = db.collection('state').doc('global').onSnapshot(
       snap => {
-        // Firestore is empty — clear any stale local cache and render a blank state
+        // Firestore is empty
         if (!snap.exists) {
-          S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
-          try { localStorage.removeItem(userStoreKey()); } catch(_) {}
-          const safe = ['leaderboard','players','explore','friends','confirmations'];
-          if (safe.includes(_activeSection)) nav(_activeSection);
+          if (currentUser && !_wipeInProgress) {
+            // Logged-in user — push their local state up so they appear in rankings
+            _saveToFirestore();
+          } else {
+            // Guest or wipe in progress — clear stale local cache
+            S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+            try { localStorage.removeItem(userStoreKey()); } catch(_) {}
+            const safe = ['leaderboard','players','explore','friends','confirmations'];
+            if (safe.includes(_activeSection)) nav(_activeSection);
+          }
           return;
         }
         // Our own pending write fired this snapshot — skip to avoid overwriting
