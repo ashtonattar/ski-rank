@@ -5562,12 +5562,23 @@ function acceptLiveInvite(inviteId) {
   // If this is a judge invite, mark accepted, advance phase and go to live-game
   if (inv.role === 'judge') {
     inv.status = 'accepted';
-    // Advance the game from waiting-for-judge to setting so players can start
+
+    if (db) {
+      // Use update() to ONLY change live.phase — safe even if local S.live is stale/null
+      db.collection('state').doc('global')
+        .update({ 'live.phase': 'setting' })
+        .catch(e => console.warn('Judge phase update failed:', e));
+    }
+
+    // Also update local state if we have it
     if (S.live && S.live.phase === 'waiting-for-judge') {
       S.live.phase = 'setting';
-      addLog('⚖️', `${currentUser.name} has joined as judge — game on!`);
     }
-    save();
+    addLog('⚖️', `${currentUser.name} has joined as judge — game on!`);
+    // Only save liveInvites change, not the full S (avoids overwriting stale live data)
+    clearTimeout(_saveTimer);
+    _saveToFirestore();
+
     checkNotifications();
     toast(`You're the judge! ⚖️`, 'ok');
     nav('live-game');
