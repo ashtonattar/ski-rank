@@ -2568,8 +2568,17 @@ async function doSignup() {
   if (password.length < 6) return showErr('Password must be at least 6 characters.');
   if (password !== confirm) return showErr('Passwords do not match.');
 
+  // Check localStorage first
   const users = getUsers();
   if (users.some(u => u.email === email)) return showErr('An account with that email already exists.');
+
+  // Also check Firestore in case the account was created on another device
+  if (db) {
+    try {
+      const snap = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!snap.empty) return showErr('An account with that email already exists.');
+    } catch(e) { console.warn('Firestore email check failed:', e); }
+  }
 
   const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, createdAt: Date.now() };
   users.push(newUser);
