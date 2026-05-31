@@ -2523,12 +2523,9 @@ async function _syncUsersFromFirestore() {
   if (!db) return;
   try {
     const snap = await db.collection('users').get();
-    if (snap.empty) {
-      // Firestore has no users — clear any stale local accounts too
-      localStorage.removeItem('skirank_users');
-      return;
-    }
     const local = getUsers();
+
+    // Add any Firestore users missing from localStorage
     let changed = false;
     snap.forEach(doc => {
       const u = doc.data();
@@ -2539,6 +2536,17 @@ async function _syncUsersFromFirestore() {
       }
     });
     if (changed) localStorage.setItem('skirank_users', JSON.stringify(local));
+
+    // Push any localStorage users missing from Firestore (e.g. after a wipe)
+    const batch = db.batch();
+    let needsBatch = false;
+    local.forEach(u => {
+      if (!snap.docs.some(d => d.id === u.id)) {
+        batch.set(db.collection('users').doc(u.id), u);
+        needsBatch = true;
+      }
+    });
+    if (needsBatch) await batch.commit();
   } catch(e) { console.warn('User sync error:', e); }
 }
 function getSession()      { try { return JSON.parse(localStorage.getItem('skirank_session')||'null'); } catch(e){ return null; } }
