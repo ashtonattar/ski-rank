@@ -1416,6 +1416,19 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">🏔 Home Resort <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <div class="resort-wrap">
+          <input type="text" class="form-input" id="su-resort"
+            placeholder="e.g. Whistler, Park City, Mammoth…"
+            autocomplete="off"
+            oninput="resortInput(this,'su-resort-dropdown')"
+            onkeydown="resortKeydown(event,'su-resort-dropdown')"
+            onfocus="resortInput(this,'su-resort-dropdown')"
+            onblur="setTimeout(()=>closeDropdown('su-resort-dropdown'),180)">
+          <div class="resort-dropdown" id="su-resort-dropdown"></div>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">Password</label>
         <input type="password" class="form-input" id="su-password" placeholder="6+ characters"
                autocomplete="new-password" onkeydown="if(event.key==='Enter')document.getElementById('su-confirm').focus()">
@@ -2580,7 +2593,8 @@ async function doSignup() {
     } catch(e) { console.warn('Firestore email check failed:', e); }
   }
 
-  const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, createdAt: Date.now() };
+  const homeResort = document.getElementById('su-resort')?.value.trim() || '';
+  const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, homeResort, createdAt: Date.now() };
   users.push(newUser);
   saveUsers(users);
   setSession({ id: newUser.id, name: newUser.name, email: newUser.email, riderType: newUser.riderType });
@@ -2673,7 +2687,7 @@ function showAuthScreen(hint='') {
   document.getElementById('auth-screen').style.display = 'flex';
   switchAuthTab('login');
   document.getElementById('auth-error').classList.remove('visible');
-  ['li-email','li-password','su-name','su-email','su-password','su-confirm'].forEach(id => {
+  ['li-email','li-password','su-name','su-email','su-resort','su-password','su-confirm'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   // Show back button only when coming from preview mode (app already loaded, no session)
@@ -2737,14 +2751,16 @@ function launchApp() {
     if (!existing) {
       S.players.push({
         id: u.id, name: u.name, location: '',
+        homeResort: u.homeResort || '',
         rating: null, wins: 0, losses: 0, gamesPlayed: 0,
         friends: [], badges: [], riderType: u.riderType || 'skier', createdAt: u.createdAt || Date.now()
       });
       needsSave = true;
     } else {
-      // Keep display name and riderType in sync with the auth record
+      // Keep display name, riderType and homeResort in sync with the auth record
       if (existing.name !== u.name) { existing.name = u.name; needsSave = true; }
       if (u.riderType && existing.riderType !== u.riderType) { existing.riderType = u.riderType; needsSave = true; }
+      if (u.homeResort && existing.homeResort !== u.homeResort) { existing.homeResort = u.homeResort; needsSave = true; }
     }
   });
   if (needsSave) save();
