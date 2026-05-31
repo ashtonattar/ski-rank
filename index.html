@@ -1805,6 +1805,21 @@
               <div class="resort-dropdown" id="lv-resort-dropdown"></div>
             </div>
           </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">⚖️ Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">A third person who calls all tricks — neither player can judge</div>
+            <div class="pp-wrap" id="pp-lv-judge">
+              <input type="hidden" id="lv-judge">
+              <button type="button" class="pp-trigger" onclick="openPicker('pp-lv-judge')">
+                <span id="pp-lv-judge-label" style="color:var(--text-muted);">No judge — players call each other</span>
+                <span class="pp-caret">▾</span>
+              </button>
+              <div class="pp-dropdown" id="pp-lv-judge-drop" style="display:none;">
+                <input class="pp-search" placeholder="Search riders…" oninput="filterPicker('pp-lv-judge',this.value)" onclick="event.stopPropagation()">
+                <div class="pp-list" id="pp-lv-judge-list"></div>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-accent btn-lg" onclick="sendLiveInvite()" style="width:100%;">Send Game Invite</button>
         </div>
 
@@ -3864,7 +3879,7 @@ function challengePlayer(opponentId) {
 }
 
 function renderLiveSetup() {
-  fillSelects(['lv-p1','lv-p2']);
+  fillSelects(['lv-p1','lv-p2','lv-judge']);
   // Auto-select current user as Player 1
   if (currentUser && !document.getElementById('lv-p1').value) {
     setPickerValue('pp-lv-p1', currentUser.id);
@@ -3896,13 +3911,16 @@ function renderLiveSetup() {
 }
 
 function startLive() {
-  const p1 = document.getElementById('lv-p1').value;
-  const p2 = document.getElementById('lv-p2').value;
-  if (!p1||!p2)  { toast('Select two skiers.','err'); return; }
-  if (p1===p2)   { toast('Skiers must be different.','err'); return; }
+  const p1    = document.getElementById('lv-p1').value;
+  const p2    = document.getElementById('lv-p2').value;
+  const judge = document.getElementById('lv-judge').value || null;
+  if (!p1||!p2) { toast('Select two skiers.','err'); return; }
+  if (p1===p2)  { toast('Skiers must be different.','err'); return; }
+  if (judge && (judge===p1||judge===p2)) { toast('Judge must be different from both players.','err'); return; }
 
   S.live = {
-    p1:p1, p2:p2,
+    p1, p2,
+    judgeId: judge,
     letters:{[p1]:0,[p2]:0},
     setterId: p1,
     trick: null,
@@ -3917,7 +3935,8 @@ function startLive() {
   document.getElementById('live-active').style.display='block';
   document.getElementById('live-over-section').style.display='none';
   document.getElementById('live-log').innerHTML='';
-  addLog('🎿', `Game started! ${byId(p1).name} sets first.`);
+  const judgeNote = judge ? ` · ⚖️ ${byId(judge).name} is the judge` : '';
+  addLog('🎿', `Game started! ${byId(p1).name} sets first.${judgeNote}`);
   drawBoard();
 }
 
@@ -3927,13 +3946,22 @@ function drawBoard() {
   const copierId  = g.setterId === g.p1 ? g.p2 : g.p1;
   const amISetter = currentUser?.id === g.setterId;
   const amICopier = currentUser?.id === copierId;
+  const amIJudge  = g.judgeId && currentUser?.id === g.judgeId;
+  // With a judge, they handle all judging — players only see waiting screens
+  const judger    = g.judgeId ? amIJudge : (amICopier || amISetter); // who gets judge buttons
 
   // Determine display role label for each player panel
   const nonSetPhases = ['copying','judging-setter','revenge'];
+  const judgePlayer = g.judgeId ? byId(g.judgeId) : null;
   document.getElementById('live-board').innerHTML = `
     ${playerPanel(p1, g, g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
     <div class="vs-text">VS</div>
     ${playerPanel(p2, g, g.setterId===g.p2 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
+    ${judgePlayer ? `
+    <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
+      <div class="avatar avatar-sm" style="background:${avatarGrad(judgePlayer.id)}">${initials(judgePlayer.name)}</div>
+      <span style="font-size:13px;color:var(--text-muted);">⚖️ <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
+    </div>` : ''}
   `;
 
   if (!g.over) {
@@ -3953,43 +3981,49 @@ function drawBoard() {
       }
 
     } else if (g.phase === 'judging-setter') {
-      if (amICopier) {
-        // Non-setter judges whether setter landed
+      const judgeLabel = g.judgeId ? byId(g.judgeId).name : byId(copierId).name;
+      if (g.judgeId ? amIJudge : amICopier) {
         document.getElementById('phase-judge-setter').style.display = 'block';
         document.getElementById('judge-setter-name').textContent  = byId(g.setterId).name;
         document.getElementById('judge-setter-trick').textContent = g.trick || '—';
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').textContent =
-          `⏳ Waiting for ${byId(copierId).name} to judge your trick…`;
+          `⏳ Waiting for ${judgeLabel} to judge the trick…`;
       }
 
     } else if (g.phase === 'copying') {
-      if (amISetter) {
-        // Setter judges whether copier landed the copy
+      const callerName = g.judgeId ? byId(g.judgeId).name : byId(g.setterId).name;
+      if (g.judgeId ? amIJudge : amISetter) {
         document.getElementById('phase-copy').style.display = 'block';
         document.getElementById('copier-label').textContent  = byId(copierId).name;
         document.getElementById('trick-display').textContent = g.trick || '—';
-      } else {
-        // Copier: go attempt it, setter will call it
+      } else if (amICopier) {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
           `🎿 Your turn — go attempt: <strong style="color:var(--primary);">${g.trick || '—'}</strong><br>
-           <span style="font-size:12px;color:var(--text-muted);">${byId(g.setterId).name} will judge whether you land it</span>`;
+           <span style="font-size:12px;color:var(--text-muted);">${callerName} will judge whether you land it</span>`;
+      } else {
+        document.getElementById('phase-wait').style.display = 'block';
+        document.getElementById('phase-wait-msg').textContent =
+          `⏳ Waiting for ${byId(copierId).name} to attempt the copy…`;
       }
 
     } else if (g.phase === 'revenge') {
-      if (amISetter) {
-        // Setter watches and judges the revenge attempt
+      const callerName = g.judgeId ? byId(g.judgeId).name : byId(g.setterId).name;
+      if (g.judgeId ? amIJudge : amISetter) {
         document.getElementById('phase-revenge').style.display = 'block';
         document.getElementById('revenge-name').textContent  = byId(copierId).name;
         document.getElementById('revenge-trick').textContent = g.trick || '—';
-      } else {
-        // Opponent: go land the revenge trick
+      } else if (amICopier) {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
           `🔥 Revenge time! Go land: <strong style="color:var(--fire);">${g.trick || '—'}</strong><br>
-           <span style="font-size:12px;color:var(--text-muted);">Land it and ${byId(g.setterId).name} takes the letter. ${byId(g.setterId).name} will call it.</span>`;
+           <span style="font-size:12px;color:var(--text-muted);">Land it and ${byId(g.setterId).name} takes the letter. ${callerName} will call it.</span>`;
+      } else {
+        document.getElementById('phase-wait').style.display = 'block';
+        document.getElementById('phase-wait-msg').textContent =
+          `⏳ Waiting for ${byId(copierId).name}'s revenge attempt…`;
       }
     }
 
