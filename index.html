@@ -2490,6 +2490,16 @@ function startFirestoreSync() {
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
           if (S.live && !S.live.over) {
+            // If the game just started (setup panel still visible), do a full switch
+            const liveActive = document.getElementById('live-active');
+            const liveSetup  = document.getElementById('live-setup');
+            if (liveActive && liveActive.style.display === 'none') {
+              // Game just appeared — flip panels and start the board
+              if (liveSetup)  liveSetup.style.display  = 'none';
+              liveActive.style.display = 'block';
+              document.getElementById('live-over-section').style.display = 'none';
+              document.getElementById('live-log').innerHTML = '';
+            }
             restoreLog();
             drawBoard();
           } else if (S.live && S.live.over) {
@@ -5539,13 +5549,24 @@ function acceptLiveInvite(inviteId) {
   const inv = S.liveInvites.find(i => i.id === inviteId);
   if (!inv) return;
 
-  // If this is a judge invite, just navigate to the live game
+  // If this is a judge invite, mark accepted and go to live-game
   if (inv.role === 'judge') {
     inv.status = 'accepted';
     save();
     checkNotifications();
     toast(`You're the judge! ⚖️`, 'ok');
     nav('live-game');
+    // If game hasn't started yet, show a waiting message instead of the setup form
+    if (!S.live) {
+      const form = document.getElementById('live-invite-form');
+      const wait = document.getElementById('live-invite-waiting');
+      if (form) form.style.display = 'none';
+      if (wait) {
+        wait.style.display = 'block';
+        document.getElementById('live-invite-waiting-text').textContent =
+          `Waiting for ${byId(inv.p1Id)?.name || 'the players'} to start the game…`;
+      }
+    }
     return;
   }
 
