@@ -2974,34 +2974,15 @@ function launchApp() {
     document.getElementById('sb-username').textContent = currentUser.email;
     updateSidebarAvatar();
   }
-  S = { players:[], games:[], pending:[], liveInvites:[], live:null };
-  try { localStorage.removeItem(userStoreKey()); } catch(_) {} // always get fresh data from Firestore
-  // Ensure every registered account has a player record in the global store.
-  // This also handles accounts created before the global store was introduced.
-  const allUsers = getUsers();
-  let needsSave = false;
-  allUsers.forEach(u => {
-    const existing = S.players.find(p => p.id === u.id);
-    if (!existing) {
-      S.players.push({
-        id: u.id, name: u.name, location: '',
-        homeResort: u.homeResort || '',
-        rating: null, wins: 0, losses: 0, gamesPlayed: 0,
-        friends: [], badges: [], riderType: u.riderType || 'skier', createdAt: u.createdAt || Date.now()
-      });
-      needsSave = true;
-    } else {
-      // Keep display name, riderType and homeResort in sync with the auth record
-      if (existing.name !== u.name) { existing.name = u.name; needsSave = true; }
-      if (u.riderType && existing.riderType !== u.riderType) { existing.riderType = u.riderType; needsSave = true; }
-      if (u.homeResort && existing.homeResort !== u.homeResort) { existing.homeResort = u.homeResort; needsSave = true; }
-    }
-  });
-  if (needsSave) save();
-  updateSidebarAvatar(); // re-run now that S.players is loaded
+  // Start with empty state — Firestore is the sole source of truth.
+  // Do NOT pre-populate from localStorage: stale/deleted accounts stored
+  // locally would flash on screen for ~1s before Firestore overwrites them.
+  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+  try { localStorage.removeItem(userStoreKey()); } catch(_) {}
+  updateSidebarAvatar();
   checkNotifications();
   startPolling();
-  startFirestoreSync(); // real-time cloud sync (supersedes polling when Firebase is available)
+  startFirestoreSync(); // Firestore snapshot will populate S and re-render
   if (S.live) nav('live-game');
   else        nav('leaderboard');
   // Animate the app in
