@@ -1288,7 +1288,22 @@
       .sidebar::after { display:none; }
       .sidebar-logo { display:none; }
       .sidebar-nav { flex-direction:row; padding:4px 2px; overflow-x:auto; justify-content:space-around; gap:0; }
-      .sidebar-user { display:none !important; }
+      /* Profile footer: show above the tab bar as a compact strip */
+      .sidebar-user {
+        display:flex !important;
+        position:fixed; bottom:58px; left:0; right:0;
+        padding:8px 16px;
+        border-top:1px solid var(--border);
+        border-bottom:none;
+        background:rgba(3,12,26,0.95);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+        z-index:99;
+      }
+      /* Adjust main to account for profile strip + tab bar */
+      .main { padding-bottom:calc(114px + env(safe-area-inset-bottom)) !important; }
+      /* Adjust tab bar up to sit above safe area */
+      .sidebar { bottom:0; }
       .nav-btn { flex-direction:column; gap:2px; padding:6px 8px; font-size:9.5px; min-width:52px; flex:1; text-align:center; }
       .nav-btn .nav-icon { font-size:17px; }
       .nav-btn::before { display:none; }
