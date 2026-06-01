@@ -2334,6 +2334,7 @@ const _dirtyAvatars = new Set(); // playerIds whose avatar needs uploading
 let   _firestoreUnsub = null; // unsubscribe handle for onSnapshot
 let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
+let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -2505,9 +2506,11 @@ function startFirestoreSync() {
               drawBoard();
             }
           } else if (S.live && S.live.over) {
-            restoreLog();
-            drawBoard();
-            showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+            if (!_gameOverDismissed) {
+              restoreLog();
+              drawBoard();
+              showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+            }
           } else {
             // Game was cleared / abandoned by the other player
             renderLiveSetup();
@@ -4218,6 +4221,7 @@ function submitLiveClipAndReset() {
 
 function resetLive() {
   // Clears the game for everyone (called after Save & New Game)
+  _gameOverDismissed = false;
   S.live = null; save();
   document.getElementById('live-active').style.display = 'none';
   document.getElementById('live-setup').style.display  = 'block';
@@ -4228,6 +4232,7 @@ function resetLive() {
 
 function dismissLiveGameOver() {
   // Locally dismisses the game-over screen for THIS player only — doesn't affect others
+  _gameOverDismissed = true; // stop Firestore snapshots from re-showing it
   document.getElementById('live-active').style.display = 'none';
   document.getElementById('live-setup').style.display  = 'block';
   document.getElementById('live-over-section').style.display = 'none';
