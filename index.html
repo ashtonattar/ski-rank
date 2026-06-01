@@ -715,12 +715,36 @@
       width:100%; max-width:400px;
       backdrop-filter:blur(32px);
       box-shadow:0 30px 80px rgba(0,0,0,0.8), var(--glow-ice);
-      position:relative; z-index:1; animation:authIn .4s ease;
+      position:relative; z-index:1; animation:authIn .5s cubic-bezier(.22,.68,0,1.2);
     }
     @keyframes authIn {
-      from{opacity:0;transform:translateY(22px) scale(.97);}
+      from{opacity:0;transform:translateY(28px) scale(.95);}
       to  {opacity:1;transform:translateY(0)    scale(1); }
     }
+    /* Auth screen fade-in */
+    @keyframes authScreenIn {
+      from{opacity:0;}
+      to  {opacity:1;}
+    }
+    /* Auth exit: card shoots up and fades */
+    @keyframes authCardOut {
+      from{opacity:1;transform:translateY(0)   scale(1);}
+      to  {opacity:0;transform:translateY(-40px) scale(.96);}
+    }
+    /* Auth screen overlay fades out */
+    @keyframes authScreenOut {
+      from{opacity:1;}
+      to  {opacity:0;}
+    }
+    /* App fades + rises in after auth */
+    @keyframes appIn {
+      from{opacity:0;transform:translateY(16px);}
+      to  {opacity:1;transform:translateY(0);}
+    }
+    .auth-screen.animating-in  { animation:authScreenIn  .35s ease forwards; }
+    .auth-screen.animating-out { animation:authScreenOut .45s ease forwards; pointer-events:none; }
+    .auth-card.animating-out   { animation:authCardOut   .35s cubic-bezier(.4,0,1,1) forwards; }
+    #app.animating-in          { animation:appIn         .5s cubic-bezier(.22,.68,0,1.2) forwards; }
     .auth-card::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       background:linear-gradient(90deg,transparent,var(--ice),var(--fire),transparent);
@@ -2848,7 +2872,11 @@ function deleteAccount() {
 }
 
 function showAuthScreen(hint='') {
-  document.getElementById('auth-screen').style.display = 'flex';
+  const screen = document.getElementById('auth-screen');
+  screen.style.display = 'flex';
+  screen.classList.remove('animating-out');
+  screen.classList.add('animating-in');
+  setTimeout(() => screen.classList.remove('animating-in'), 350);
   switchAuthTab('login');
   document.getElementById('auth-error').classList.remove('visible');
   ['li-email','li-password','su-name','su-email','su-resort','su-password','su-confirm'].forEach(id => {
@@ -2868,12 +2896,12 @@ function showAuthScreen(hint='') {
 
 // Dismiss the auth screen and return to preview (guest) mode
 function dismissAuthScreen() {
-  document.getElementById('auth-screen').style.display = 'none';
+  _animateAuthOut(() => {});
 }
 
 // Launch the app in read-only preview mode (no account required)
 function launchPreview() {
-  document.getElementById('auth-screen').style.display = 'none';
+  _animateAuthOut(() => {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('sb-user-footer').style.display  = 'none';
   document.getElementById('sb-guest-footer').style.display = 'flex';
@@ -2883,6 +2911,10 @@ function launchPreview() {
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
   nav('leaderboard');
+  const appEl = document.getElementById('app');
+  appEl.classList.add('animating-in');
+  setTimeout(() => appEl.classList.remove('animating-in'), 500);
+  }); // end _animateAuthOut callback
 }
 
 function switchAuthTab(tab) {
@@ -2894,7 +2926,7 @@ function switchAuthTab(tab) {
 }
 
 function launchApp() {
-  document.getElementById('auth-screen').style.display = 'none';
+  _animateAuthOut(() => {
   document.getElementById('app').style.display = 'flex';
   // Show the signed-in footer, hide the guest footer
   document.getElementById('sb-user-footer').style.display  = 'flex';
@@ -2934,6 +2966,25 @@ function launchApp() {
   startFirestoreSync(); // real-time cloud sync (supersedes polling when Firebase is available)
   if (S.live) nav('live-game');
   else        nav('leaderboard');
+  // Animate the app in
+  const appEl = document.getElementById('app');
+  appEl.classList.add('animating-in');
+  setTimeout(() => appEl.classList.remove('animating-in'), 500);
+  }); // end _animateAuthOut callback
+}
+
+// Animate the auth card out, fade the screen, then call cb
+function _animateAuthOut(cb) {
+  const screen = document.getElementById('auth-screen');
+  const card   = screen.querySelector('.auth-card');
+  card.classList.add('animating-out');
+  screen.classList.add('animating-out');
+  setTimeout(() => {
+    screen.style.display = 'none';
+    screen.classList.remove('animating-out');
+    card.classList.remove('animating-out');
+    cb();
+  }, 420);
 }
 
 // ═══════════════════════════════════════════════════════
