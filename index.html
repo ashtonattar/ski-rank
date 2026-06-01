@@ -1309,19 +1309,11 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width:780px) {
-      /* ── Prevent horizontal scroll ── */
-      html, body { overflow-x:hidden; max-width:100vw; }
-
-      /* ── Dark cap at the top — covers overscroll bounce + safe area ── */
-      body::before {
-        content:'';
-        position:fixed;
-        top:0; left:0; right:0;
-        height:calc(env(safe-area-inset-top) + 8px);
-        background:#020c18;
-        z-index:9999;
-        pointer-events:none;
-      }
+      /* ── Lock body scroll so Safari bounce reveals nothing;
+            inner .main scrolls instead ── */
+      html { overflow:hidden; height:100%; }
+      body { overflow:hidden; height:100%; }
+      .main { overflow-y:auto; -webkit-overflow-scrolling:touch; height:100%; }
 
       /* ── Sidebar → bottom tab bar (pill card style) ── */
       .sidebar {
