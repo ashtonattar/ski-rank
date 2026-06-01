@@ -1462,6 +1462,7 @@
 
       /* ── Profile hero: stack vertically ── */
       .profile-hero { flex-direction:column; text-align:center; padding:24px 18px 28px; gap:16px; }
+      #prof-recent-games-card { display:none !important; }
       .profile-hero-meta { justify-content:center; }
       .profile-hero-name { font-size:32px; }
       .profile-hero-bio-preview { max-width:100%; }
@@ -2377,8 +2378,8 @@
           <button class="btn btn-primary" style="margin-top:18px;width:100%;justify-content:center;" onclick="saveProfileData()">Save Profile</button>
         </div>
 
-        <!-- Right: my recent games (mini) -->
-        <div class="card">
+        <!-- Right: my recent games (mini) — hidden on mobile, game history card covers it -->
+        <div class="card" id="prof-recent-games-card">
           <div class="profile-section-label">Recent Games</div>
           <div id="prof-games-list"></div>
           <div id="prof-games-empty" style="display:none;text-align:center;padding:28px 0;color:var(--text-muted);font-size:13px;">
