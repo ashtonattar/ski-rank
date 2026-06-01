@@ -6031,6 +6031,13 @@ function acceptLiveInvite(inviteId) {
 
   inv.status = 'accepted';
 
+  // Clear any finished game so it doesn't block the new one from starting
+  if (S.live && S.live.over) {
+    S.live = null;
+    _gameOverDismissed = false;
+    _resetLiveUI();
+  }
+
   // Don't overwrite S.live if the host already created it — that would wipe
   // any votes or state the host has already set (e.g. pick-setter votes).
   // Only create it as a fallback if it doesn't exist yet.
