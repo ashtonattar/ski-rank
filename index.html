@@ -95,6 +95,16 @@
       background-position: center center;
       background-attachment: fixed;
     }
+    /* Dark overlay on top of the background photo — same as auth screen */
+    .app::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background: linear-gradient(160deg,
+        rgba(2,8,20,0.82) 0%,
+        rgba(3,14,32,0.75) 40%,
+        rgba(5,12,28,0.88) 100%
+      );
+    }
+    .sidebar, .main { position:relative; z-index:1; }
 
     /* ── SIDEBAR ── */
     .sidebar {
