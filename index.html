@@ -2550,6 +2550,7 @@ let   _firestoreUnsub = null; // unsubscribe handle for onSnapshot
 let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
+let   _clearLiveOnFirstSync = false; // abandon any live game found on first sync after login/refresh
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -2687,6 +2688,21 @@ function startFirestoreSync() {
           ? S.players.find(lp => lp.id === currentUser.id && !fresh.players.some(fp => fp.id === lp.id))
           : null;
         Object.assign(S, fresh);
+
+        // On first sync after login/refresh: abandon any live game the current user was in.
+        // Prevents players from being silently dropped back into a stale game on reload.
+        if (_clearLiveOnFirstSync) {
+          _clearLiveOnFirstSync = false;
+          if (S.live && currentUser &&
+              (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
+            S.live = null;
+            _gameOverDismissed = false;
+            _resetLiveUI();
+            save();
+            toast('A live game in progress was cleared on reload.', 'ok');
+          }
+        }
+
         if (myMissingRecord) {
           S.players = [...S.players, myMissingRecord];
           _saveToFirestore();
@@ -3030,6 +3046,7 @@ function launchApp() {
   updateSidebarAvatar();
   checkNotifications();
   startPolling();
+  _clearLiveOnFirstSync = true; // abandon any stale live game found on first snapshot
   startFirestoreSync(); // Firestore snapshot will populate S and re-render
   if (S.live) nav('live-game');
   else        nav('leaderboard');
