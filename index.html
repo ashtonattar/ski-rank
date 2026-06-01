@@ -2622,6 +2622,11 @@ function startFirestoreSync() {
             }
           } else if (S.live && S.live.over) {
             if (!_gameOverDismissed) {
+              // Make sure live-active is visible so the game-over section inside it shows
+              const liveActiveEl = document.getElementById('live-active');
+              const liveSetupEl  = document.getElementById('live-setup');
+              if (liveSetupEl)  liveSetupEl.style.display  = 'none';
+              if (liveActiveEl) liveActiveEl.style.display = 'block';
               restoreLog();
               drawBoard();
               showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
