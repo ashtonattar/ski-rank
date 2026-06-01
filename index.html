@@ -69,12 +69,9 @@
       color: var(--text-primary);
       min-height: 100vh;
       overflow-x: hidden;
-      /* Rails photo fills the entire viewport, fixed so it doesn't scroll */
+      /* Solid dark only — no image. The image lives on .app so Safari's
+         overscroll bounce zone (outside .app) always shows plain dark */
       background-color: var(--bg-base);
-      background-image: url('https://images.unsplash.com/photo-1563544769932-7a686e8c1f40?w=1920&auto=format&fit=crop&q=80');
-      background-size: cover;
-      background-position: center center;
-      background-attachment: fixed;
     }
 
     /* Dark overlay on top of the photo so text stays legible */
@@ -90,7 +87,14 @@
     }
 
     /* ── LAYOUT ── */
-    .app { display:flex; min-height:100vh; position:relative; z-index:1; }
+    .app {
+      display:flex; min-height:100vh; position:relative; z-index:1;
+      background-color: var(--bg-base);
+      background-image: url('https://images.unsplash.com/photo-1563544769932-7a686e8c1f40?w=1920&auto=format&fit=crop&q=80');
+      background-size: cover;
+      background-position: center center;
+      background-attachment: fixed;
+    }
 
     /* ── SIDEBAR ── */
     .sidebar {
@@ -1309,11 +1313,8 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width:780px) {
-      /* ── Lock body scroll so Safari bounce reveals nothing;
-            inner .main scrolls instead ── */
-      html { overflow:hidden; height:100%; }
-      body { overflow:hidden; height:100%; }
-      .main { overflow-y:auto; -webkit-overflow-scrolling:touch; height:100%; }
+      /* ── Prevent horizontal scroll ── */
+      html, body { overflow-x:hidden; max-width:100vw; }
 
       /* ── Sidebar → bottom tab bar (pill card style) ── */
       .sidebar {
@@ -1436,7 +1437,7 @@
 
     /* ── Fix background-attachment:fixed on iOS Safari (known rendering bug) ── */
     @supports (-webkit-touch-callout: none) {
-      body { background-attachment: scroll; }
+      .app { background-attachment: scroll; }
     }
     /* ── ADMIN ── */
     .admin-tab {
