@@ -3656,7 +3656,7 @@ function renderLeaderboard() {
             ? `<span style="font-size:12px;color:var(--text-muted);font-style:italic;">Unrated</span>`
             : `<div style="display:flex;align-items:center;gap:8px;">
                  <span class="td-rating">${fmt(p.rating)}</span>
-                 <span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;">${t.icon} ${t.label}</span>
+                 <span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>
                </div>`}
         </td>
         <td class="td-win lb-col-games">${isUnrated ? '—' : p.wins}</td>
@@ -4337,7 +4337,7 @@ function playerPanel(player, g, role) {
         <div class="avatar avatar-lg" style="background:${avatarGrad(player.id)}">${initials(player.name)}</div>
       </div>
       <div class="pp-name">${player.name}</div>
-      <div class="pp-rating">${ratingDisplay(player.rating)} · ${t.icon} ${t.label}</div>
+      <div class="pp-rating">${ratingDisplay(player.rating)} · <span onclick="showTierModal()" style="cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span></div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
       </div>
@@ -4758,7 +4758,7 @@ function renderPlayers() {
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${p.name}</span>
-            <span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>
+            <span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>
           </div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
             Rating: <strong style="color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};">${ratingDisplay(p.rating)}</strong>
@@ -6594,7 +6594,7 @@ function renderMyProfile() {
             <div class="avatar avatar-sm" style="background:${avatarGrad(f.id)}">${initials(f.name)}</div>
             <div style="flex:1;min-width:0;">
               <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
-              <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating)} · <span style="color:${ft.color};">${ft.icon} ${ft.label}</span>${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+              <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating)} · <span onclick="showTierModal()" style="color:${ft.color};cursor:pointer;" title="View all tiers">${ft.icon} ${ft.label}</span>${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
             </div>
             <button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>
           </div>`;
@@ -6668,6 +6668,16 @@ function clearAvatar() {
   renderMyProfile();
   updateSidebarAvatar();
 }
+
+function showTierModal() {
+  const m = document.getElementById('tier-modal-overlay');
+  m.style.display = 'flex';
+}
+function closeTierModal() {
+  document.getElementById('tier-modal-overlay').style.display = 'none';
+}
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTierModal(); });
 
 // ═══════════════════════════════════════════════════════
 //  INIT
@@ -6976,5 +6986,40 @@ async function adminWipeEverything() {
 </script>
 
 <div id="rating-anim-overlay" onclick=""></div>
+
+<!-- Tier info modal -->
+<div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(0,212,255,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
+    <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;">🏆 Rank Tiers</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.22);">
+        <span style="font-weight:700;color:#f97316;">🔥 Elite</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">14.00+</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.22);">
+        <span style="font-weight:700;color:#60a5fa;">⭐ Expert</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">12.00 – 13.99</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.22);">
+        <span style="font-weight:700;color:#a78bfa;">💪 Advanced</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">10.00 – 11.99</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.22);">
+        <span style="font-weight:700;color:#34d399;">📈 Intermediate</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">7.00 – 9.99</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);">
+        <span style="font-weight:700;color:#fbbf24;">🎿 Developing</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">4.00 – 6.99</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.22);">
+        <span style="font-weight:700;color:#94a3b8;">🏔️ Beginner</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">0.00 – 3.99</span>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:11.5px;color:var(--text-muted);text-align:center;">Rating = (wins − losses) · difficulty · streak bonuses</div>
+  </div>
+</div>
 </body>
 </html>
