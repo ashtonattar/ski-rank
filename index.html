@@ -846,6 +846,10 @@
       width:100%; justify-content:center; margin-top:4px;
       padding:13px; font-size:14px; letter-spacing:1px; border-radius:var(--radius);
     }
+    .auth-btn:disabled {
+      opacity:0.6; cursor:not-allowed; transform:none !important;
+      pointer-events:none;
+    }
     .auth-footer { text-align:center; font-size:11px; color:var(--text-muted); margin-top:20px; letter-spacing:.4px; }
 
     .auth-origin-notice {
@@ -2832,7 +2836,12 @@ async function doSignup() {
   const password = document.getElementById('su-password').value;
   const confirm  = document.getElementById('su-confirm').value;
   const errEl    = document.getElementById('auth-error');
-  const showErr  = m => { errEl.textContent = m; errEl.classList.add('visible'); };
+  const btn      = document.querySelector('#form-signup .auth-btn');
+  const showErr  = m => {
+    errEl.textContent = m; errEl.classList.add('visible');
+    // Re-enable button on validation error
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Account 🔥'; }
+  };
   errEl.classList.remove('visible');
 
   if (!name)            return showErr('Please enter your full name.');
@@ -2846,6 +2855,9 @@ async function doSignup() {
   // Check localStorage first
   const users = getUsers();
   if (users.some(u => u.email === email)) return showErr('An account with that email already exists.');
+
+  // Disable button immediately — prevents duplicate submissions during the async Firestore check
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
 
   // Also check Firestore in case the account was created on another device
   if (db) {
