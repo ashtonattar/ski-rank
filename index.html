@@ -1270,24 +1270,65 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width:780px) {
+      /* ── Prevent horizontal scroll ── */
+      html, body { overflow-x:hidden; max-width:100vw; }
+
+      /* ── Sidebar → bottom tab bar ── */
       .sidebar {
-        width:100%; height:auto;
+        width:100vw; height:auto;
         position:fixed; bottom:0; top:auto;
-        flex-direction:row; border-right:none; border-top:1px solid var(--border);
+        flex-direction:row; border-right:none;
+        border-top:1px solid var(--border);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
       }
       .sidebar::after { display:none; }
       .sidebar-logo { display:none; }
-      .sidebar-nav { flex-direction:row; padding:6px; overflow-x:auto; }
-      .nav-btn { flex-direction:column; gap:3px; padding:7px 10px; font-size:10px; min-width:60px; }
+      .sidebar-nav { flex-direction:row; padding:4px 2px; overflow-x:auto; justify-content:space-around; gap:0; }
+      .sidebar-user { display:none !important; }
+      .nav-btn { flex-direction:column; gap:2px; padding:6px 8px; font-size:9.5px; min-width:52px; flex:1; text-align:center; }
+      .nav-btn .nav-icon { font-size:17px; }
       .nav-btn::before { display:none; }
-      .main { margin-left:0; margin-bottom:76px; padding:16px; max-width:100%; }
+
+      /* ── Main content ── */
+      .main { margin-left:0; margin-bottom:72px; padding:12px; width:100%; box-sizing:border-box; }
+
+      /* ── Hero section ── */
+      .hero { padding:20px 18px 24px; }
+      .hero h1 { font-size:36px; letter-spacing:3px; }
+      .action-strip { grid-template-columns:1fr 1fr; }
+      .action-shot { height:80px; }
+
+      /* ── Stats grid ── */
+      .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
+      .stat-card { padding:12px; }
+      .stat-val { font-size:22px; }
+
+      /* ── Leaderboard table ── */
+      #lb-table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .td-loc, .lb-col-games, .lb-col-change { display:none; }
+
+      /* ── Forms ── */
       .form-row { grid-template-columns:1fr; }
-      .live-board { grid-template-columns:1fr; }
+      .card { padding:14px; }
+
+      /* ── Live game ── */
+      .live-board { grid-template-columns:1fr 1fr; gap:8px; }
       .vs-text { display:none; }
-      .stats-grid { grid-template-columns:1fr 1fr; }
-      .hero { padding:24px 22px 32px; }
-      .hero h1 { font-size:46px; letter-spacing:4px; }
-      .hero-pill { display:none; }
+      .player-panel { padding:12px 8px; }
+      .pp-name { font-size:13px; }
+      .pp-rating { font-size:10px; }
+      .ski-letter { width:28px; height:28px; font-size:12px; }
+
+      /* ── Auth card ── */
+      .auth-card { padding:24px 18px; margin:12px; }
+
+      /* ── View header ── */
+      .view-header h2 { font-size:26px; }
+      .view-header p { font-size:12px; }
+
+      /* ── Admin table: horizontal scroll ── */
+      .admin-card { overflow-x:auto; }
     }
     /* ── ADMIN ── */
     .admin-tab {
@@ -1588,12 +1629,12 @@
                 <th>#</th>
                 <th>Skier</th>
                 <th>SKI Rating</th>
-                <th>W</th>
-                <th>L</th>
-                <th>Win %</th>
-                <th>Streak</th>
-                <th>Games</th>
-                <th>Last change</th>
+                <th class="lb-col-games">W</th>
+                <th class="lb-col-games">L</th>
+                <th class="lb-col-games">Win %</th>
+                <th class="lb-col-games">Streak</th>
+                <th class="lb-col-games">Games</th>
+                <th class="lb-col-change">Last change</th>
               </tr>
             </thead>
             <tbody id="lb-body"></tbody>
@@ -3467,9 +3508,9 @@ function renderLeaderboard() {
                  <span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;">${t.icon} ${t.label}</span>
                </div>`}
         </td>
-        <td class="td-win">${isUnrated ? '—' : p.wins}</td>
-        <td class="td-loss">${isUnrated ? '—' : p.losses}</td>
-        <td>
+        <td class="td-win lb-col-games">${isUnrated ? '—' : p.wins}</td>
+        <td class="td-loss lb-col-games">${isUnrated ? '—' : p.losses}</td>
+        <td class="lb-col-games">
           ${isUnrated
             ? `<span style="color:var(--text-muted);font-size:12px;">—</span>`
             : `<div class="wr-wrap">
@@ -3477,14 +3518,14 @@ function renderLeaderboard() {
                  <span>${wpct}%</span>
                </div>`}
         </td>
-        <td style="white-space:nowrap;">
+        <td class="lb-col-games" style="white-space:nowrap;">
           ${!sk.current
             ? `<span style="color:var(--text-muted);font-size:12px;">—</span>`
             : sk.type==='W'
               ? `<span style="background:rgba(34,197,94,0.12);color:var(--success);border:1px solid rgba(34,197,94,0.25);padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">${sk.current>=3?'🔥 ':''}W${sk.current}</span>`
               : `<span style="background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.25);padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">L${sk.current}</span>`}
         </td>
-        <td style="color:var(--text-muted);font-size:12.5px;">${p.gamesPlayed}</td>
+        <td class="lb-col-games" style="color:var(--text-muted);font-size:12.5px;">${p.gamesPlayed}</td>
         <td>
           ${isUnrated
             ? `<span style="color:var(--text-muted);font-size:12px;font-style:italic;">No games yet</span>`
