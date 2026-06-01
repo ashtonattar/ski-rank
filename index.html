@@ -4201,7 +4201,7 @@ function showGameOver(winnerId, loserId, game) {
         </div>
       </div>
       <button class="btn btn-primary" style="margin-top:18px;" onclick="submitLiveClipAndReset()">Save &amp; New Game</button>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto;" onclick="resetLive()">Skip</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto;" onclick="dismissLiveGameOver()">Skip</button>
     </div>`;
 }
 
@@ -4217,12 +4217,23 @@ function submitLiveClipAndReset() {
 }
 
 function resetLive() {
-  S.live=null; save();
-  document.getElementById('live-active').style.display='none';
-  document.getElementById('live-setup').style.display='block';
-  document.getElementById('live-over-section').style.display='none';
-  document.getElementById('live-log').innerHTML='';
-  fillSelects(['lv-p1','lv-p2']);
+  // Clears the game for everyone (called after Save & New Game)
+  S.live = null; save();
+  document.getElementById('live-active').style.display = 'none';
+  document.getElementById('live-setup').style.display  = 'block';
+  document.getElementById('live-over-section').style.display = 'none';
+  document.getElementById('live-log').innerHTML = '';
+  fillSelects(['lv-p1','lv-p2','lv-judge']);
+}
+
+function dismissLiveGameOver() {
+  // Locally dismisses the game-over screen for THIS player only — doesn't affect others
+  document.getElementById('live-active').style.display = 'none';
+  document.getElementById('live-setup').style.display  = 'block';
+  document.getElementById('live-over-section').style.display = 'none';
+  document.getElementById('live-log').innerHTML = '';
+  fillSelects(['lv-p1','lv-p2','lv-judge']);
+  // S.live is left intact so other players can still see the result
 }
 
 function abandonGame() {
