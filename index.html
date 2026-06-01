@@ -12,13 +12,9 @@
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html {
       margin:0; padding:0;
-      /* Give html the same background as body so Safari's overscroll
-         bounce zone (which reveals the html element) stays dark */
+      /* Solid dark fill so Safari's overscroll bounce zone is always dark,
+         not the lighter bottom portion of the background photo */
       background-color:#020c18;
-      background-image: url('https://images.unsplash.com/photo-1563544769932-7a686e8c1f40?w=1920&auto=format&fit=crop&q=80');
-      background-size:cover;
-      background-position:center center;
-      background-attachment:scroll;
     }
     body {
       margin:0; padding:0;
