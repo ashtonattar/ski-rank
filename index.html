@@ -3,19 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#020c18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>SKI RANK ⛷️ Freestyle Skiing Rating System</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    html, body {
+    html {
       margin:0; padding:0;
-      background-color:#020c18;          /* matches --bg-base; fills overscroll bounce area */
-      overscroll-behavior:none;          /* suppress bounce on non-Safari */
+      /* Give html the same background as body so Safari's overscroll
+         bounce zone (which reveals the html element) stays dark */
+      background-color:#020c18;
+      background-image: url('https://images.unsplash.com/photo-1563544769932-7a686e8c1f40?w=1920&auto=format&fit=crop&q=80');
+      background-size:cover;
+      background-position:center center;
+      background-attachment:scroll;
     }
-    /* Safari-specific: color the overscroll zone dark at both ends */
-    @supports (-webkit-touch-callout: none) {
-      html { background-color:#020c18; }
-      body { background-color:#020c18; }
+    body {
+      margin:0; padding:0;
+      overscroll-behavior-y:none;
     }
 
     :root {
