@@ -4832,7 +4832,6 @@ function renderPlayers() {
         <div style="display:flex;gap:7px;align-items:center;">
           ${p.id !== currentUser?.id ? friendBtn(p.id) : ''}
           <button class="btn btn-outline btn-sm" onclick="showProfile('${p.id}')">Profile</button>
-          <button class="btn btn-ghost btn-sm" onclick="delPlayer('${p.id}')">✕</button>
         </div>
       </div>`;
   }).join('');
