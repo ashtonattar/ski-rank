@@ -7,7 +7,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    html, body { margin:0; padding:0; }
+    html, body {
+      margin:0; padding:0;
+      background-color:#020c18;          /* matches --bg-base; fills overscroll bounce area */
+      overscroll-behavior:none;          /* suppress bounce on non-Safari */
+    }
+    /* Safari-specific: color the overscroll zone dark at both ends */
+    @supports (-webkit-touch-callout: none) {
+      html { background-color:#020c18; }
+      body { background-color:#020c18; }
+    }
 
     :root {
       --bg-base:    #020c18;
