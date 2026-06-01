@@ -4219,25 +4219,34 @@ function submitLiveClipAndReset() {
   resetLive();
 }
 
+function _resetLiveUI() {
+  // Shared UI reset used by both resetLive and dismissLiveGameOver
+  document.getElementById('live-active').style.display      = 'none';
+  document.getElementById('live-setup').style.display       = 'block';
+  document.getElementById('live-over-section').style.display= 'none';
+  document.getElementById('live-log').innerHTML             = '';
+  // Always return to the invite form — never leave the waiting screen showing
+  document.getElementById('live-invite-form').style.display    = 'block';
+  document.getElementById('live-invite-waiting').style.display = 'none';
+  fillSelects(['lv-p1','lv-p2','lv-judge']);
+}
+
 function resetLive() {
   // Clears the game for everyone (called after Save & New Game)
   _gameOverDismissed = false;
-  S.live = null; save();
-  document.getElementById('live-active').style.display = 'none';
-  document.getElementById('live-setup').style.display  = 'block';
-  document.getElementById('live-over-section').style.display = 'none';
-  document.getElementById('live-log').innerHTML = '';
-  fillSelects(['lv-p1','lv-p2','lv-judge']);
+  // Clear any pending invites from the current user
+  if (currentUser) {
+    S.liveInvites = (S.liveInvites || []).filter(i => i.fromId !== currentUser.id);
+  }
+  S.live = null;
+  save();
+  _resetLiveUI();
 }
 
 function dismissLiveGameOver() {
   // Locally dismisses the game-over screen for THIS player only — doesn't affect others
   _gameOverDismissed = true; // stop Firestore snapshots from re-showing it
-  document.getElementById('live-active').style.display = 'none';
-  document.getElementById('live-setup').style.display  = 'block';
-  document.getElementById('live-over-section').style.display = 'none';
-  document.getElementById('live-log').innerHTML = '';
-  fillSelects(['lv-p1','lv-p2','lv-judge']);
+  _resetLiveUI();
   // S.live is left intact so other players can still see the result
 }
 
