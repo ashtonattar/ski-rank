@@ -1312,28 +1312,21 @@
       /* ── Prevent horizontal scroll ── */
       html, body { overflow-x:hidden; max-width:100vw; }
 
-      /* Dark shelf behind the pills — covers the safe area gap at the bottom */
-      body::after {
-        content:'';
-        position:fixed;
-        bottom:0; left:0; right:0;
-        height:calc(80px + env(safe-area-inset-bottom));
-        background:#020c18;
-        z-index:97;
-        pointer-events:none;
-      }
-
       /* ── Sidebar → bottom tab bar (pill card style) ── */
       .sidebar {
         width:calc(100% - 24px) !important; left:12px; right:12px; height:auto !important;
-        position:fixed; bottom:calc(10px + env(safe-area-inset-bottom)); top:auto;
+        position:fixed; bottom:0; top:auto;
         flex-direction:row; border-right:none;
         border:1px solid rgba(0,212,255,0.18);
-        border-radius:var(--radius-lg);
-        background:rgba(3,12,28,0.88);
+        border-top-left-radius:var(--radius-lg);
+        border-top-right-radius:var(--radius-lg);
+        border-bottom-left-radius:0;
+        border-bottom-right-radius:0;
+        background:rgba(3,12,28,0.95);
         backdrop-filter:blur(24px);
         -webkit-backdrop-filter:blur(24px);
-        box-shadow:0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+        box-shadow:0 -4px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+        padding-bottom:env(safe-area-inset-bottom);
       }
       .sidebar::after { display:none; }
       .sidebar-logo { display:none; }
@@ -1348,24 +1341,24 @@
       .sidebar-user {
         display:flex;
         position:fixed;
-        bottom:calc(72px + env(safe-area-inset-bottom));
+        bottom:calc(62px + env(safe-area-inset-bottom));
         left:12px; right:12px;
         padding:8px 14px;
         border:1px solid rgba(0,212,255,0.18);
         border-radius:var(--radius-lg);
-        background:rgba(3,12,28,0.88);
+        background:rgba(3,12,28,0.95);
         backdrop-filter:blur(24px);
         -webkit-backdrop-filter:blur(24px);
         box-shadow:0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
         z-index:99;
       }
 
-      /* ── Main content (merged — padding-bottom accounts for both pills) ── */
+      /* ── Main content ── */
       .main {
         margin-left:0 !important; max-width:100% !important;
         margin-bottom:0; padding:12px; width:100%;
         box-sizing:border-box; min-width:0;
-        padding-bottom:calc(138px + env(safe-area-inset-bottom)) !important;
+        padding-bottom:calc(128px + env(safe-area-inset-bottom)) !important;
       }
       /* Fix flex overflow: table wrappers must be width-constrained */
       .tbl-wrap { width:100%; max-width:100%; }
