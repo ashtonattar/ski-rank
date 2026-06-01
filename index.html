@@ -1302,7 +1302,7 @@
 
       /* ── Sidebar → bottom tab bar (pill card style) ── */
       .sidebar {
-        width:calc(100% - 24px); left:12px; right:12px; height:auto;
+        width:calc(100% - 24px) !important; left:12px; right:12px; height:auto !important;
         position:fixed; bottom:calc(10px + env(safe-area-inset-bottom)); top:auto;
         flex-direction:row; border-right:none;
         border:1px solid rgba(0,212,255,0.18);
@@ -1337,11 +1337,13 @@
         z-index:99;
       }
 
-      /* Adjust main to account for profile pill + tab bar pill */
-      .main { padding-bottom:calc(138px + env(safe-area-inset-bottom)) !important; }
-
-      /* ── Main content ── */
-      .main { margin-left:0 !important; max-width:100% !important; margin-bottom:72px; padding:12px; width:100%; box-sizing:border-box; min-width:0; }
+      /* ── Main content (merged — padding-bottom accounts for both pills) ── */
+      .main {
+        margin-left:0 !important; max-width:100% !important;
+        margin-bottom:0; padding:12px; width:100%;
+        box-sizing:border-box; min-width:0;
+        padding-bottom:calc(138px + env(safe-area-inset-bottom)) !important;
+      }
       /* Fix flex overflow: table wrappers must be width-constrained */
       .tbl-wrap { width:100%; max-width:100%; }
       .card { min-width:0; }
@@ -1403,9 +1405,7 @@
       .form-input, .form-select, .form-textarea,
       .pp-search, .pp-trigger, .prof-textarea { font-size:16px !important; }
 
-      /* ── Safe-area insets for iPhone notch / home bar ── */
-      .sidebar { padding-bottom:env(safe-area-inset-bottom); }
-      .main { padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
+      /* ── Safe-area insets: handled in the sidebar/main rules above ── */
 
       /* ── Minimum touch target size ── */
       .btn-sm { padding:10px 14px; }
