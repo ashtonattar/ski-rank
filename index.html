@@ -5511,8 +5511,13 @@ function timeFmt(ts) {
 //  HISTORY
 // ═══════════════════════════════════════════════════════
 function renderHistory() {
-  const games   = [...S.games].sort((a,b) => b.date - a.date);
-  const pending = [...S.pending].sort((a,b) => b.date - a.date);
+  const uid     = currentUser?.id;
+  const games   = [...S.games]
+    .filter(g => !uid || g.winnerId === uid || g.loserId === uid)
+    .sort((a,b) => b.date - a.date);
+  const pending = [...S.pending]
+    .filter(r => !uid || r.winnerId === uid || r.loserId === uid || r.reporterId === uid)
+    .sort((a,b) => b.date - a.date);
   const list    = document.getElementById('hist-list');
   const empty   = document.getElementById('hist-empty');
 
