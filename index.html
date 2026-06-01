@@ -6036,6 +6036,9 @@ function acceptLiveInvite(inviteId) {
     S.live = null;
     _gameOverDismissed = false;
     _resetLiveUI();
+    // Also wipe the game-over banner HTML so it can't bleed into the new game
+    const overEl = document.getElementById('live-over-section');
+    if (overEl) { overEl.style.display = 'none'; overEl.innerHTML = ''; }
   }
 
   // Don't overwrite S.live if the host already created it — that would wipe
