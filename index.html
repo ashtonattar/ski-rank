@@ -5192,7 +5192,7 @@ function openChat(friendId, scrollToBottom=true) {
 
   // Header
   document.getElementById('chat-header').innerHTML = `
-    <div class="avatar avatar-sm" style="background:${avatarGrad(friend.id)}">${initials(friend.name)}</div>
+    ${avatarHtml(friend, 'avatar-sm')}
     <div style="flex:1;">
       <div style="font-weight:700;font-size:14px;">${friend.name}</div>
       <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '🏔 ' + friend.homeResort : 'Skier'}</div>
@@ -6579,7 +6579,7 @@ function renderMyProfile() {
         const ft = tier(f.rating);
         return `
           <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-            <div class="avatar avatar-sm" style="background:${avatarGrad(f.id)}">${initials(f.name)}</div>
+            ${avatarHtml(f, 'avatar-sm')}
             <div style="flex:1;min-width:0;">
               <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
               <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating)} · <span onclick="showTierModal()" style="color:${ft.color};cursor:pointer;" title="View all tiers">${ft.icon} ${ft.label}</span>${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
