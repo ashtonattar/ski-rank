@@ -3966,7 +3966,7 @@ function drawBoard() {
   const judger    = g.judgeId ? amIJudge : (amICopier || amISetter); // who gets judge buttons
 
   // Determine display role label for each player panel
-  const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge'];
+  const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge','judge-pick-setter'];
   const judgePlayer = g.judgeId ? byId(g.judgeId) : null;
   document.getElementById('live-board').innerHTML = `
     ${playerPanel(p1, g, g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
@@ -3986,12 +3986,32 @@ function drawBoard() {
     });
 
     if (g.phase === 'waiting-for-judge') {
-      // Both players wait for the judge to join
       const judgeName = g.judgeId ? (byId(g.judgeId)?.name || 'the judge') : 'the judge';
       document.getElementById('phase-wait').style.display = 'block';
       document.getElementById('phase-wait-msg').innerHTML =
         `⚖️ Waiting for <strong style="color:var(--primary);">${judgeName}</strong> to join…<br>
          <span style="font-size:12px;color:var(--text-muted);">The judge needs to accept their invite in their inbox</span>`;
+
+    } else if (g.phase === 'judge-pick-setter') {
+      if (amIJudge) {
+        // Judge picks who sets first
+        const p1 = byId(g.p1), p2 = byId(g.p2);
+        document.getElementById('phase-wait').style.display = 'block';
+        document.getElementById('phase-wait-msg').innerHTML = `
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">⚖️ Who sets first?</div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="judgePickSetter('${p1.id}')">
+              ${avatarHtml(p1,'avatar-sm')} <span style="margin-left:6px;">${p1.name}</span>
+            </button>
+            <button class="btn btn-primary" onclick="judgePickSetter('${p2.id}')">
+              ${avatarHtml(p2,'avatar-sm')} <span style="margin-left:6px;">${p2.name}</span>
+            </button>
+          </div>`;
+      } else {
+        document.getElementById('phase-wait').style.display = 'block';
+        document.getElementById('phase-wait-msg').innerHTML =
+          `⚖️ Waiting for the judge to pick who sets first…`;
+      }
 
     } else if (g.phase === 'setting') {
       if (amISetter) {
@@ -4088,6 +4108,16 @@ function setterSubmitTrick() {
 }
 
 // Non-setter (opponent) confirms setter landed — move to copying phase
+// Judge picks which player sets first
+function judgePickSetter(playerId) {
+  const g = S.live;
+  if (!g || g.phase !== 'judge-pick-setter') return;
+  g.setterId = playerId;
+  g.phase    = 'setting';
+  addLog('⚖️', `Judge chose ${byId(playerId).name} to set first.`);
+  save(); drawBoard();
+}
+
 function judgeSetterLanded() {
   const g = S.live;
   if (!g || g.phase !== 'judging-setter') return;
@@ -5616,17 +5646,17 @@ function acceptLiveInvite(inviteId) {
     inv.status = 'accepted';
 
     if (db) {
-      // Use update() to ONLY change live.phase — safe even if local S.live is stale/null
+      // Advance to judge-pick-setter so judge chooses who goes first
       db.collection('state').doc('global')
-        .update({ 'live.phase': 'setting' })
+        .update({ 'live.phase': 'judge-pick-setter' })
         .catch(e => console.warn('Judge phase update failed:', e));
     }
 
     // Also update local state if we have it
     if (S.live && S.live.phase === 'waiting-for-judge') {
-      S.live.phase = 'setting';
+      S.live.phase = 'judge-pick-setter';
     }
-    addLog('⚖️', `${currentUser.name} has joined as judge — game on!`);
+    addLog('⚖️', `${currentUser.name} has joined as judge — pick who sets first!`);
     // Only save liveInvites change, not the full S (avoids overwriting stale live data)
     clearTimeout(_saveTimer);
     _saveToFirestore();
