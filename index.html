@@ -3939,7 +3939,8 @@ function startLive() {
     letters:{[p1]:0,[p2]:0},
     setterId: p1,
     trick: null,
-    phase: 'setting',
+    setterVotes: {},
+    phase: judge ? 'waiting-for-judge' : 'pick-setter',
     log: [],
     over: false,
     winnerId:null, loserId:null,
@@ -3966,7 +3967,7 @@ function drawBoard() {
   const judger    = g.judgeId ? amIJudge : (amICopier || amISetter); // who gets judge buttons
 
   // Determine display role label for each player panel
-  const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge','judge-pick-setter'];
+  const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge','judge-pick-setter','pick-setter'];
   const judgePlayer = g.judgeId ? byId(g.judgeId) : null;
   document.getElementById('live-board').innerHTML = `
     ${playerPanel(p1, g, g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
@@ -4011,6 +4012,31 @@ function drawBoard() {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
           `⚖️ Waiting for the judge to pick who sets first…`;
+      }
+
+    } else if (g.phase === 'pick-setter') {
+      const p1p = byId(g.p1), p2p = byId(g.p2);
+      const votes   = g.setterVotes || {};
+      const myVote  = currentUser ? votes[currentUser.id] : null;
+      const otherId = currentUser?.id === g.p1 ? g.p2 : g.p1;
+      document.getElementById('phase-wait').style.display = 'block';
+      if (!myVote) {
+        document.getElementById('phase-wait-msg').innerHTML = `
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Who should set first?</div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px;" onclick="voteForSetter('${p1p.id}')">
+              ${avatarHtml(p1p,'avatar-sm')} ${p1p.name}
+            </button>
+            <button class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px;" onclick="voteForSetter('${p2p.id}')">
+              ${avatarHtml(p2p,'avatar-sm')} ${p2p.name}
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="voteForSetter('random')">🎲 Random</button>
+          </div>`;
+      } else {
+        const voteLabel = myVote === 'random' ? '🎲 Random' : byId(myVote)?.name;
+        document.getElementById('phase-wait-msg').innerHTML = `
+          <div style="font-size:13px;margin-bottom:4px;">You voted: <strong style="color:var(--primary);">${voteLabel}</strong></div>
+          <div style="font-size:12px;color:var(--text-muted);">⏳ Waiting for ${byId(otherId)?.name} to vote…</div>`;
       }
 
     } else if (g.phase === 'setting') {
@@ -4108,6 +4134,36 @@ function setterSubmitTrick() {
 }
 
 // Non-setter (opponent) confirms setter landed — move to copying phase
+// Both players vote on who sets first (non-judge mode)
+function voteForSetter(choice) {
+  const g = S.live;
+  if (!g || g.phase !== 'pick-setter' || !currentUser) return;
+  if (!g.setterVotes) g.setterVotes = {};
+  g.setterVotes[currentUser.id] = choice;
+
+  const v1 = g.setterVotes[g.p1];
+  const v2 = g.setterVotes[g.p2];
+
+  if (v1 && v2) {
+    // Both voted — resolve
+    let starterId;
+    if (v1 !== 'random' && v2 !== 'random' && v1 === v2) {
+      // Both picked the same player
+      starterId = v1;
+      addLog('🤝', `Both players agreed — ${byId(starterId).name} sets first!`);
+    } else {
+      // Different votes or random involved — pick randomly
+      starterId = Math.random() < 0.5 ? g.p1 : g.p2;
+      addLog('🎲', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
+    }
+    g.setterId    = starterId;
+    g.phase       = 'setting';
+    g.setterVotes = {};
+  }
+
+  save(); drawBoard();
+}
+
 // Judge picks which player sets first
 function judgePickSetter(playerId) {
   const g = S.live;
@@ -5670,12 +5726,13 @@ function acceptLiveInvite(inviteId) {
   inv.status = 'accepted';
   S.live = {
     p1: inv.p1Id, p2: inv.p2Id,
-    judgeId:  inv.judgeId || null,
-    letters:  { [inv.p1Id]: 0, [inv.p2Id]: 0 },
-    setterId: inv.p1Id,
-    trick:    null,
-    // If there's a judge, hold in waiting-for-judge phase until they join
-    phase:    inv.judgeId ? 'waiting-for-judge' : 'setting',
+    judgeId:     inv.judgeId || null,
+    letters:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
+    setterId:    inv.p1Id,
+    trick:       null,
+    setterVotes: {},
+    // Judge games wait for judge first; non-judge games go to pick-setter vote
+    phase:    inv.judgeId ? 'waiting-for-judge' : 'pick-setter',
     log:      [],
     over:     false,
     resort:   inv.resort || '',
