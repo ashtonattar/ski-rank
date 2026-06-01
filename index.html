@@ -4165,6 +4165,10 @@ function finishLive(winnerId, loserId) {
   addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '');
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
+  // Clear ALL invites tied to this game so no one gets stuck on the waiting screen
+  S.liveInvites = (S.liveInvites || []).filter(i =>
+    !(i.p1Id === g.p1 && i.p2Id === g.p2)
+  );
   save();
   showRatingAnim(byId(winnerId), byId(loserId), game);
   showGameOver(winnerId, loserId, game);
@@ -4232,10 +4236,13 @@ function _resetLiveUI() {
 }
 
 function resetLive() {
-  // Clears the game for everyone (called after Save & New Game)
+  // Clears the game for everyone (called after Save & New Game or abandon)
   _gameOverDismissed = false;
-  // Clear any pending invites from the current user
-  if (currentUser) {
+  // Clear ALL invites tied to this game (host, opponent and judge)
+  if (S.live) {
+    const p1 = S.live.p1, p2 = S.live.p2;
+    S.liveInvites = (S.liveInvites || []).filter(i => !(i.p1Id === p1 && i.p2Id === p2));
+  } else if (currentUser) {
     S.liveInvites = (S.liveInvites || []).filter(i => i.fromId !== currentUser.id);
   }
   S.live = null;
