@@ -1504,6 +1504,24 @@
     .admin-stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
     .admin-stat-val { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--primary); letter-spacing:1px; }
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
+
+    /* ── Onboarding ── */
+    #onboard-overlay {
+      display:none; position:fixed; inset:0; z-index:10100;
+      background:rgba(0,0,0,0.72); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:center; justify-content:center; padding:20px;
+    }
+    #onboard-card {
+      background:rgba(3,12,28,0.97); border:1px solid rgba(0,212,255,0.22);
+      border-radius:24px; padding:36px 28px 28px; max-width:400px; width:100%;
+      box-shadow:0 32px 80px rgba(0,0,0,0.85);
+      animation:onboardIn .35s cubic-bezier(.22,.68,0,1.2) both;
+    }
+    @keyframes onboardIn {
+      from { opacity:0; transform:scale(0.92) translateY(18px); }
+      to   { opacity:1; transform:scale(1)    translateY(0); }
+    }
   </style>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -2537,6 +2555,7 @@ let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
 let   _clearLiveOnFirstSync = false; // abandon any live game found on first sync after login/refresh
+let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -2706,6 +2725,15 @@ function startFirestoreSync() {
         if (_activeSection === 'profile') renderMyProfile();
         updateSidebarAvatar();
 
+        // Show onboarding for brand-new signups (once Firestore has their player record)
+        if (_isNewSignup) {
+          _isNewSignup = false;
+          const me = S.players.find(p => p.id === currentUser?.id);
+          if (me && !me.onboarded) {
+            setTimeout(() => showOnboarding(), 600);
+          }
+        }
+
         // Live game — update the board in real time without a full nav re-render
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
@@ -2874,6 +2902,7 @@ async function doSignup() {
   users.push(newUser);
   saveUsers(users);
   setSession({ id: newUser.id, name: newUser.name, email: newUser.email, riderType: newUser.riderType });
+  _isNewSignup = true;
   launchApp();
 }
 
@@ -3011,6 +3040,87 @@ function switchAuthTab(tab) {
   document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
   document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
   document.getElementById('auth-error').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════
+//  ONBOARDING
+// ═══════════════════════════════════════════════════════
+const ONBOARDING_STEPS = [
+  {
+    icon: '🎿',
+    title: 'Welcome to Ski Rank',
+    body: `Ski Rank is a competitive ranking app for skiers and snowboarders. Challenge your friends, track your rating, and climb the leaderboard.`,
+    cta: 'Let\'s go →'
+  },
+  {
+    icon: '🎯',
+    title: 'How Games Work',
+    body: `Games are played like <strong>HORSE</strong>. One rider sets a trick — the other must match it. Miss it and you collect a letter. Spell S-K-I (or H-O-R-S-E) and you lose.<br><br>You can log a game manually after the fact, or play a <strong>Live Game</strong> in real time with a judge scoring each trick.`,
+    cta: 'Next →'
+  },
+  {
+    icon: '📈',
+    title: 'Your Rating',
+    body: `Every game changes your rating. Beat a higher-rated rider and you gain more points. Lose to a lower-rated rider and you drop more.<br><br>Your rating starts at <strong>1.00</strong> and moves up or down after every confirmed game. Consistency and tough opponents are how you climb.`,
+    cta: 'Next →'
+  },
+  {
+    icon: '🏆',
+    title: 'Rank Tiers',
+    body: `Your rating places you in a tier:<br><br>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;">🔥 Elite</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;">⭐ Expert</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;">💪 Advanced</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;">📈 Intermediate</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;">🎿 Developing</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;">🏔️ Beginner</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
+      </div>`,
+    cta: 'Next →'
+  },
+  {
+    icon: '🚀',
+    title: 'You\'re All Set!',
+    body: `Add friends, send challenges, and start playing. The leaderboard updates in real time — every win moves you up.<br><br>Head to <strong>Log Game</strong> to record your first game, or tap <strong>Live Game</strong> to play in real time. Good luck! 🏔`,
+    cta: 'Start Riding 🎿'
+  }
+];
+
+let _onboardStep = 0;
+
+function showOnboarding() {
+  _onboardStep = 0;
+  _renderOnboardStep();
+  document.getElementById('onboard-overlay').style.display = 'flex';
+}
+
+function _renderOnboardStep() {
+  const step = ONBOARDING_STEPS[_onboardStep];
+  const total = ONBOARDING_STEPS.length;
+  document.getElementById('onboard-icon').textContent = step.icon;
+  document.getElementById('onboard-title').textContent = step.title;
+  document.getElementById('onboard-body').innerHTML = step.body;
+  document.getElementById('onboard-cta').textContent = step.cta;
+  // Dots
+  document.getElementById('onboard-dots').innerHTML = ONBOARDING_STEPS.map((_,i) =>
+    `<div style="width:${i===_onboardStep?18:7}px;height:7px;border-radius:99px;background:${i===_onboardStep?'var(--ice)':'rgba(255,255,255,0.18)'};transition:all .25s;"></div>`
+  ).join('');
+}
+
+function onboardNext() {
+  if (_onboardStep < ONBOARDING_STEPS.length - 1) {
+    _onboardStep++;
+    _renderOnboardStep();
+  } else {
+    closeOnboarding();
+  }
+}
+
+function closeOnboarding() {
+  document.getElementById('onboard-overlay').style.display = 'none';
+  // Mark player as onboarded so it never shows again
+  const me = S.players.find(p => p.id === currentUser?.id);
+  if (me) { me.onboarded = true; save(); }
 }
 
 function launchApp() {
@@ -7047,6 +7157,18 @@ async function adminWipeEverything() {
       </div>
     </div>
     <div style="margin-top:16px;font-size:11.5px;color:var(--text-muted);text-align:center;">Rating = (wins − losses) · difficulty · streak bonuses</div>
+  </div>
+</div>
+
+<!-- Onboarding modal -->
+<div id="onboard-overlay">
+  <div id="onboard-card">
+    <div id="onboard-icon" style="font-size:54px;text-align:center;margin-bottom:16px;line-height:1;"></div>
+    <div id="onboard-title" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;text-align:center;margin-bottom:12px;color:var(--text-primary);"></div>
+    <div id="onboard-body" style="font-size:14px;line-height:1.65;color:var(--text-secondary);text-align:center;margin-bottom:24px;"></div>
+    <button id="onboard-cta" class="btn btn-primary" onclick="onboardNext()" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px;"></button>
+    <div id="onboard-dots" style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:18px;"></div>
+    <button onclick="closeOnboarding()" style="display:block;margin:14px auto 0;background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:4px 8px;">Skip tutorial</button>
   </div>
 </div>
 
