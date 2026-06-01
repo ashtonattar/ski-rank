@@ -4258,9 +4258,29 @@ function dismissLiveGameOver() {
 }
 
 function abandonGame() {
-  confirm_('Abandon game?',
-    'The current game will be cancelled with no rating changes.',
-    resetLive);
+  if (!S.live || !currentUser) return;
+  const g = S.live;
+  const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2;
+
+  if (!amPlayer) {
+    // Judge or spectator — just leave quietly
+    confirm_('Leave game?', 'You will stop judging this game.', resetLive);
+    return;
+  }
+
+  const loserId  = currentUser.id;
+  const winnerId = currentUser.id === g.p1 ? g.p2 : g.p1;
+  const winner   = byId(winnerId);
+
+  confirm_(
+    'Abandon game?',
+    `You will automatically lose — your letters jump to S·K·I and ${winner.name} wins. Rating changes apply.`,
+    () => {
+      g.letters[loserId] = 3; // complete SKI = forfeit
+      addLog('🏳️', `${currentUser.name} abandoned the game — forfeit! ${winner.name} wins.`);
+      finishLive(winnerId, loserId);
+    }
+  );
 }
 
 function addLog(icon, msg) {
