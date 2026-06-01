@@ -2663,6 +2663,7 @@ function startFirestoreSync() {
         if (listEl) renderFriendsView();
         const safe = ['leaderboard','players','explore','friends','confirmations'];
         if (safe.includes(_activeSection)) nav(_activeSection);
+        if (_activeSection === 'profile') renderMyProfile();
 
         // Live game — update the board in real time without a full nav re-render
         // (avoids clearing the trick-input field while someone is typing)
