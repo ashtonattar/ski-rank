@@ -1988,6 +1988,23 @@
               <button class="btn btn-missed" onclick="revengeAttemptMissed()">❌ No, They Missed Too</button>
             </div>
           </div>
+          <!-- Phase: dispute — both players confirm or deny the call -->
+          <div id="phase-dispute" style="display:none;">
+            <div style="text-align:center;margin-bottom:14px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warning);margin-bottom:6px;">⚖️ Disputed Call</div>
+              <div id="dispute-call-desc" style="font-size:15px;font-weight:700;margin-bottom:4px;"></div>
+              <div style="font-size:12.5px;color:var(--text-muted);">Do you agree with this call?</div>
+            </div>
+            <!-- Confirm / Deny buttons (hidden after voting) -->
+            <div id="dispute-vote-btns" class="trick-btns">
+              <button class="btn btn-landed" onclick="submitDisputeVote('confirm')">✅ Confirm the Call</button>
+              <button class="btn btn-missed" onclick="submitDisputeVote('deny')">❌ Deny the Call</button>
+            </div>
+            <!-- Waiting message (shown after voting) -->
+            <div id="dispute-voted-msg" style="display:none;text-align:center;padding:8px 0;font-size:13.5px;color:var(--text-secondary);"></div>
+            <!-- Strike tracker -->
+            <div id="dispute-strikes" style="display:flex;justify-content:center;gap:28px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);"></div>
+          </div>
           <!-- Waiting / spectator view -->
           <div id="phase-wait" style="display:none;text-align:center;padding:14px 0 4px;">
             <div id="phase-wait-msg" style="font-size:14px;color:var(--text-secondary);line-height:1.6;"></div>
@@ -4038,6 +4055,9 @@ function startLive() {
     setterId: p1,
     trick: null,
     setterVotes: {},
+    strikes: {[p1]:0,[p2]:0},
+    pendingCall: null,
+    disputeVotes: {},
     phase: judge ? 'waiting-for-judge' : 'pick-setter',
     log: [],
     over: false,
@@ -4080,7 +4100,7 @@ function drawBoard() {
 
   if (!g.over) {
     // Hide all phase panels first
-    ['phase-set','phase-judge-setter','phase-copy','phase-revenge','phase-wait'].forEach(id => {
+    ['phase-set','phase-judge-setter','phase-copy','phase-revenge','phase-wait','phase-dispute'].forEach(id => {
       document.getElementById(id).style.display = 'none';
     });
 
@@ -4192,6 +4212,36 @@ function drawBoard() {
         document.getElementById('phase-wait-msg').textContent =
           `⏳ Waiting for ${byId(copierId).name}'s revenge attempt…`;
       }
+
+    } else if (g.phase === 'dispute') {
+      document.getElementById('phase-dispute').style.display = 'block';
+      // Describe the call
+      document.getElementById('dispute-call-desc').textContent = callDesc(g.pendingCall?.type, g);
+      // Show vote buttons or waiting message
+      const myVote = currentUser ? (g.disputeVotes || {})[currentUser.id] : null;
+      const otherVote = currentUser ? (g.disputeVotes || {})[currentUser.id === g.p1 ? g.p2 : g.p1] : null;
+      if (!myVote && (amISetter || amICopier)) {
+        document.getElementById('dispute-vote-btns').style.display = 'grid';
+        document.getElementById('dispute-voted-msg').style.display = 'none';
+      } else {
+        document.getElementById('dispute-vote-btns').style.display = 'none';
+        document.getElementById('dispute-voted-msg').style.display = 'block';
+        document.getElementById('dispute-voted-msg').innerHTML = myVote
+          ? `You voted <strong>${myVote === 'confirm' ? '✅ Confirm' : '❌ Deny'}</strong> — waiting for the other player…`
+          : `⏳ Both players are voting…`;
+      }
+      // Strike tracker
+      const strikes = g.strikes || {};
+      const strikeHtml = [g.p1, g.p2].map(pid => {
+        const s = strikes[pid] || 0;
+        const dots = '⚡'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
+        return `<div style="text-align:center;">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${byId(pid)?.name}</div>
+          <div style="font-size:18px;letter-spacing:3px;">${dots}</div>
+          <div style="font-size:10px;color:${s>=3?'var(--danger)':'var(--text-muted)'};">${s}/3 strikes</div>
+        </div>`;
+      }).join('');
+      document.getElementById('dispute-strikes').innerHTML = strikeHtml;
     }
 
     document.getElementById('trick-area').style.display = 'block';
@@ -4216,6 +4266,7 @@ function playerPanel(player, g, role) {
       </div>
       ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;">🎯 SETTER</div>' : ''}
       ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;">🎿 COPYING</div>' : ''}
+      ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);">⚡ ${g.strikes[player.id]}/3 strikes</div>` : ''}
     </div>`;
 }
 
@@ -4275,6 +4326,8 @@ function judgePickSetter(playerId) {
 function judgeSetterLanded() {
   const g = S.live;
   if (!g || g.phase !== 'judging-setter') return;
+  // No judge → enter dispute phase so both players confirm/deny
+  if (!g.judgeId) { enterDisputePhase('setterLanded'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   addLog('✅', `${byId(g.setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
   g.phase = 'copying';
@@ -4285,33 +4338,34 @@ function judgeSetterLanded() {
 function judgeSetterBailed() {
   const g = S.live;
   if (!g || g.phase !== 'judging-setter') return;
+  if (!g.judgeId) { enterDisputePhase('setterBailed'); return; }
   const setterName = byId(g.setterId).name;
   const copierId   = g.setterId === g.p1 ? g.p2 : g.p1;
   addLog('💨', `${setterName} bailed! ${byId(copierId).name} gets a revenge attempt…`);
-  g.phase = 'revenge'; // trick stays set so opponent can try it
+  g.phase = 'revenge';
   save(); drawBoard();
 }
 
 // Setter judges copier landed the copy → setter STAYS setter, new trick
 function copierLand() {
   const g = S.live;
+  if (!g.judgeId) { enterDisputePhase('copierLand'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   addLog('✅', `${byId(copierId).name} landed the copy! ${byId(g.setterId).name} keeps setting.`);
-  g.trick = null; g.phase = 'setting'; // setter stays the same
+  g.trick = null; g.phase = 'setting';
   save(); drawBoard();
 }
 
 // Setter judges copier missed the copy → copier gets a letter, setter STAYS setter
 function copierMiss() {
   const g = S.live;
+  if (!g.judgeId) { enterDisputePhase('copierMiss'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   g.letters[copierId] = (g.letters[copierId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[copierId]).join('');
   addLog('❌', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}. ${byId(g.setterId).name} keeps setting.`);
-
   if (g.letters[copierId] >= 3) { finishLive(g.setterId, copierId); return; }
-
-  g.trick = null; g.phase = 'setting'; // setter stays the same
+  g.trick = null; g.phase = 'setting';
   save(); drawBoard();
 }
 
@@ -4319,15 +4373,13 @@ function copierMiss() {
 function revengeAttemptLanded() {
   const g = S.live;
   if (!g || g.phase !== 'revenge') return;
+  if (!g.judgeId) { enterDisputePhase('revengeLanded'); return; }
   const setterId = g.setterId;
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   g.letters[setterId] = (g.letters[setterId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[setterId]).join('');
   addLog('🔥', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
-
   if (g.letters[setterId] >= 3) { finishLive(copierId, setterId); return; }
-
-  // Opponent proved they could do it — they become the new setter
   g.setterId = copierId;
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
@@ -4337,15 +4389,133 @@ function revengeAttemptLanded() {
 function revengeAttemptMissed() {
   const g = S.live;
   if (!g || g.phase !== 'revenge') return;
+  if (!g.judgeId) { enterDisputePhase('revengeMissed'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   addLog('💨', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
-  g.setterId = copierId; // opponent becomes setter regardless
+  g.setterId = copierId;
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
 }
 
+// ── DISPUTE SYSTEM ────────────────────────────────────────────────────────────
+
+// Enter dispute phase: save the pending call and ask both players to confirm/deny
+function enterDisputePhase(callType) {
+  const g = S.live;
+  g.pendingCall  = { type: callType, prevPhase: g.phase };
+  g.disputeVotes = {};
+  g.phase        = 'dispute';
+  const callerName = callType.startsWith('setter') || callType === 'revengeLanded' || callType === 'revengeMissed'
+    ? byId(g.setterId).name
+    : byId(g.setterId).name; // setter always makes the call
+  addLog('⚖️', `${callerName} made a call — both players must confirm or deny.`);
+  save(); drawBoard();
+}
+
+// Called when a player hits Confirm or Deny
+function submitDisputeVote(vote) {
+  const g = S.live;
+  if (!g || g.phase !== 'dispute' || !currentUser) return;
+  if (g.disputeVotes[currentUser.id]) return; // already voted
+  g.disputeVotes[currentUser.id] = vote;
+  save(); drawBoard();
+
+  // Check if both players have voted
+  const v1 = g.disputeVotes[g.p1];
+  const v2 = g.disputeVotes[g.p2];
+  if (!v1 || !v2) return; // still waiting for the other player
+
+  if (v1 === v2) {
+    // Agreement
+    const upheld = v1 === 'confirm';
+    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
+    applyPendingCall(!upheld); // reversed=false means apply original; reversed=true means flip it
+  } else {
+    // Disagreement — both get a strike, call stands
+    g.strikes = g.strikes || {};
+    g.strikes[g.p1] = (g.strikes[g.p1] || 0) + 1;
+    g.strikes[g.p2] = (g.strikes[g.p2] || 0) + 1;
+    const s1 = g.strikes[g.p1], s2 = g.strikes[g.p2];
+    addLog('⚡', `Disagreement! Both players get a strike. ${byId(g.p1).name}: ${s1}/3 · ${byId(g.p2).name}: ${s2}/3. Call stands.`);
+    applyPendingCall(false); // call stands as originally made
+  }
+}
+
+// Apply the pending call — reversed=true flips the outcome
+function applyPendingCall(reversed) {
+  const g = S.live;
+  const type    = reversed ? flipCall(g.pendingCall.type) : g.pendingCall.type;
+  g.pendingCall = null;
+  g.disputeVotes = {};
+
+  const setterId = g.setterId;
+  const copierId = setterId === g.p1 ? g.p2 : g.p1;
+
+  if (type === 'setterLanded') {
+    addLog('✅', `${byId(setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
+    g.phase = 'copying';
+  } else if (type === 'setterBailed') {
+    addLog('💨', `${byId(setterId).name} bailed! ${byId(copierId).name} gets a revenge attempt…`);
+    g.phase = 'revenge';
+  } else if (type === 'copierLand') {
+    addLog('✅', `${byId(copierId).name} landed the copy! ${byId(setterId).name} keeps setting.`);
+    g.trick = null; g.phase = 'setting';
+  } else if (type === 'copierMiss') {
+    g.letters[copierId] = (g.letters[copierId] || 0) + 1;
+    const earned = LETTERS.slice(0, g.letters[copierId]).join('');
+    addLog('❌', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}.`);
+    if (g.letters[copierId] >= 3) { finishLive(setterId, copierId); return; }
+    g.trick = null; g.phase = 'setting';
+  } else if (type === 'revengeLanded') {
+    g.letters[setterId] = (g.letters[setterId] || 0) + 1;
+    const earned = LETTERS.slice(0, g.letters[setterId]).join('');
+    addLog('🔥', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
+    if (g.letters[setterId] >= 3) { finishLive(copierId, setterId); return; }
+    g.setterId = copierId;
+    g.trick = null; g.phase = 'setting';
+  } else if (type === 'revengeMissed') {
+    addLog('💨', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
+    g.setterId = copierId;
+    g.trick = null; g.phase = 'setting';
+  }
+
+  save(); drawBoard();
+}
+
+// Flip a call to its opposite
+function flipCall(type) {
+  return { setterLanded:'setterBailed', setterBailed:'setterLanded',
+           copierLand:'copierMiss',     copierMiss:'copierLand',
+           revengeLanded:'revengeMissed', revengeMissed:'revengeLanded' }[type] || type;
+}
+
+// Human-readable description of a call
+function callDesc(type, g) {
+  const setterId = g.setterId, copierId = setterId === g.p1 ? g.p2 : g.p1;
+  const sName = byId(setterId)?.name, cName = byId(copierId)?.name;
+  return {
+    setterLanded:  `${sName} landed "${g.trick || 'the trick'}" ✅`,
+    setterBailed:  `${sName} bailed on "${g.trick || 'the trick'}" 💨`,
+    copierLand:    `${cName} landed the copy ✅`,
+    copierMiss:    `${cName} missed the copy ❌`,
+    revengeLanded: `${cName} landed the revenge ✅`,
+    revengeMissed: `${cName} missed the revenge 💨`,
+  }[type] || type;
+}
+
 function finishLive(winnerId, loserId) {
   const g = S.live;
+  // Apply strike penalties before committing ratings
+  const strikes = g.strikes || {};
+  [g.p1, g.p2].forEach(pid => {
+    if ((strikes[pid] || 0) >= 3) {
+      const p = byId(pid);
+      if (p) {
+        p.rating = Math.max(0, (p.rating || 0) - 1);
+        addLog('⚡', `${p.name} hit 3 strikes — loses 1 rating point!`);
+      }
+    }
+  });
   addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '');
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
@@ -5829,6 +5999,9 @@ function acceptLiveInvite(inviteId) {
     setterId:    inv.p1Id,
     trick:       null,
     setterVotes: {},
+    strikes:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
+    pendingCall: null,
+    disputeVotes: {},
     // Judge games wait for judge first; non-judge games go to pick-setter vote
     phase:    inv.judgeId ? 'waiting-for-judge' : 'pick-setter',
     log:      [],
