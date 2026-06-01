@@ -356,7 +356,41 @@
       text-transform:uppercase;
       cursor:pointer; border:none; transition:all .18s;
       font-family:'Barlow Condensed',sans-serif;
+      position:relative; overflow:hidden;
+      -webkit-tap-highlight-color:transparent;
     }
+
+    /* ── Ripple ── */
+    .btn-ripple {
+      position:absolute; border-radius:50%;
+      transform:scale(0); pointer-events:none;
+      animation:btnRipple .55s ease-out forwards;
+      background:rgba(255,255,255,0.28);
+    }
+    @keyframes btnRipple {
+      to { transform:scale(4); opacity:0; }
+    }
+
+    /* ── Press-down bounce ── */
+    .btn:active { transform:scale(0.93) translateY(1px) !important; }
+
+    /* ── Landed: green pulse burst ── */
+    @keyframes landedPulse {
+      0%   { box-shadow:0 0 0 0 rgba(0,230,118,0.7); transform:scale(1); }
+      40%  { box-shadow:0 0 0 14px rgba(0,230,118,0); transform:scale(1.04); }
+      100% { box-shadow:0 4px 22px rgba(0,230,118,0.3); transform:scale(1); }
+    }
+    .btn-landed.btn-fired { animation:landedPulse .45s cubic-bezier(.22,.68,0,1.2) forwards; }
+
+    /* ── Missed: red shake ── */
+    @keyframes missedShake {
+      0%,100% { transform:translateX(0) scale(1); }
+      15%     { transform:translateX(-6px) scale(0.97); }
+      35%     { transform:translateX(5px)  scale(0.97); }
+      55%     { transform:translateX(-4px) scale(0.98); }
+      75%     { transform:translateX(3px)  scale(0.99); }
+    }
+    .btn-missed.btn-fired { animation:missedShake .42s cubic-bezier(.36,.07,.19,.97) forwards; }
 
     .btn-primary {
       background:var(--ice-dark); color:#fff;
@@ -6668,6 +6702,31 @@ function clearAvatar() {
   renderMyProfile();
   updateSidebarAvatar();
 }
+
+// ── Button click animations (ripple + special effects) ──
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.btn');
+  if (!btn) return;
+
+  // Ripple from click position
+  const rect   = btn.getBoundingClientRect();
+  const size   = Math.max(rect.width, rect.height) * 1.6;
+  const x      = e.clientX - rect.left - size / 2;
+  const y      = e.clientY - rect.top  - size / 2;
+  const ripple = document.createElement('span');
+  ripple.className = 'btn-ripple';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove());
+
+  // Special effects for landed/missed
+  if (btn.classList.contains('btn-landed') || btn.classList.contains('btn-missed')) {
+    btn.classList.remove('btn-fired');
+    void btn.offsetWidth; // reflow to restart animation
+    btn.classList.add('btn-fired');
+    btn.addEventListener('animationend', () => btn.classList.remove('btn-fired'), { once:true });
+  }
+}, true);
 
 function showTierModal() {
   const m = document.getElementById('tier-modal-overlay');
