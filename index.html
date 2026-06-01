@@ -6030,23 +6030,28 @@ function acceptLiveInvite(inviteId) {
   }
 
   inv.status = 'accepted';
-  S.live = {
-    p1: inv.p1Id, p2: inv.p2Id,
-    judgeId:     inv.judgeId || null,
-    letters:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
-    setterId:    inv.p1Id,
-    trick:       null,
-    setterVotes: {},
-    strikes:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
-    pendingCall: null,
-    disputeVotes: {},
-    // Judge games wait for judge first; non-judge games go to pick-setter vote
-    phase:    inv.judgeId ? 'waiting-for-judge' : 'pick-setter',
-    log:      [],
-    over:     false,
-    resort:   inv.resort || '',
-    winnerId: null, loserId: null, _game: null
-  };
+
+  // Don't overwrite S.live if the host already created it — that would wipe
+  // any votes or state the host has already set (e.g. pick-setter votes).
+  // Only create it as a fallback if it doesn't exist yet.
+  if (!S.live || S.live.p1 !== inv.p1Id || S.live.p2 !== inv.p2Id) {
+    S.live = {
+      p1: inv.p1Id, p2: inv.p2Id,
+      judgeId:     inv.judgeId || null,
+      letters:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
+      setterId:    inv.p1Id,
+      trick:       null,
+      setterVotes: {},
+      strikes:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
+      pendingCall: null,
+      disputeVotes: {},
+      phase:    inv.judgeId ? 'waiting-for-judge' : 'pick-setter',
+      log:      [],
+      over:     false,
+      resort:   inv.resort || '',
+      winnerId: null, loserId: null, _game: null
+    };
+  }
   save();
 
   checkNotifications();
