@@ -2428,21 +2428,6 @@
         <button class="btn btn-danger" onclick="deleteAccount()">🗑 Delete My Account</button>
       </div>
 
-      <!-- Data backup -->
-      <div class="card">
-        <div class="card-hdr">
-          <span class="card-title">Data Backup</span>
-        </div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
-          All data lives in your browser's local storage. Export a backup before clearing your browser or switching devices — then re-import it to restore everything.
-        </p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="exportData()">⬇ Export Backup</button>
-          <button class="btn btn-outline" onclick="document.getElementById('import-file-input').click()">⬆ Import Backup</button>
-          <input type="file" id="import-file-input" accept=".json,application/json" style="display:none;" onchange="importData(event)">
-        </div>
-        <div id="import-status" style="display:none;margin-top:12px;font-size:12.5px;padding:10px 14px;border-radius:var(--radius);"></div>
-      </div>
 
     </div>
 
@@ -3108,71 +3093,6 @@ function save() {
   }
 }
 
-function exportData() {
-  const backup = {
-    _version: 1,
-    _exportedAt: new Date().toISOString(),
-    _app: 'SKI RANK',
-    gameData: S,
-    users: getUsers(),
-  };
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const date = new Date().toISOString().slice(0,10);
-  a.href     = url;
-  a.download = `skirank-backup-${date}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('Backup downloaded ✅', 'ok');
-}
-
-function importData(e) {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const status = document.getElementById('import-status');
-    const show = (msg, ok) => {
-      status.textContent = msg;
-      status.style.display = 'block';
-      status.style.background = ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
-      status.style.color = ok ? 'var(--success)' : 'var(--danger)';
-      status.style.border = `1px solid ${ok ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`;
-    };
-    try {
-      const backup = JSON.parse(ev.target.result);
-      // Basic validation
-      if (!backup.gameData || !Array.isArray(backup.gameData.players) || !Array.isArray(backup.gameData.games)) {
-        show('❌ Invalid backup file — missing expected data.', false);
-        return;
-      }
-      const gameCount   = backup.gameData.games.length;
-      const playerCount = backup.gameData.players.length;
-      const exportedAt  = backup._exportedAt ? new Date(backup._exportedAt).toLocaleDateString() : 'unknown date';
-      confirm_(
-        'Restore Backup?',
-        `This will replace ALL current data with the backup from ${exportedAt} (${playerCount} players, ${gameCount} games). This cannot be undone.`,
-        () => {
-          try {
-            localStorage.setItem(userStoreKey(), JSON.stringify(backup.gameData));
-            if (Array.isArray(backup.users) && backup.users.length) {
-              saveUsers(backup.users);
-            }
-            toast('Backup restored — reloading… 🔄', 'ok');
-            setTimeout(() => location.reload(), 1200);
-          } catch(err) {
-            show('❌ Restore failed: ' + err.message, false);
-          }
-        }
-      );
-    } catch(err) {
-      show('❌ Could not parse file — make sure it\'s a valid SKI RANK backup.', false);
-    }
-  };
-  reader.readAsText(file);
-}
 
 // ═══════════════════════════════════════════════════════
 //  RATING ENGINE  (Elo-based, display scale 1.00–16.00)
