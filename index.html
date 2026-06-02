@@ -2585,6 +2585,7 @@ let   _wipeInProgress = false; // prevents localOnly merge from re-uploading aft
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
 let   _clearLiveOnFirstSync = false; // abandon any live game found on first sync after login/refresh
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
+let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -2743,10 +2744,9 @@ function startFirestoreSync() {
         }
 
         // Heal accounts that exist in auth but have no player record in Firestore.
-        // This covers accounts created during the period when the player record was
-        // never written (pre-fix). Only runs once: after the record is written it
-        // will appear in every subsequent snapshot and this branch won't fire.
-        if (currentUser && !S.players.find(p => p.id === currentUser.id)) {
+        // Guard with _healPlayerDone so multiple rapid snapshots don't create duplicates.
+        if (!_healPlayerDone && currentUser && !S.players.find(p => p.id === currentUser.id)) {
+          _healPlayerDone = true;
           const localUser = getUsers().find(u => u.id === currentUser.id);
           const healedPlayer = {
             id:          currentUser.id,
@@ -3227,6 +3227,7 @@ function launchApp() {
   checkNotifications();
   startPolling();
   _clearLiveOnFirstSync = true; // abandon any stale live game found on first snapshot
+  _healPlayerDone = false;      // allow heal to run once on this new session
   startFirestoreSync(); // Firestore snapshot will populate S and re-render
   if (S.live) nav('live-game');
   else        nav('leaderboard');
@@ -7149,12 +7150,19 @@ function adminResetRating(id) {
 }
 
 function renderAdminData(panel) {
+  // Count duplicates for info display
+  const emailCounts = {};
+  S.players.forEach(p => { if (p.email) emailCounts[p.email] = (emailCounts[p.email]||0) + 1; });
+  const dupCount = Object.values(emailCounts).reduce((acc, c) => acc + (c > 1 ? c - 1 : 0), 0);
+
   panel.innerHTML = `
     <div style="display:grid;gap:14px;">
       <div class="admin-card" style="padding:20px;">
-        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">📦 Export Backup</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Download all game data and accounts as a JSON file.</div>
-        <button class="btn btn-outline" onclick="exportData()">Download Backup</button>
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🧹 Remove Duplicate Accounts</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+          ${dupCount > 0 ? `<span style="color:var(--danger);">⚠️ ${dupCount} duplicate record${dupCount>1?'s':''} detected.</span> Keeps the record with the most games (or most recent) for each email.` : '✅ No duplicates found.'}
+        </div>
+        <button class="btn btn-outline" onclick="adminDeduplicatePlayers()" ${dupCount===0?'disabled':''}>Remove Duplicates</button>
       </div>
       <div class="admin-card" style="padding:20px;">
         <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🗑️ Wipe All Game Data</div>
@@ -7167,6 +7175,25 @@ function renderAdminData(panel) {
         <button class="btn btn-danger" onclick="adminWipeEverything()">Wipe Everything</button>
       </div>
     </div>`;
+}
+
+function adminDeduplicatePlayers() {
+  // For each email, keep the player with the most gamesPlayed (tie-break: most recent createdAt)
+  const seen = {};
+  const toKeep = [];
+  const sorted = [...S.players].sort((a,b) => (b.gamesPlayed||0) - (a.gamesPlayed||0) || (b.createdAt||0) - (a.createdAt||0));
+  for (const p of sorted) {
+    const key = p.email || p.id;
+    if (!seen[key]) { seen[key] = true; toKeep.push(p); }
+  }
+  const removed = S.players.length - toKeep.length;
+  if (removed === 0) { toast('No duplicates found.', 'ok'); return; }
+  if (!window.confirm(`Remove ${removed} duplicate record${removed>1?'s':''}? The record with the most games will be kept for each account.`)) return;
+  S.players = toKeep;
+  save();
+  toast(`Removed ${removed} duplicate${removed>1?'s':''}.`, 'ok');
+  renderAdminStats();
+  adminTab('data');
 }
 
 async function adminWipeGameData() {
