@@ -1505,6 +1505,72 @@
     .admin-stat-val { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--primary); letter-spacing:1px; }
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
 
+    /* ── Trick Library Modal ── */
+    #trick-lib-overlay {
+      display:none; position:fixed; inset:0; z-index:10200;
+      background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:flex-end; justify-content:center;
+    }
+    #trick-lib-sheet {
+      background:rgba(4,14,32,0.99); border:1px solid rgba(0,212,255,0.2);
+      border-top-left-radius:28px; border-top-right-radius:28px;
+      width:100%; max-width:560px;
+      box-shadow:0 -12px 60px rgba(0,0,0,0.85);
+      animation:onboardSlideUp .32s cubic-bezier(.22,.68,0,1.15) both;
+      display:flex; flex-direction:column;
+      max-height:88svh;
+    }
+    #trick-lib-header { flex-shrink:0; padding:14px 20px 0; }
+    #trick-lib-drag   { width:40px; height:5px; border-radius:99px; background:rgba(255,255,255,0.18); margin:0 auto 14px; }
+    #trick-lib-search {
+      width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06);
+      border:1px solid rgba(0,212,255,0.2); border-radius:12px;
+      padding:10px 14px; color:var(--text-primary); font-size:15px;
+      outline:none; margin-bottom:10px;
+    }
+    #trick-lib-search:focus { border-color:rgba(0,212,255,0.5); }
+    #trick-lib-cats {
+      display:flex; gap:7px; overflow-x:auto; padding-bottom:10px;
+      scrollbar-width:none;
+    }
+    #trick-lib-cats::-webkit-scrollbar { display:none; }
+    .tcat-btn {
+      flex-shrink:0; padding:5px 13px; border-radius:99px; font-size:12px;
+      font-weight:600; border:1px solid var(--border); background:transparent;
+      color:var(--text-muted); cursor:pointer; transition:all .15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .tcat-btn.active { background:rgba(0,212,255,0.12); border-color:rgba(0,212,255,0.45); color:var(--ice); }
+    #trick-lib-list {
+      flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding:0 12px 12px;
+    }
+    .trick-cat-heading {
+      font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      color:var(--text-muted); padding:12px 8px 6px;
+    }
+    .trick-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:11px 12px; border-radius:12px; cursor:pointer;
+      transition:background .12s; margin-bottom:3px;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .trick-item:hover, .trick-item:active { background:rgba(0,212,255,0.08); }
+    .trick-item-name { font-size:14px; font-weight:600; color:var(--text-primary); }
+    .trick-item-diff {
+      font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;
+    }
+    .diff-easy   { background:rgba(52,211,153,0.12);  color:#34d399; border:1px solid rgba(52,211,153,0.25); }
+    .diff-medium { background:rgba(251,191,36,0.12);  color:#fbbf24; border:1px solid rgba(251,191,36,0.25); }
+    .diff-hard   { background:rgba(249,115,22,0.12);  color:#f97316; border:1px solid rgba(249,115,22,0.25); }
+    .diff-expert { background:rgba(239,68,68,0.12);   color:#ef4444; border:1px solid rgba(239,68,68,0.25); }
+    #trick-lib-footer {
+      flex-shrink:0; padding:12px 20px;
+      padding-bottom:max(12px, env(safe-area-inset-bottom));
+      border-top:1px solid var(--border);
+    }
+
     /* ── Onboarding ── */
     #onboard-overlay {
       display:none; position:fixed; inset:0; z-index:10100;
@@ -1952,8 +2018,11 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Tricks attempted (optional, comma-separated)</label>
-          <input type="text" class="form-input" id="lg-tricks" placeholder="e.g. Frontflip, 360, Cork 720, Bio 540...">
+          <label class="form-label">Tricks attempted (optional)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" class="form-input" id="lg-tricks" placeholder="e.g. Frontflip, Cork 720…" style="flex:1;">
+            <button class="btn btn-ghost btn-sm" onclick="openTrickLib('log')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library">📖</button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -2090,7 +2159,10 @@
               <span id="setter-label"></span> — Name your trick &amp; go attempt it
             </h3>
             <div class="form-group" style="margin-bottom:10px;">
-              <input type="text" class="form-input" id="trick-input" placeholder="e.g. Frontflip, Cork 720, Misty 540...">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="text" class="form-input" id="trick-input" placeholder="Type or pick a trick…" style="flex:1;">
+                <button class="btn btn-ghost btn-sm" onclick="openTrickLib('live')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library">📖</button>
+              </div>
             </div>
             <div class="trick-btns">
               <button class="btn btn-primary" style="width:100%;" onclick="setterSubmitTrick()">🎯 Set Trick</button>
@@ -3080,6 +3152,190 @@ function switchAuthTab(tab) {
   document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
   document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
   document.getElementById('auth-error').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRICK LIBRARY
+// ═══════════════════════════════════════════════════════
+const TRICK_LIBRARY = [
+  // ── Jumps ──
+  { name:'360',             cat:'Jumps', diff:'easy'   },
+  { name:'540',             cat:'Jumps', diff:'medium' },
+  { name:'720',             cat:'Jumps', diff:'medium' },
+  { name:'900',             cat:'Jumps', diff:'hard'   },
+  { name:'1080',            cat:'Jumps', diff:'hard'   },
+  { name:'1260',            cat:'Jumps', diff:'expert' },
+  { name:'1440',            cat:'Jumps', diff:'expert' },
+  { name:'Frontflip',       cat:'Jumps', diff:'medium' },
+  { name:'Backflip',        cat:'Jumps', diff:'medium' },
+  { name:'Double Backflip', cat:'Jumps', diff:'expert' },
+  { name:'Cork 720',        cat:'Jumps', diff:'hard'   },
+  { name:'Cork 900',        cat:'Jumps', diff:'hard'   },
+  { name:'Cork 1080',       cat:'Jumps', diff:'expert' },
+  { name:'Misty 540',       cat:'Jumps', diff:'hard'   },
+  { name:'Misty 720',       cat:'Jumps', diff:'hard'   },
+  { name:'Rodeo 540',       cat:'Jumps', diff:'hard'   },
+  { name:'Rodeo 720',       cat:'Jumps', diff:'hard'   },
+  { name:'Bio 540',         cat:'Jumps', diff:'hard'   },
+  { name:'Bio 720',         cat:'Jumps', diff:'hard'   },
+  { name:'Flatspin 540',    cat:'Jumps', diff:'hard'   },
+  { name:'Flatspin 720',    cat:'Jumps', diff:'hard'   },
+  { name:'Wildcat',         cat:'Jumps', diff:'medium' },
+  { name:'Double Wildcat',  cat:'Jumps', diff:'expert' },
+  { name:'Lincoln Loop',    cat:'Jumps', diff:'hard'   },
+  { name:'Tsunami',         cat:'Jumps', diff:'expert' },
+  { name:'Switchy',         cat:'Jumps', diff:'medium' },
+  { name:'Flat 360',        cat:'Jumps', diff:'easy'   },
+  { name:'Flat 540',        cat:'Jumps', diff:'medium' },
+
+  // ── Rails ──
+  { name:'50-50',           cat:'Rails', diff:'easy'   },
+  { name:'Boardslide',      cat:'Rails', diff:'easy'   },
+  { name:'Lipslide',        cat:'Rails', diff:'easy'   },
+  { name:'Noseslide',       cat:'Rails', diff:'easy'   },
+  { name:'Tailslide',       cat:'Rails', diff:'easy'   },
+  { name:'Bluntslide',      cat:'Rails', diff:'medium' },
+  { name:'Noseblunt',       cat:'Rails', diff:'medium' },
+  { name:'Nosepick',        cat:'Rails', diff:'medium' },
+  { name:'Tailpick',        cat:'Rails', diff:'medium' },
+  { name:'Swap',            cat:'Rails', diff:'medium' },
+  { name:'270 On',          cat:'Rails', diff:'medium' },
+  { name:'270 Off',         cat:'Rails', diff:'medium' },
+  { name:'270 On 270 Off',  cat:'Rails', diff:'hard'   },
+  { name:'450 On',          cat:'Rails', diff:'hard'   },
+  { name:'450 Off',         cat:'Rails', diff:'hard'   },
+  { name:'630 On',          cat:'Rails', diff:'hard'   },
+  { name:'Pretzel',         cat:'Rails', diff:'hard'   },
+  { name:'Cab 270 On',      cat:'Rails', diff:'hard'   },
+  { name:'Cab 270 Off',     cat:'Rails', diff:'hard'   },
+  { name:'Switch Up',       cat:'Rails', diff:'medium' },
+  { name:'Nose Butter',     cat:'Rails', diff:'medium' },
+  { name:'Tail Butter',     cat:'Rails', diff:'medium' },
+
+  // ── Pipe ──
+  { name:'Air to Fakie',    cat:'Pipe',  diff:'easy'   },
+  { name:'Alley-oop',       cat:'Pipe',  diff:'medium' },
+  { name:'Crippler',        cat:'Pipe',  diff:'hard'   },
+  { name:'Eggplant',        cat:'Pipe',  diff:'hard'   },
+  { name:'McTwist',         cat:'Pipe',  diff:'expert' },
+  { name:'Haakon Flip',     cat:'Pipe',  diff:'expert' },
+  { name:'Pipe 540',        cat:'Pipe',  diff:'medium' },
+  { name:'Pipe 720',        cat:'Pipe',  diff:'hard'   },
+  { name:'Pipe 900',        cat:'Pipe',  diff:'hard'   },
+  { name:'Pipe 1080',       cat:'Pipe',  diff:'expert' },
+  { name:'Super Pipe 1260', cat:'Pipe',  diff:'expert' },
+
+  // ── Grabs ──
+  { name:'Mute',            cat:'Grabs', diff:'easy'   },
+  { name:'Melon',           cat:'Grabs', diff:'easy'   },
+  { name:'Stalefish',       cat:'Grabs', diff:'easy'   },
+  { name:'Tail Grab',       cat:'Grabs', diff:'easy'   },
+  { name:'Nose Grab',       cat:'Grabs', diff:'easy'   },
+  { name:'Safety',          cat:'Grabs', diff:'easy'   },
+  { name:'Indy',            cat:'Grabs', diff:'easy'   },
+  { name:'Japan',           cat:'Grabs', diff:'medium' },
+  { name:'Truck Driver',    cat:'Grabs', diff:'medium' },
+  { name:'Tweak',           cat:'Grabs', diff:'medium' },
+  { name:'Daffie',          cat:'Grabs', diff:'hard'   },
+  { name:'Mute 360',        cat:'Grabs', diff:'medium' },
+  { name:'Stalefish 540',   cat:'Grabs', diff:'hard'   },
+
+  // ── Butters ──
+  { name:'Nose Butter 360', cat:'Butters', diff:'medium' },
+  { name:'Tail Butter 360', cat:'Butters', diff:'medium' },
+  { name:'Nose Butter 540', cat:'Butters', diff:'hard'   },
+  { name:'Tail Butter 540', cat:'Butters', diff:'hard'   },
+  { name:'Nose Press',      cat:'Butters', diff:'easy'   },
+  { name:'Tail Press',      cat:'Butters', diff:'easy'   },
+  { name:'Pretzel Butter',  cat:'Butters', diff:'hard'   },
+  { name:'Shifty',          cat:'Butters', diff:'easy'   },
+  { name:'Nose Roll',       cat:'Butters', diff:'medium' },
+  { name:'Tail Roll',       cat:'Butters', diff:'medium' },
+
+  // ── Switch / Fakie ──
+  { name:'Switch 360',      cat:'Switch', diff:'medium' },
+  { name:'Switch 540',      cat:'Switch', diff:'hard'   },
+  { name:'Switch 720',      cat:'Switch', diff:'hard'   },
+  { name:'Switch 900',      cat:'Switch', diff:'expert' },
+  { name:'Switch Cork 720', cat:'Switch', diff:'expert' },
+  { name:'Switch Backflip', cat:'Switch', diff:'hard'   },
+  { name:'Switch Frontflip',cat:'Switch', diff:'hard'   },
+  { name:'Fakie 360',       cat:'Switch', diff:'medium' },
+  { name:'Fakie 540',       cat:'Switch', diff:'hard'   },
+  { name:'Fakie Backflip',  cat:'Switch', diff:'hard'   },
+];
+
+const TRICK_CATS = ['All', ...new Set(TRICK_LIBRARY.map(t => t.cat))];
+const DIFF_LABELS = { easy:'Easy', medium:'Medium', hard:'Hard', expert:'Expert' };
+
+let _trickLibTarget = 'live'; // 'live' | 'log'
+let _trickLibCat    = 'All';
+
+function openTrickLib(target) {
+  _trickLibTarget = target;
+  _trickLibCat = 'All';
+  document.getElementById('trick-lib-search').value = '';
+  renderTrickCats();
+  renderTrickList();
+  document.getElementById('trick-lib-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('trick-lib-search').focus(), 350);
+}
+
+function closeTrickLib() {
+  document.getElementById('trick-lib-overlay').style.display = 'none';
+}
+
+function renderTrickCats() {
+  document.getElementById('trick-lib-cats').innerHTML = TRICK_CATS.map(c =>
+    `<button class="tcat-btn ${c === _trickLibCat ? 'active' : ''}" onclick="setTrickCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setTrickCat(cat) {
+  _trickLibCat = cat;
+  renderTrickCats();
+  renderTrickList();
+}
+
+function renderTrickList() {
+  const q = document.getElementById('trick-lib-search').value.toLowerCase().trim();
+  let tricks = TRICK_LIBRARY;
+  if (_trickLibCat !== 'All') tricks = tricks.filter(t => t.cat === _trickLibCat);
+  if (q) tricks = tricks.filter(t => t.name.toLowerCase().includes(q));
+
+  if (!tricks.length) {
+    document.getElementById('trick-lib-list').innerHTML =
+      `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found for "${q}"</div>`;
+    return;
+  }
+
+  // Group by category (unless filtered to one cat or searching)
+  const grouped = {};
+  if (_trickLibCat === 'All' && !q) {
+    tricks.forEach(t => { (grouped[t.cat] = grouped[t.cat]||[]).push(t); });
+  } else {
+    grouped[''] = tricks;
+  }
+
+  document.getElementById('trick-lib-list').innerHTML = Object.entries(grouped).map(([cat, list]) => `
+    ${cat ? `<div class="trick-cat-heading">${cat}</div>` : ''}
+    ${list.map(t => `
+      <div class="trick-item" onclick="selectTrick('${t.name.replace(/'/g,"\\'")}')">
+        <span class="trick-item-name">${t.name}</span>
+        <span class="trick-item-diff diff-${t.diff}">${DIFF_LABELS[t.diff]}</span>
+      </div>`).join('')}
+  `).join('');
+}
+
+function selectTrick(name) {
+  if (_trickLibTarget === 'live') {
+    document.getElementById('trick-input').value = name;
+  } else {
+    const el = document.getElementById('lg-tricks');
+    const cur = el.value.trim();
+    el.value = cur ? cur + ', ' + name : name;
+  }
+  closeTrickLib();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6852,7 +7108,7 @@ function closeTierModal() {
 }
 // Close on Escape key
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeTierModal(); closeBadgeModal(); }
+  if (e.key === 'Escape') { closeTierModal(); closeBadgeModal(); closeTrickLib(); }
 });
 
 function showBadgeModal(badgeId) {
@@ -7234,6 +7490,25 @@ async function adminWipeEverything() {
       </div>
     </div>
     <div style="margin-top:16px;font-size:11.5px;color:var(--text-muted);text-align:center;">Rating = (wins − losses) · difficulty · streak bonuses</div>
+  </div>
+</div>
+
+<!-- Trick Library Modal -->
+<div id="trick-lib-overlay" onclick="closeTrickLib()">
+  <div id="trick-lib-sheet" onclick="event.stopPropagation()">
+    <div id="trick-lib-header">
+      <div id="trick-lib-drag"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;">📖 Trick Library</div>
+        <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+      </div>
+      <input id="trick-lib-search" type="text" placeholder="Search tricks…" oninput="renderTrickList()" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div id="trick-lib-cats"></div>
+    </div>
+    <div id="trick-lib-list"></div>
+    <div id="trick-lib-footer">
+      <div style="font-size:12px;color:var(--text-muted);text-align:center;">Tap a trick to select it</div>
+    </div>
   </div>
 </div>
 
