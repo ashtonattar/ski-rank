@@ -7028,7 +7028,9 @@ function adminTab(tab) {
 }
 
 function renderAdminUsers(panel) {
-  const users = getUsers();
+  // Drive off S.players (Firestore source of truth) so ALL accounts are visible,
+  // not just those in this browser's localStorage.
+  const players = [...S.players].sort((a,b) => (a.name||'').localeCompare(b.name||''));
   panel.innerHTML = `
     <div class="admin-card">
       <table class="admin-table">
@@ -7036,16 +7038,15 @@ function renderAdminUsers(panel) {
           <th>Name</th><th>Email</th><th>Type</th><th>Games</th><th>Rating</th><th>Joined</th><th></th>
         </tr></thead>
         <tbody>
-          ${users.length ? users.map(u => {
-            const p = S.players.find(x => x.id === u.id);
+          ${players.length ? players.map(p => {
             return `<tr>
-              <td style="font-weight:600;">${u.name}</td>
-              <td style="color:var(--text-muted);">${u.email}</td>
-              <td>${u.riderType === 'boarder' ? '🏂' : '⛷️'}</td>
-              <td>${p?.gamesPlayed || 0}</td>
-              <td style="color:var(--primary);">${p?.rating ? fmt(p.rating) : '—'}</td>
-              <td style="color:var(--text-muted);font-size:12px;">${new Date(u.createdAt||0).toLocaleDateString()}</td>
-              <td><button class="btn btn-danger btn-sm" onclick="adminDeleteUser('${u.id}')">Delete</button></td>
+              <td style="font-weight:600;">${escHtml(p.name||'')}</td>
+              <td style="color:var(--text-muted);font-size:12px;">${escHtml(p.email||'')}</td>
+              <td>${p.riderType === 'boarder' ? '🏂' : '⛷️'}</td>
+              <td>${p.gamesPlayed || 0}</td>
+              <td style="color:var(--primary);">${p.rating ? fmt(p.rating) : '—'}</td>
+              <td style="color:var(--text-muted);font-size:12px;">${new Date(p.createdAt||0).toLocaleDateString()}</td>
+              <td><button class="btn btn-danger btn-sm" onclick="adminDeleteUser('${p.id}')">Delete</button></td>
             </tr>`;
           }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No accounts yet</td></tr>'}
         </tbody>
@@ -7054,16 +7055,19 @@ function renderAdminUsers(panel) {
 }
 
 function adminDeleteUser(id) {
-  const u = getUsers().find(x => x.id === id);
-  if (!u) return;
-  if (!window.confirm(`Delete "${u.name}"?\n\nThis will remove their account and player record. Game history remains.`)) return;
+  const p = S.players.find(x => x.id === id);
+  if (!p) return;
+  if (!window.confirm(`Delete "${p.name}"?\n\nThis will remove their account and player record. Game history remains.`)) return;
+  // Remove from local auth store if present
   saveUsers(getUsers().filter(x => x.id !== id));
+  // Remove from Firestore users collection if present
   if (db) db.collection('users').doc(id).delete().catch(()=>{});
-  S.players = S.players.filter(p => p.id !== id);
+  // Remove from global state
+  S.players = S.players.filter(x => x.id !== id);
   S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
-  S.players.forEach(p => { p.friends = (p.friends||[]).filter(f => f !== id); });
+  S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
   save();
-  toast(`${u.name} deleted.`, 'ok');
+  toast(`${p.name} deleted.`, 'ok');
   renderAdminStats();
   adminTab('users');
 }
