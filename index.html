@@ -2936,20 +2936,18 @@ async function doSignup() {
   if (password.length < 6) return showErr('Password must be at least 6 characters.');
   if (password !== confirm) return showErr('Passwords do not match.');
 
-  // Check localStorage first
+  // Check localStorage, but skip any entry whose player record no longer exists in Firestore
+  // (covers accounts that were deleted via admin — deletion only clears the deleting device's localStorage)
   const users = getUsers();
-  if (users.some(u => u.email === email)) return showErr('An account with that email already exists.');
+  const liveUsers = users.filter(u => S.players.some(p => p.id === u.id));
+  saveUsers(liveUsers); // prune stale deleted entries from this device too
+  if (liveUsers.some(u => u.email === email)) return showErr('An account with that email already exists.');
 
   // Disable button immediately — prevents duplicate submissions during the async Firestore check
   if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
 
-  // Also check Firestore in case the account was created on another device
-  if (db) {
-    try {
-      const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-      if (!snap.empty) return showErr('An account with that email already exists.');
-    } catch(e) { console.warn('Firestore email check failed:', e); }
-  }
+  // Also check Firestore S.players (source of truth) for the email
+  if (S.players.some(p => p.email === email)) return showErr('An account with that email already exists.');
 
   const homeResort = document.getElementById('su-resort')?.value.trim() || '';
   const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, homeResort, createdAt: Date.now() };
