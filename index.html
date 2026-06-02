@@ -2931,6 +2931,26 @@ async function doSignup() {
   users.push(newUser);
   saveUsers(users);
   setSession({ id: newUser.id, name: newUser.name, email: newUser.email, riderType: newUser.riderType });
+
+  // Pre-seed the player record so myMissingRecord logic writes it to Firestore on first sync.
+  // Without this, the S reset in launchApp() leaves S.players empty and the new account
+  // never appears on the leaderboard or riders list.
+  S.players = [{
+    id: newUser.id,
+    name: newUser.name,
+    email: newUser.email,
+    riderType: newUser.riderType,
+    homeResort: newUser.homeResort,
+    location: newUser.homeResort,
+    rating: null,
+    wins: 0,
+    losses: 0,
+    gamesPlayed: 0,
+    badges: [],
+    friends: [],
+    createdAt: newUser.createdAt
+  }];
+
   _isNewSignup = true;
   launchApp();
 }
@@ -3173,7 +3193,10 @@ function launchApp() {
   // Start with empty state — Firestore is the sole source of truth.
   // Do NOT pre-populate from localStorage: stale/deleted accounts stored
   // locally would flash on screen for ~1s before Firestore overwrites them.
-  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+  // Preserve any pre-seeded players (e.g. brand-new signup record) so
+  // myMissingRecord can detect and write them to Firestore on first sync.
+  const _preseedPlayers = S.players && S.players.length ? S.players : [];
+  S = { players: _preseedPlayers, games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   updateSidebarAvatar();
   checkNotifications();
