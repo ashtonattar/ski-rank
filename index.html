@@ -3157,124 +3157,215 @@ function switchAuthTab(tab) {
 // ═══════════════════════════════════════════════════════
 //  TRICK LIBRARY
 // ═══════════════════════════════════════════════════════
+// sport: 'ski' | 'snowboard' | 'both'
 const TRICK_LIBRARY = [
-  // ── Jumps ──
-  { name:'360',             cat:'Jumps', diff:'easy'   },
-  { name:'540',             cat:'Jumps', diff:'medium' },
-  { name:'720',             cat:'Jumps', diff:'medium' },
-  { name:'900',             cat:'Jumps', diff:'hard'   },
-  { name:'1080',            cat:'Jumps', diff:'hard'   },
-  { name:'1260',            cat:'Jumps', diff:'expert' },
-  { name:'1440',            cat:'Jumps', diff:'expert' },
-  { name:'Frontflip',       cat:'Jumps', diff:'medium' },
-  { name:'Backflip',        cat:'Jumps', diff:'medium' },
-  { name:'Double Backflip', cat:'Jumps', diff:'expert' },
-  { name:'Cork 720',        cat:'Jumps', diff:'hard'   },
-  { name:'Cork 900',        cat:'Jumps', diff:'hard'   },
-  { name:'Cork 1080',       cat:'Jumps', diff:'expert' },
-  { name:'Misty 540',       cat:'Jumps', diff:'hard'   },
-  { name:'Misty 720',       cat:'Jumps', diff:'hard'   },
-  { name:'Rodeo 540',       cat:'Jumps', diff:'hard'   },
-  { name:'Rodeo 720',       cat:'Jumps', diff:'hard'   },
-  { name:'Bio 540',         cat:'Jumps', diff:'hard'   },
-  { name:'Bio 720',         cat:'Jumps', diff:'hard'   },
-  { name:'Flatspin 540',    cat:'Jumps', diff:'hard'   },
-  { name:'Flatspin 720',    cat:'Jumps', diff:'hard'   },
-  { name:'Wildcat',         cat:'Jumps', diff:'medium' },
-  { name:'Double Wildcat',  cat:'Jumps', diff:'expert' },
-  { name:'Lincoln Loop',    cat:'Jumps', diff:'hard'   },
-  { name:'Tsunami',         cat:'Jumps', diff:'expert' },
-  { name:'Switchy',         cat:'Jumps', diff:'medium' },
-  { name:'Flat 360',        cat:'Jumps', diff:'easy'   },
-  { name:'Flat 540',        cat:'Jumps', diff:'medium' },
+  // ── Jumps (Ski) ──
+  { name:'360',                  cat:'Jumps',   sport:'ski',       diff:'easy'   },
+  { name:'540',                  cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'720',                  cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'900',                  cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'1080',                 cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'1260',                 cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'1440',                 cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'Frontflip',            cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'Backflip',             cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'Double Backflip',      cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'Cork 720',             cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Cork 900',             cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Cork 1080',            cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'Misty 540',            cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Misty 720',            cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Rodeo 540',            cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Rodeo 720',            cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Bio 540',              cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Bio 720',              cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Flatspin 540',         cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Flatspin 720',         cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Wildcat',              cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'Double Wildcat',       cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'Lincoln Loop',         cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'Tsunami',              cat:'Jumps',   sport:'ski',       diff:'expert' },
+  { name:'Switchy',              cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'Flat 360',             cat:'Jumps',   sport:'ski',       diff:'easy'   },
+  { name:'Flat 540',             cat:'Jumps',   sport:'ski',       diff:'medium' },
+  { name:'D-Spin 540',           cat:'Jumps',   sport:'ski',       diff:'hard'   },
+  { name:'D-Spin 720',           cat:'Jumps',   sport:'ski',       diff:'expert' },
 
-  // ── Rails ──
-  { name:'50-50',           cat:'Rails', diff:'easy'   },
-  { name:'Boardslide',      cat:'Rails', diff:'easy'   },
-  { name:'Lipslide',        cat:'Rails', diff:'easy'   },
-  { name:'Noseslide',       cat:'Rails', diff:'easy'   },
-  { name:'Tailslide',       cat:'Rails', diff:'easy'   },
-  { name:'Bluntslide',      cat:'Rails', diff:'medium' },
-  { name:'Noseblunt',       cat:'Rails', diff:'medium' },
-  { name:'Nosepick',        cat:'Rails', diff:'medium' },
-  { name:'Tailpick',        cat:'Rails', diff:'medium' },
-  { name:'Swap',            cat:'Rails', diff:'medium' },
-  { name:'270 On',          cat:'Rails', diff:'medium' },
-  { name:'270 Off',         cat:'Rails', diff:'medium' },
-  { name:'270 On 270 Off',  cat:'Rails', diff:'hard'   },
-  { name:'450 On',          cat:'Rails', diff:'hard'   },
-  { name:'450 Off',         cat:'Rails', diff:'hard'   },
-  { name:'630 On',          cat:'Rails', diff:'hard'   },
-  { name:'Pretzel',         cat:'Rails', diff:'hard'   },
-  { name:'Cab 270 On',      cat:'Rails', diff:'hard'   },
-  { name:'Cab 270 Off',     cat:'Rails', diff:'hard'   },
-  { name:'Switch Up',       cat:'Rails', diff:'medium' },
-  { name:'Nose Butter',     cat:'Rails', diff:'medium' },
-  { name:'Tail Butter',     cat:'Rails', diff:'medium' },
+  // ── Jumps (Snowboard) ──
+  { name:'Frontside 180',        cat:'Jumps',   sport:'snowboard', diff:'easy'   },
+  { name:'Backside 180',         cat:'Jumps',   sport:'snowboard', diff:'easy'   },
+  { name:'Frontside 360',        cat:'Jumps',   sport:'snowboard', diff:'easy'   },
+  { name:'Backside 360',         cat:'Jumps',   sport:'snowboard', diff:'easy'   },
+  { name:'Cab 360',              cat:'Jumps',   sport:'snowboard', diff:'medium' },
+  { name:'Frontside 540',        cat:'Jumps',   sport:'snowboard', diff:'medium' },
+  { name:'Backside 540',         cat:'Jumps',   sport:'snowboard', diff:'medium' },
+  { name:'Cab 540',              cat:'Jumps',   sport:'snowboard', diff:'medium' },
+  { name:'Frontside 720',        cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Backside 720',         cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Cab 720',              cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Frontside 900',        cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Backside 900',         cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Frontside 1080',       cat:'Jumps',   sport:'snowboard', diff:'expert' },
+  { name:'Backside 1080',        cat:'Jumps',   sport:'snowboard', diff:'expert' },
+  { name:'Cab 1080',             cat:'Jumps',   sport:'snowboard', diff:'expert' },
+  { name:'Frontside 1260',       cat:'Jumps',   sport:'snowboard', diff:'expert' },
+  { name:'Backside Rodeo 540',   cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Frontside Rodeo 540',  cat:'Jumps',   sport:'snowboard', diff:'hard'   },
+  { name:'Cab Underflip',        cat:'Jumps',   sport:'snowboard', diff:'expert' },
 
-  // ── Pipe ──
-  { name:'Air to Fakie',    cat:'Pipe',  diff:'easy'   },
-  { name:'Alley-oop',       cat:'Pipe',  diff:'medium' },
-  { name:'Crippler',        cat:'Pipe',  diff:'hard'   },
-  { name:'Eggplant',        cat:'Pipe',  diff:'hard'   },
-  { name:'McTwist',         cat:'Pipe',  diff:'expert' },
-  { name:'Haakon Flip',     cat:'Pipe',  diff:'expert' },
-  { name:'Pipe 540',        cat:'Pipe',  diff:'medium' },
-  { name:'Pipe 720',        cat:'Pipe',  diff:'hard'   },
-  { name:'Pipe 900',        cat:'Pipe',  diff:'hard'   },
-  { name:'Pipe 1080',       cat:'Pipe',  diff:'expert' },
-  { name:'Super Pipe 1260', cat:'Pipe',  diff:'expert' },
+  // ── Rails (shared) ──
+  { name:'50-50',                cat:'Rails',   sport:'both',      diff:'easy'   },
+  { name:'Boardslide',           cat:'Rails',   sport:'both',      diff:'easy'   },
+  { name:'Lipslide',             cat:'Rails',   sport:'both',      diff:'easy'   },
+  { name:'Noseslide',            cat:'Rails',   sport:'both',      diff:'easy'   },
+  { name:'Tailslide',            cat:'Rails',   sport:'both',      diff:'easy'   },
+  { name:'Bluntslide',           cat:'Rails',   sport:'both',      diff:'medium' },
+  { name:'Noseblunt',            cat:'Rails',   sport:'both',      diff:'medium' },
+  { name:'Switch Up',            cat:'Rails',   sport:'both',      diff:'medium' },
+  { name:'270 On',               cat:'Rails',   sport:'both',      diff:'medium' },
+  { name:'270 Off',              cat:'Rails',   sport:'both',      diff:'medium' },
+  { name:'270 On 270 Off',       cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'450 On',               cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'450 Off',              cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'630 On',               cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'Pretzel',              cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'Cab 270 On',           cat:'Rails',   sport:'both',      diff:'hard'   },
+  { name:'Cab 270 Off',          cat:'Rails',   sport:'both',      diff:'hard'   },
 
-  // ── Grabs ──
-  { name:'Mute',            cat:'Grabs', diff:'easy'   },
-  { name:'Melon',           cat:'Grabs', diff:'easy'   },
-  { name:'Stalefish',       cat:'Grabs', diff:'easy'   },
-  { name:'Tail Grab',       cat:'Grabs', diff:'easy'   },
-  { name:'Nose Grab',       cat:'Grabs', diff:'easy'   },
-  { name:'Safety',          cat:'Grabs', diff:'easy'   },
-  { name:'Indy',            cat:'Grabs', diff:'easy'   },
-  { name:'Japan',           cat:'Grabs', diff:'medium' },
-  { name:'Truck Driver',    cat:'Grabs', diff:'medium' },
-  { name:'Tweak',           cat:'Grabs', diff:'medium' },
-  { name:'Daffie',          cat:'Grabs', diff:'hard'   },
-  { name:'Mute 360',        cat:'Grabs', diff:'medium' },
-  { name:'Stalefish 540',   cat:'Grabs', diff:'hard'   },
+  // ── Rails (Ski) ──
+  { name:'Nosepick',             cat:'Rails',   sport:'ski',       diff:'medium' },
+  { name:'Tailpick',             cat:'Rails',   sport:'ski',       diff:'medium' },
+  { name:'Swap',                 cat:'Rails',   sport:'ski',       diff:'medium' },
+  { name:'Nose Butter',          cat:'Rails',   sport:'ski',       diff:'medium' },
+  { name:'Tail Butter',          cat:'Rails',   sport:'ski',       diff:'medium' },
 
-  // ── Butters ──
-  { name:'Nose Butter 360', cat:'Butters', diff:'medium' },
-  { name:'Tail Butter 360', cat:'Butters', diff:'medium' },
-  { name:'Nose Butter 540', cat:'Butters', diff:'hard'   },
-  { name:'Tail Butter 540', cat:'Butters', diff:'hard'   },
-  { name:'Nose Press',      cat:'Butters', diff:'easy'   },
-  { name:'Tail Press',      cat:'Butters', diff:'easy'   },
-  { name:'Pretzel Butter',  cat:'Butters', diff:'hard'   },
-  { name:'Shifty',          cat:'Butters', diff:'easy'   },
-  { name:'Nose Roll',       cat:'Butters', diff:'medium' },
-  { name:'Tail Roll',       cat:'Butters', diff:'medium' },
+  // ── Rails (Snowboard) ──
+  { name:'Frontside Boardslide', cat:'Rails',   sport:'snowboard', diff:'medium' },
+  { name:'Backside Boardslide',  cat:'Rails',   sport:'snowboard', diff:'medium' },
+  { name:'Frontside Lipslide',   cat:'Rails',   sport:'snowboard', diff:'medium' },
+  { name:'Backside Lipslide',    cat:'Rails',   sport:'snowboard', diff:'medium' },
+  { name:'Nosepress',            cat:'Rails',   sport:'snowboard', diff:'medium' },
+  { name:'Tailpress',            cat:'Rails',   sport:'snowboard', diff:'medium' },
 
-  // ── Switch / Fakie ──
-  { name:'Switch 360',      cat:'Switch', diff:'medium' },
-  { name:'Switch 540',      cat:'Switch', diff:'hard'   },
-  { name:'Switch 720',      cat:'Switch', diff:'hard'   },
-  { name:'Switch 900',      cat:'Switch', diff:'expert' },
-  { name:'Switch Cork 720', cat:'Switch', diff:'expert' },
-  { name:'Switch Backflip', cat:'Switch', diff:'hard'   },
-  { name:'Switch Frontflip',cat:'Switch', diff:'hard'   },
-  { name:'Fakie 360',       cat:'Switch', diff:'medium' },
-  { name:'Fakie 540',       cat:'Switch', diff:'hard'   },
-  { name:'Fakie Backflip',  cat:'Switch', diff:'hard'   },
+  // ── Pipe (Ski) ──
+  { name:'Pipe 540',             cat:'Pipe',    sport:'ski',       diff:'medium' },
+  { name:'Pipe 720',             cat:'Pipe',    sport:'ski',       diff:'hard'   },
+  { name:'Pipe 900',             cat:'Pipe',    sport:'ski',       diff:'hard'   },
+  { name:'Pipe 1080',            cat:'Pipe',    sport:'ski',       diff:'expert' },
+  { name:'Pipe Backflip',        cat:'Pipe',    sport:'ski',       diff:'hard'   },
+  { name:'Pipe Cork 900',        cat:'Pipe',    sport:'ski',       diff:'expert' },
+  { name:'Pipe 1260',            cat:'Pipe',    sport:'ski',       diff:'expert' },
+
+  // ── Pipe (Snowboard) ──
+  { name:'Air to Fakie',         cat:'Pipe',    sport:'snowboard', diff:'easy'   },
+  { name:'Alley-oop',            cat:'Pipe',    sport:'snowboard', diff:'medium' },
+  { name:'Crippler',             cat:'Pipe',    sport:'snowboard', diff:'hard'   },
+  { name:'Eggplant',             cat:'Pipe',    sport:'snowboard', diff:'hard'   },
+  { name:'McTwist',              cat:'Pipe',    sport:'snowboard', diff:'expert' },
+  { name:'Haakon Flip',          cat:'Pipe',    sport:'snowboard', diff:'expert' },
+  { name:'FS 540 Pipe',          cat:'Pipe',    sport:'snowboard', diff:'medium' },
+  { name:'BS 720 Pipe',          cat:'Pipe',    sport:'snowboard', diff:'hard'   },
+  { name:'FS 900 Pipe',          cat:'Pipe',    sport:'snowboard', diff:'hard'   },
+  { name:'BS 1080 Pipe',         cat:'Pipe',    sport:'snowboard', diff:'expert' },
+
+  // ── Grabs (shared) ──
+  { name:'Mute',                 cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Melon',                cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Stalefish',            cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Tail Grab',            cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Nose Grab',            cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Indy',                 cat:'Grabs',   sport:'both',      diff:'easy'   },
+  { name:'Japan',                cat:'Grabs',   sport:'both',      diff:'medium' },
+  { name:'Truck Driver',         cat:'Grabs',   sport:'both',      diff:'medium' },
+
+  // ── Grabs (Ski) ──
+  { name:'Safety',               cat:'Grabs',   sport:'ski',       diff:'easy'   },
+  { name:'Tweak',                cat:'Grabs',   sport:'ski',       diff:'medium' },
+  { name:'Daffie',               cat:'Grabs',   sport:'ski',       diff:'hard'   },
+  { name:'Mute 360',             cat:'Grabs',   sport:'ski',       diff:'medium' },
+  { name:'Stalefish 540',        cat:'Grabs',   sport:'ski',       diff:'hard'   },
+  { name:'Tail Grab 540',        cat:'Grabs',   sport:'ski',       diff:'hard'   },
+
+  // ── Grabs (Snowboard) ──
+  { name:'Seatbelt',             cat:'Grabs',   sport:'snowboard', diff:'easy'   },
+  { name:'Roast Beef',           cat:'Grabs',   sport:'snowboard', diff:'medium' },
+  { name:'Tindy',                cat:'Grabs',   sport:'snowboard', diff:'easy'   },
+  { name:'Crail',                cat:'Grabs',   sport:'snowboard', diff:'medium' },
+  { name:'Lien',                 cat:'Grabs',   sport:'snowboard', diff:'medium' },
+  { name:'Canadian Bacon',       cat:'Grabs',   sport:'snowboard', diff:'hard'   },
+
+  // ── Butters / Jibbing (Ski) ──
+  { name:'Nose Butter',          cat:'Butters', sport:'ski',       diff:'easy'   },
+  { name:'Tail Butter',          cat:'Butters', sport:'ski',       diff:'easy'   },
+  { name:'Nose Press',           cat:'Butters', sport:'ski',       diff:'easy'   },
+  { name:'Tail Press',           cat:'Butters', sport:'ski',       diff:'easy'   },
+  { name:'Shifty',               cat:'Butters', sport:'ski',       diff:'easy'   },
+  { name:'Nose Butter 360',      cat:'Butters', sport:'ski',       diff:'medium' },
+  { name:'Tail Butter 360',      cat:'Butters', sport:'ski',       diff:'medium' },
+  { name:'Nose Butter 540',      cat:'Butters', sport:'ski',       diff:'hard'   },
+  { name:'Tail Butter 540',      cat:'Butters', sport:'ski',       diff:'hard'   },
+  { name:'Pretzel Butter',       cat:'Butters', sport:'ski',       diff:'hard'   },
+  { name:'Nose Roll',            cat:'Butters', sport:'ski',       diff:'medium' },
+  { name:'Tail Roll',            cat:'Butters', sport:'ski',       diff:'medium' },
+
+  // ── Jibbing (Snowboard) ──
+  { name:'Nose Press',           cat:'Jibbing', sport:'snowboard', diff:'easy'   },
+  { name:'Tail Press',           cat:'Jibbing', sport:'snowboard', diff:'easy'   },
+  { name:'Shifty',               cat:'Jibbing', sport:'snowboard', diff:'easy'   },
+  { name:'Nose Press 180',       cat:'Jibbing', sport:'snowboard', diff:'medium' },
+  { name:'Tail Press 180',       cat:'Jibbing', sport:'snowboard', diff:'medium' },
+  { name:'Nose Press 360',       cat:'Jibbing', sport:'snowboard', diff:'hard'   },
+  { name:'Manual',               cat:'Jibbing', sport:'snowboard', diff:'easy'   },
+  { name:'Nollie',               cat:'Jibbing', sport:'snowboard', diff:'medium' },
+
+  // ── Switch (Ski) ──
+  { name:'Switch 360',           cat:'Switch',  sport:'ski',       diff:'medium' },
+  { name:'Switch 540',           cat:'Switch',  sport:'ski',       diff:'hard'   },
+  { name:'Switch 720',           cat:'Switch',  sport:'ski',       diff:'hard'   },
+  { name:'Switch 900',           cat:'Switch',  sport:'ski',       diff:'expert' },
+  { name:'Switch Cork 720',      cat:'Switch',  sport:'ski',       diff:'expert' },
+  { name:'Switch Backflip',      cat:'Switch',  sport:'ski',       diff:'hard'   },
+  { name:'Switch Frontflip',     cat:'Switch',  sport:'ski',       diff:'hard'   },
+  { name:'Fakie 360',            cat:'Switch',  sport:'ski',       diff:'medium' },
+  { name:'Fakie 540',            cat:'Switch',  sport:'ski',       diff:'hard'   },
+  { name:'Fakie Backflip',       cat:'Switch',  sport:'ski',       diff:'hard'   },
+
+  // ── Switch (Snowboard) ──
+  { name:'Switch FS 360',        cat:'Switch',  sport:'snowboard', diff:'medium' },
+  { name:'Switch BS 360',        cat:'Switch',  sport:'snowboard', diff:'medium' },
+  { name:'Switch FS 540',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
+  { name:'Switch BS 540',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
+  { name:'Switch FS 720',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
+  { name:'Switch BS 720',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
+  { name:'Fakie FS 360',         cat:'Switch',  sport:'snowboard', diff:'medium' },
+  { name:'Fakie BS 360',         cat:'Switch',  sport:'snowboard', diff:'medium' },
+  { name:'Nollie FS 360',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
+  { name:'Nollie BS 360',        cat:'Switch',  sport:'snowboard', diff:'hard'   },
 ];
 
-const TRICK_CATS = ['All', ...new Set(TRICK_LIBRARY.map(t => t.cat))];
 const DIFF_LABELS = { easy:'Easy', medium:'Medium', hard:'Hard', expert:'Expert' };
 
 let _trickLibTarget = 'live'; // 'live' | 'log'
 let _trickLibCat    = 'All';
 
+function _trickSport() {
+  // Determine sport from the current user's rider type
+  return (currentUser?.riderType === 'boarder') ? 'snowboard' : 'ski';
+}
+
+function _filteredLibrary() {
+  const sport = _trickSport();
+  return TRICK_LIBRARY.filter(t => t.sport === sport || t.sport === 'both');
+}
+
 function openTrickLib(target) {
   _trickLibTarget = target;
   _trickLibCat = 'All';
   document.getElementById('trick-lib-search').value = '';
+  // Update header sport label
+  const sport = _trickSport();
+  document.querySelector('#trick-lib-sheet .trick-lib-sport-label').textContent =
+    sport === 'snowboard' ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
   renderTrickCats();
   renderTrickList();
   document.getElementById('trick-lib-overlay').style.display = 'flex';
@@ -3286,7 +3377,8 @@ function closeTrickLib() {
 }
 
 function renderTrickCats() {
-  document.getElementById('trick-lib-cats').innerHTML = TRICK_CATS.map(c =>
+  const cats = ['All', ...new Set(_filteredLibrary().map(t => t.cat))];
+  document.getElementById('trick-lib-cats').innerHTML = cats.map(c =>
     `<button class="tcat-btn ${c === _trickLibCat ? 'active' : ''}" onclick="setTrickCat('${c}')">${c}</button>`
   ).join('');
 }
@@ -3299,17 +3391,17 @@ function setTrickCat(cat) {
 
 function renderTrickList() {
   const q = document.getElementById('trick-lib-search').value.toLowerCase().trim();
-  let tricks = TRICK_LIBRARY;
+  let tricks = _filteredLibrary();
   if (_trickLibCat !== 'All') tricks = tricks.filter(t => t.cat === _trickLibCat);
   if (q) tricks = tricks.filter(t => t.name.toLowerCase().includes(q));
 
   if (!tricks.length) {
     document.getElementById('trick-lib-list').innerHTML =
-      `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found for "${q}"</div>`;
+      `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q ? ` for "${q}"` : ''}</div>`;
     return;
   }
 
-  // Group by category (unless filtered to one cat or searching)
+  // Group by category when browsing all without a search query
   const grouped = {};
   if (_trickLibCat === 'All' && !q) {
     tricks.forEach(t => { (grouped[t.cat] = grouped[t.cat]||[]).push(t); });
@@ -7499,7 +7591,7 @@ async function adminWipeEverything() {
     <div id="trick-lib-header">
       <div id="trick-lib-drag"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;">📖 Trick Library</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;" class="trick-lib-sport-label">⛷️ Ski Tricks</div>
         <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;">✕</button>
       </div>
       <input id="trick-lib-search" type="text" placeholder="Search tricks…" oninput="renderTrickList()" autocomplete="off" autocorrect="off" spellcheck="false">
