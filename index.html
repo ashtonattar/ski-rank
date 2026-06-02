@@ -7058,19 +7058,17 @@ function renderAdminUsers(panel) {
 function adminDeleteUser(id) {
   const p = S.players.find(x => x.id === id);
   if (!p) return;
-  if (!window.confirm(`Delete "${p.name}"?\n\nThis will remove their account and player record. Game history remains.`)) return;
-  // Remove from local auth store if present
-  saveUsers(getUsers().filter(x => x.id !== id));
-  // Remove from Firestore users collection if present
-  if (db) db.collection('users').doc(id).delete().catch(()=>{});
-  // Remove from global state
-  S.players = S.players.filter(x => x.id !== id);
-  S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
-  S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
-  save();
-  toast(`${p.name} deleted.`, 'ok');
-  renderAdminStats();
-  adminTab('users');
+  confirm_('Delete Account', `Delete "${p.name}"? This will remove their player record. Game history remains.`, () => {
+    saveUsers(getUsers().filter(x => x.id !== id));
+    if (db) db.collection('users').doc(id).delete().catch(()=>{});
+    S.players = S.players.filter(x => x.id !== id);
+    S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
+    S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
+    save();
+    toast(`${p.name} deleted.`, 'ok');
+    renderAdminStats();
+    adminTab('users');
+  });
 }
 
 function renderAdminGames(panel) {
@@ -7097,12 +7095,13 @@ function renderAdminGames(panel) {
 }
 
 function adminDeleteGame(id) {
-  if (!window.confirm('Delete this game?\n\nRatings will NOT be recalculated — only the record is removed.')) return;
-  S.games = S.games.filter(g => g.id !== id);
-  save();
-  toast('Game deleted.', 'ok');
-  renderAdminStats();
-  adminTab('games');
+  confirm_('Delete Game', 'Ratings will NOT be recalculated — only the record is removed.', () => {
+    S.games = S.games.filter(g => g.id !== id);
+    save();
+    toast('Game deleted.', 'ok');
+    renderAdminStats();
+    adminTab('games');
+  });
 }
 
 function renderAdminRatings(panel) {
@@ -7142,11 +7141,12 @@ function adminSetRating(id) {
 function adminResetRating(id) {
   const p = byId(id);
   if (!p) return;
-  if (!window.confirm(`Reset ${p.name}'s rating?\n\nSets them back to unranked.`)) return;
-  p.rating = null; p.wins = 0; p.losses = 0; p.gamesPlayed = 0;
-  save();
-  toast(`${p.name} reset to unranked.`, 'ok');
-  adminTab('ratings');
+  confirm_('Reset Rating', `Reset ${p.name}'s rating? Sets them back to unranked.`, () => {
+    p.rating = null; p.wins = 0; p.losses = 0; p.gamesPlayed = 0;
+    save();
+    toast(`${p.name} reset to unranked.`, 'ok');
+    adminTab('ratings');
+  });
 }
 
 function renderAdminData(panel) {
@@ -7188,16 +7188,17 @@ function adminDeduplicatePlayers() {
   }
   const removed = S.players.length - toKeep.length;
   if (removed === 0) { toast('No duplicates found.', 'ok'); return; }
-  if (!window.confirm(`Remove ${removed} duplicate record${removed>1?'s':''}? The record with the most games will be kept for each account.`)) return;
-  S.players = toKeep;
-  save();
-  toast(`Removed ${removed} duplicate${removed>1?'s':''}.`, 'ok');
-  renderAdminStats();
-  adminTab('data');
+  confirm_('Remove Duplicates', `Remove ${removed} duplicate record${removed>1?'s':''}? The record with the most games will be kept for each account.`, () => {
+    S.players = toKeep;
+    save();
+    toast(`Removed ${removed} duplicate${removed>1?'s':''}.`, 'ok');
+    renderAdminStats();
+    adminTab('data');
+  });
 }
 
 async function adminWipeGameData() {
-  if (!window.confirm('Wipe all game data?\n\nAll games, ratings and player records will be deleted. Accounts are kept. This cannot be undone.')) return;
+  if (!window.confirm('Wipe all game data? All games, ratings and player records will be deleted. Accounts are kept. This cannot be undone.')) return;
   _wipeInProgress = true;
   stopFirestoreSync(); // stop listener so localOnly merge can't fire
   const empty = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
@@ -7212,7 +7213,7 @@ async function adminWipeGameData() {
 }
 
 async function adminWipeEverything() {
-  if (!window.confirm('Wipe EVERYTHING?\n\nAll games, players AND accounts will be permanently deleted. Complete reset. Cannot be undone.')) return;
+  if (!window.confirm('Wipe EVERYTHING? All games, players AND accounts will be permanently deleted. Complete reset. Cannot be undone.')) return;
   _wipeInProgress = true;
   stopFirestoreSync(); // stop listener so localOnly merge can't fire
   clearTimeout(_saveTimer);  // cancel any pending saves
