@@ -2741,6 +2741,31 @@ function startFirestoreSync() {
           S.players = [...S.players, myMissingRecord];
           _saveToFirestore();
         }
+
+        // Heal accounts that exist in auth but have no player record in Firestore.
+        // This covers accounts created during the period when the player record was
+        // never written (pre-fix). Only runs once: after the record is written it
+        // will appear in every subsequent snapshot and this branch won't fire.
+        if (currentUser && !S.players.find(p => p.id === currentUser.id)) {
+          const localUser = getUsers().find(u => u.id === currentUser.id);
+          const healedPlayer = {
+            id:          currentUser.id,
+            name:        currentUser.name,
+            email:       currentUser.email,
+            riderType:   currentUser.riderType || (localUser?.riderType) || 'skier',
+            homeResort:  localUser?.homeResort || '',
+            location:    localUser?.homeResort || '',
+            rating:      null,
+            wins:        0,
+            losses:      0,
+            gamesPlayed: 0,
+            badges:      [],
+            friends:     [],
+            createdAt:   localUser?.createdAt || Date.now()
+          };
+          S.players = [...S.players, healedPlayer];
+          _saveToFirestore();
+        }
         try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
 
         // Refresh UI in non-destructive views
