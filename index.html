@@ -2747,21 +2747,20 @@ function startFirestoreSync() {
         // Guard with _healPlayerDone so multiple rapid snapshots don't create duplicates.
         if (!_healPlayerDone && currentUser && !S.players.find(p => p.id === currentUser.id)) {
           _healPlayerDone = true;
-          const localUser = getUsers().find(u => u.id === currentUser.id);
           const healedPlayer = {
             id:          currentUser.id,
             name:        currentUser.name,
             email:       currentUser.email,
-            riderType:   currentUser.riderType || (localUser?.riderType) || 'skier',
-            homeResort:  localUser?.homeResort || '',
-            location:    localUser?.homeResort || '',
+            riderType:   currentUser.riderType || 'skier',
+            homeResort:  '',
+            location:    '',
             rating:      null,
             wins:        0,
             losses:      0,
             gamesPlayed: 0,
             badges:      [],
             friends:     [],
-            createdAt:   localUser?.createdAt || Date.now()
+            createdAt:   Date.now()
           };
           S.players = [...S.players, healedPlayer];
           _saveToFirestore();
@@ -2843,51 +2842,19 @@ async function hashPw(pw) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-function getUsers()        { try { return JSON.parse(localStorage.getItem('skirank_users')||'[]'); } catch(e){ return []; } }
-function saveUsers(u)      {
-  localStorage.setItem('skirank_users', JSON.stringify(u));
-  // Mirror to Firestore so accounts work across devices and domains
-  if (db) {
-    u.forEach(user => {
-      db.collection('users').doc(user.id).set(user).catch(e => console.warn('User save err:', e));
-    });
-  }
-}
+// ── Auth is now 100% Firestore-backed ──────────────────────────────────────
+// Credentials live in db.collection('users'). localStorage only holds the
+// lightweight session token (id/name/email/riderType — no password hash).
+// This means admin deletes, password changes, etc. propagate to every device
+// instantly with no stale localStorage to patch around.
 
-// Pull all user accounts from Firestore into localStorage (runs on every page load)
-async function _syncUsersFromFirestore() {
-  if (!db) return;
-  try {
-    const snap = await db.collection('users').get();
-    const local = getUsers();
+function getSession()   { try { return JSON.parse(localStorage.getItem('skirank_session')||'null'); } catch(e){ return null; } }
+function setSession(u)  { localStorage.setItem('skirank_session', JSON.stringify(u)); currentUser = u; }
+function clearSession() { localStorage.removeItem('skirank_session'); currentUser = null; }
 
-    // Add any Firestore users missing from localStorage
-    let changed = false;
-    snap.forEach(doc => {
-      const u = doc.data();
-      if (!u.id || !u.email) return;
-      if (!local.some(l => l.id === u.id)) {
-        local.push(u);
-        changed = true;
-      }
-    });
-    if (changed) localStorage.setItem('skirank_users', JSON.stringify(local));
-
-    // Push any localStorage users missing from Firestore (e.g. after a wipe)
-    const batch = db.batch();
-    let needsBatch = false;
-    local.forEach(u => {
-      if (!snap.docs.some(d => d.id === u.id)) {
-        batch.set(db.collection('users').doc(u.id), u);
-        needsBatch = true;
-      }
-    });
-    if (needsBatch) await batch.commit();
-  } catch(e) { console.warn('User sync error:', e); }
-}
-function getSession()      { try { return JSON.parse(localStorage.getItem('skirank_session')||'null'); } catch(e){ return null; } }
-function setSession(u)     { localStorage.setItem('skirank_session', JSON.stringify(u)); currentUser = u; }
-function clearSession()    { localStorage.removeItem('skirank_session'); currentUser = null; }
+// Kept as no-ops so any remaining call sites don't throw
+function getUsers()  { return []; }
+function saveUsers() {}
 function userStoreKey()    { return 'skirank_global'; } // shared across all users on this device
 
 let _selectedRiderType = 'skier'; // default
@@ -2936,23 +2903,29 @@ async function doSignup() {
   if (password.length < 6) return showErr('Password must be at least 6 characters.');
   if (password !== confirm) return showErr('Passwords do not match.');
 
-  // Check localStorage, but skip any entry whose player record no longer exists in Firestore
-  // (covers accounts that were deleted via admin — deletion only clears the deleting device's localStorage)
-  const users = getUsers();
-  const liveUsers = users.filter(u => S.players.some(p => p.id === u.id));
-  saveUsers(liveUsers); // prune stale deleted entries from this device too
-  if (liveUsers.some(u => u.email === email)) return showErr('An account with that email already exists.');
-
-  // Disable button immediately — prevents duplicate submissions during the async Firestore check
+  // Disable button immediately to prevent duplicate submissions
   if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
 
-  // Also check Firestore S.players (source of truth) for the email
+  // Check Firestore for existing email (single source of truth)
+  if (!db) return showErr('Unable to connect. Please try again.');
+  try {
+    const snap = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (!snap.empty) return showErr('An account with that email already exists.');
+  } catch(e) { console.warn('Email check failed:', e); }
+
+  // Also check S.players in case Firestore users collection is ahead of snapshot
   if (S.players.some(p => p.email === email)) return showErr('An account with that email already exists.');
 
   const homeResort = document.getElementById('su-resort')?.value.trim() || '';
   const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, homeResort, createdAt: Date.now() };
-  users.push(newUser);
-  saveUsers(users);
+
+  // Write credentials to Firestore — this is the only auth store now
+  try {
+    await db.collection('users').doc(newUser.id).set(newUser);
+  } catch(e) {
+    return showErr('Failed to create account. Please try again.');
+  }
+
   setSession({ id: newUser.id, name: newUser.name, email: newUser.email, riderType: newUser.riderType });
 
   // Pre-seed the player record so myMissingRecord logic writes it to Firestore on first sync.
@@ -2987,26 +2960,22 @@ async function doLogin() {
 
   if (!email || !password) return showErr('Please fill in all fields.');
 
-  // Check localStorage first, then fall back to Firestore
-  let users = getUsers();
-  let user  = users.find(u => u.email === email);
+  const loginBtn = document.querySelector('#form-login .auth-btn');
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
+  const resetBtn = () => { if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In ⛷️'; } };
 
-  if (!user && db) {
-    // Not in localStorage — try fetching directly from Firestore
-    try {
-      const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-      if (!snap.empty) {
-        user = snap.docs[0].data();
-        // Cache it locally so future logins are instant
-        users.push(user);
-        localStorage.setItem('skirank_users', JSON.stringify(users));
-      }
-    } catch(e) { console.warn('Firestore login lookup failed:', e); }
-  }
+  if (!db) { resetBtn(); return showErr('Unable to connect. Please try again.'); }
 
-  if (!user) return showErr('No account found with that email.');
+  let user;
+  try {
+    const snap = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (!snap.empty) user = snap.docs[0].data();
+  } catch(e) { resetBtn(); return showErr('Connection error. Please try again.'); }
+
+  if (!user) { resetBtn(); return showErr('No account found with that email.'); }
+
   const hash = await hashPw(password);
-  if (hash !== user.passwordHash) return showErr('Incorrect password.');
+  if (hash !== user.passwordHash) { resetBtn(); return showErr('Incorrect password.'); }
 
   setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
   launchApp();
@@ -3044,8 +3013,8 @@ function deleteAccount() {
         S.friendRequests = S.friendRequests.filter(r => r.fromId !== currentUser.id && r.toId !== currentUser.id);
       }
       save();
-      // Remove from auth records
-      saveUsers(getUsers().filter(u => u.id !== currentUser.id));
+      // Remove from Firestore auth store
+      if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
       // Sign out
       stopPolling();
       stopFirestoreSync();
@@ -3077,10 +3046,9 @@ function showAuthScreen(hint='') {
   // Contextual hint (e.g. "Sign in to log a game")
   const hintEl = document.getElementById('auth-hint');
   if (hintEl) { hintEl.textContent = hint; hintEl.style.display = hint ? 'block' : 'none'; }
-  // Show a warning when opened as a local file (file://) since localStorage
-  // is scoped to the origin — accounts from the dev server won't be visible here.
+  // Hide the local-file warning — auth is now Firestore-backed so file:// works fine
   const notice = document.getElementById('auth-origin-notice');
-  if (notice) notice.style.display = location.protocol === 'file:' ? 'block' : 'none';
+  if (notice) notice.style.display = 'none';
 }
 
 // Dismiss the auth screen and return to preview (guest) mode
@@ -6906,9 +6874,6 @@ function closeBadgeModal() {
 async function init() {
   document.getElementById('trick-input').addEventListener('keydown', e => { if (e.key==='Enter') setterSubmitTrick(); });
 
-  // Sync user accounts from Firestore so logins work on any device/domain
-  await _syncUsersFromFirestore();
-
   const session = getSession();
   if (session) {
     currentUser = session;
@@ -7001,10 +6966,9 @@ async function showAdminDashboard() {
 }
 
 function renderAdminStats() {
-  const users = getUsers();
   const el = document.getElementById('admin-stats');
   el.innerHTML = [
-    { val: users.length,          lbl: 'Accounts' },
+    { val: S.players.length,      lbl: 'Accounts' },
     { val: S.players.length,      lbl: 'Players' },
     { val: S.games.length,        lbl: 'Games' },
     { val: S.players.filter(p => p.rating).length, lbl: 'Ranked' },
@@ -7057,7 +7021,6 @@ function adminDeleteUser(id) {
   const p = S.players.find(x => x.id === id);
   if (!p) return;
   confirm_('Delete Account', `Delete "${p.name}"? This will remove their player record. Game history remains.`, () => {
-    saveUsers(getUsers().filter(x => x.id !== id));
     if (db) db.collection('users').doc(id).delete().catch(()=>{});
     S.players = S.players.filter(x => x.id !== id);
     S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
