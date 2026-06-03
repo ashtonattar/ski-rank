@@ -6843,6 +6843,15 @@ function showProfile(id) {
       </div>
     </div>` : `<div style="margin-bottom:20px;"></div>`}
 
+    <!-- Rating history chart placeholder -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Rating History</div>
+        <span id="modal-rh-count" style="font-size:11px;color:var(--text-muted);"></span>
+      </div>
+      <div id="modal-rh-chart"></div>
+    </div>
+
     <div style="margin-bottom:8px;font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Game History</div>
     ${!games.length
       ? '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">No games yet</div>'
@@ -6871,6 +6880,11 @@ function showProfile(id) {
     </div>`;
 
   openModal('profile-modal');
+
+  // Render rating history chart into the modal
+  const rhContainer = document.getElementById('modal-rh-chart');
+  const rhCount     = document.getElementById('modal-rh-count');
+  if (rhContainer) renderRatingHistory(id, rhContainer, rhCount);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -7636,9 +7650,9 @@ function closeResortDropdown() { closeDropdown('resort-dropdown'); }
 // ═══════════════════════════════════════════════════════
 //  MY PROFILE
 // ═══════════════════════════════════════════════════════
-function renderRatingHistory(playerId) {
-  const container = document.getElementById('rating-history-chart');
-  const countEl   = document.getElementById('rating-history-count');
+function renderRatingHistory(playerId, container, countEl) {
+  if (!container) container = document.getElementById('rating-history-chart');
+  if (!countEl)   countEl   = document.getElementById('rating-history-count');
   if (!container) return;
 
   // Build chronological list of rating snapshots
@@ -7647,13 +7661,15 @@ function renderRatingHistory(playerId) {
     .sort((a, b) => a.date - b.date);
 
   if (!playerGames.length) {
-    container.innerHTML = `<div class="rh-empty">🎿 No games yet — your rating graph will appear after your first game.</div>`;
+    container.innerHTML = `<div class="rh-empty">🎿 No games yet — rating graph will appear after the first game.</div>`;
     if (countEl) countEl.textContent = '';
-    document.getElementById('rating-history-card').style.display = 'none';
+    const card = document.getElementById('rating-history-card');
+    if (card) card.style.display = 'none';
     return;
   }
 
-  document.getElementById('rating-history-card').style.display = 'block';
+  const card = document.getElementById('rating-history-card');
+  if (card) card.style.display = 'block';
   if (countEl) countEl.textContent = `${playerGames.length} game${playerGames.length !== 1 ? 's' : ''}`;
 
   // Build points: each game gives an (endRating, date, isWin, opponent) point
