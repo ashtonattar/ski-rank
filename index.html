@@ -3387,11 +3387,23 @@ const SKI = {
   unique:       ['Frontflip','Backflip'],
 };
 
+const SNOWBOARD = {
+  spins:        ['180','360','540','720','900','1080','1260','1440','1620','1800'],
+  directions:   ['Frontside','Backside','Cab','Switch Backside','Switch Frontside'],
+  offAxis:      ['Cork','Double Cork','Triple Cork','Rodeo','Double Rodeo','Wildcat','Double Wildcat'],
+  grabs:        ['Indy','Mute','Melon','Stalefish','Nosegrab','Tailgrab','Japan','Crail','Truckdriver','Roast Beef','Seatbelt'],
+  railTakeoffs: ['Switch','Nollie','Fakie'],
+  spinsOn:      ['270-on','450-on','630-on'],
+  onRails:      ['50-50','Frontside Boardslide','Backside Boardslide','Noseslide','Tailslide','Frontside Lipslide','Backside Lipslide','Nosepress','Tailpress','Bluntslide','Nose Bluntslide'],
+  spinsOff:     ['Frontside out','Backside out','270-off','450-off','630-off'],
+  unique:       ['McTwist','Holy Crow','Frontflip','Backflip','360 Underflip'],
+};
+
 // Builder state
 let _trickLibTarget = 'live';
 let _trickLibCat    = 'All';
 let _builderMode    = 'jump'; // 'jump' | 'rail' | 'unique'
-let _b = { takeoff:null, axis:null, spin:null, grab:null,
+let _b = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
            railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
 
 function _trickSport() {
@@ -3406,21 +3418,15 @@ function openTrickLib(target) {
   _trickLibTarget = target;
   const sport = _trickSport();
   document.querySelector('.trick-lib-sport-label').textContent = sport === 'snowboard' ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
-  document.getElementById('trick-lib-list-controls').style.display = sport === 'ski' ? 'none' : 'block';
-  document.getElementById('trick-lib-builder-tabs').style.display  = sport === 'ski' ? 'block' : 'none';
-  document.getElementById('trick-lib-footer').style.display        = sport === 'ski' ? 'block' : 'none';
-  if (sport === 'ski') {
-    _b = { takeoff:null, axis:null, spin:null, grab:null, railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
-    _builderMode = 'jump';
-    renderBuilderModeTabs();
-    renderBuilder();
-  } else {
-    _trickLibCat = 'All';
-    document.getElementById('trick-lib-search').value = '';
-    renderTrickCats();
-    renderTrickList();
-    setTimeout(() => document.getElementById('trick-lib-search').focus(), 350);
-  }
+  // Both sports use the component builder
+  document.getElementById('trick-lib-list-controls').style.display = 'none';
+  document.getElementById('trick-lib-builder-tabs').style.display  = 'block';
+  document.getElementById('trick-lib-footer').style.display        = 'block';
+  _b = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
+         railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
+  _builderMode = 'jump';
+  renderBuilderModeTabs();
+  renderBuilder();
   document.getElementById('trick-lib-overlay').style.display = 'flex';
 }
 
@@ -3460,7 +3466,8 @@ function renderTrickList() {
 // ── Ski builder mode ────────────────────────────────────
 function setBuilderMode(mode) {
   _builderMode = mode;
-  _b = { takeoff:null, axis:null, spin:null, grab:null, railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
+  _b = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
+         railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
   renderBuilderModeTabs();
   renderBuilder();
 }
@@ -3479,84 +3486,164 @@ function _pill(label, key, val) {
 
 function renderBuilder() {
   const list = document.getElementById('trick-lib-list');
-  if (_builderMode === 'jump') {
-    list.innerHTML = `
-      <div style="padding:12px 12px 80px;">
-        <div class="builder-section">
-          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+  const sport = _trickSport();
+  const opt = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span>`;
+
+  if (sport === 'snowboard') {
+    if (_builderMode === 'jump') {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Direction</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.directions.map(v => _pill(v,'direction',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Axis <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.axes.map(v => _pill(v,'axis',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Off-Axis ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.offAxis.map(v => _pill(v,'offAxis',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Spin</div>
-          <div class="builder-pills">
-            ${SKI.spins.map(v => _pill(v,'spin',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Spin</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.spins.map(v => _pill(v,'spin',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Grab <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Grab ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.grabs.map(v => _pill(v,'grab',v)).join('')}
+            </div>
           </div>
-        </div>
-      </div>`;
-  } else if (_builderMode === 'rail') {
-    list.innerHTML = `
-      <div style="padding:12px 12px 80px;">
-        <div class="builder-section">
-          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.railTakeoffs.map(v => _pill(v,'railTakeoff',v)).join('')}
+        </div>`;
+    } else if (_builderMode === 'rail') {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Takeoff ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.railTakeoffs.map(v => _pill(v,'railTakeoff',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Spin On <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.spinsOn.map(v => _pill(v,'spinOn',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Spin On ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.spinsOn.map(v => _pill(v,'spinOn',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">On Rail <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.onRails.map(v => _pill(v,'onRail',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">On Rail ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.onRails.map(v => _pill(v,'onRail',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Spin Off <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.spinsOff.map(v => _pill(v,'spinOff',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Spin Off ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.spinsOff.map(v => _pill(v,'spinOff',v)).join('')}
+            </div>
           </div>
-        </div>
-      </div>`;
+        </div>`;
+    } else {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Trick</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.unique.map(v => _pill(v,'unique',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">Grab ${opt}</div>
+            <div class="builder-pills">
+              ${SNOWBOARD.grabs.map(v => _pill(v,'grab',v)).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
   } else {
-    list.innerHTML = `
-      <div style="padding:12px 12px 80px;">
-        <div class="builder-section">
-          <div class="builder-section-label">Trick</div>
-          <div class="builder-pills">
-            ${SKI.unique.map(v => _pill(v,'unique',v)).join('')}
+    // ── Ski builder ───────────────────────────────────────
+    if (_builderMode === 'jump') {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Takeoff ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Grab <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Axis ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.axes.map(v => _pill(v,'axis',v)).join('')}
+            </div>
           </div>
-        </div>
-        <div class="builder-section">
-          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
-          <div class="builder-pills">
-            ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+          <div class="builder-section">
+            <div class="builder-section-label">Spin</div>
+            <div class="builder-pills">
+              ${SKI.spins.map(v => _pill(v,'spin',v)).join('')}
+            </div>
           </div>
-        </div>
-      </div>`;
+          <div class="builder-section">
+            <div class="builder-section-label">Grab ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+            </div>
+          </div>
+        </div>`;
+    } else if (_builderMode === 'rail') {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Takeoff ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.railTakeoffs.map(v => _pill(v,'railTakeoff',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">Spin On ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.spinsOn.map(v => _pill(v,'spinOn',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">On Rail ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.onRails.map(v => _pill(v,'onRail',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">Spin Off ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.spinsOff.map(v => _pill(v,'spinOff',v)).join('')}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      list.innerHTML = `
+        <div style="padding:12px 12px 80px;">
+          <div class="builder-section">
+            <div class="builder-section-label">Trick</div>
+            <div class="builder-pills">
+              ${SKI.unique.map(v => _pill(v,'unique',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">Grab ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+            </div>
+          </div>
+          <div class="builder-section">
+            <div class="builder-section-label">Takeoff ${opt}</div>
+            <div class="builder-pills">
+              ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
   }
   updateBuilderPreview();
 }
@@ -3568,17 +3655,27 @@ function builderPick(key, val) {
 }
 
 function _assembleTrick() {
+  const sport = _trickSport();
   if (_builderMode === 'jump') {
     const parts = [];
-    if (_b.takeoff) parts.push(_b.takeoff);
-    if (_b.axis)    parts.push(_b.axis);
-    if (_b.spin)    parts.push(_b.spin);
-    if (_b.grab)    parts.push(_b.grab);
+    if (sport === 'snowboard') {
+      // Snowboard: Direction [Off-Axis] Spin [Grab]
+      if (_b.direction) parts.push(_b.direction);
+      if (_b.offAxis)   parts.push(_b.offAxis);
+      if (_b.spin)      parts.push(_b.spin);
+      if (_b.grab)      parts.push(_b.grab);
+    } else {
+      // Ski: [Takeoff] [Axis] Spin [Grab]
+      if (_b.takeoff) parts.push(_b.takeoff);
+      if (_b.axis)    parts.push(_b.axis);
+      if (_b.spin)    parts.push(_b.spin);
+      if (_b.grab)    parts.push(_b.grab);
+    }
     return parts.join(' ') || null;
   } else if (_builderMode === 'rail') {
     const parts = [];
-    if (_b.railTakeoff && _b.spinOn) {
-      // "two ons" rule: strip trailing -on from takeoff, combine with spinOn
+    if (_b.railTakeoff && _b.spinOn && sport === 'ski') {
+      // Ski "two ons" rule: strip trailing -on from takeoff, combine with spinOn
       parts.push(_b.railTakeoff.replace(/-on$/, '') + ' ' + _b.spinOn);
     } else {
       if (_b.railTakeoff) parts.push(_b.railTakeoff);
@@ -3588,8 +3685,9 @@ function _assembleTrick() {
     if (_b.spinOff) parts.push(_b.spinOff);
     return parts.join(' ') || null;
   } else {
+    // Unique
     const parts = [];
-    if (_b.takeoff) parts.push(_b.takeoff);
+    if (sport === 'ski' && _b.takeoff) parts.push(_b.takeoff);
     if (_b.unique)  parts.push(_b.unique);
     if (_b.grab)    parts.push(_b.grab);
     return parts.join(' ') || null;
@@ -3615,13 +3713,15 @@ function _trickDifficulty(name) {
   if (onDeg >= 630) level = Math.max(level, 3);
   else if (onDeg >= 450) level = Math.max(level, 2);
   else if (onDeg >= 270) level = Math.max(level, 1);
-  // Axis
-  if (/Quadruple/i.test(name)) level = Math.min(3, level + 3);
+  // Axis / off-axis modifiers (ski + snowboard)
+  if (/Triple Cork|Triple Rodeo/i.test(name)) level = Math.min(3, level + 3);
+  else if (/Double Cork|Double Rodeo|Double Wildcat/i.test(name)) level = Math.min(3, level + 2);
+  else if (/Cork|Rodeo|Bio|Misty|Wildcat|McTwist/i.test(name)) level = Math.min(3, level + 1);
+  else if (/Quadruple/i.test(name)) level = Math.min(3, level + 3);
   else if (/Triple/i.test(name)) level = Math.min(3, level + 2);
   else if (/Double/i.test(name)) level = Math.min(3, level + 1);
-  else if (/Cork|Rodeo|Bio|Misty/i.test(name)) level = Math.min(3, level + 1);
-  // Switch takeoff
-  if (/^Switch/i.test(name)) level = Math.min(3, level + 1);
+  // Switch / Cab takeoff adds difficulty
+  if (/^Switch|^Cab/i.test(name)) level = Math.min(3, level + 1);
   return levels[Math.min(level, 3)];
 }
 
