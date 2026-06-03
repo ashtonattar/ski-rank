@@ -1514,7 +1514,6 @@
 
       /* ── Theme toggle: floating pill on mobile ── */
       #theme-fab {
-        display:flex !important;
         position:fixed; top:14px; right:14px; z-index:500;
         align-items:center; gap:6px;
         padding:7px 13px 7px 10px;
@@ -2814,6 +2813,11 @@
 // ═══════════════════════════════════════════════════════
 //  THEME (dark / light)
 // ═══════════════════════════════════════════════════════
+function _setFabVisible(visible) {
+  const fab = document.getElementById('theme-fab');
+  if (fab) fab.style.display = visible ? 'flex' : 'none';
+}
+
 function _applyTheme(theme) {
   document.body.classList.toggle('light', theme === 'light');
   const isLight = theme === 'light';
@@ -3274,6 +3278,7 @@ function logout() {
     load(); // reload public data so preview is still populated
     document.getElementById('sb-user-footer').style.display  = 'none';
     document.getElementById('sb-guest-footer').style.display = 'flex';
+    _setFabVisible(false);
     nav('leaderboard');
   });
 }
@@ -3307,6 +3312,7 @@ function deleteAccount() {
       load();
       document.getElementById('sb-user-footer').style.display  = 'none';
       document.getElementById('sb-guest-footer').style.display = 'flex';
+      _setFabVisible(false);
       nav('leaderboard');
       toast('Account deleted.', 'ok');
     }
@@ -3346,6 +3352,7 @@ function launchPreview() {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('sb-user-footer').style.display  = 'none';
   document.getElementById('sb-guest-footer').style.display = 'flex';
+  _setFabVisible(false);
   // Always start empty — Firestore is the source of truth.
   // Don't call load() here or stale localStorage data would show up.
   S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
@@ -4032,6 +4039,7 @@ function launchApp() {
   // Show the signed-in footer, hide the guest footer
   document.getElementById('sb-user-footer').style.display  = 'flex';
   document.getElementById('sb-guest-footer').style.display = 'none';
+  _setFabVisible(true);
   if (currentUser) {
     document.getElementById('sb-display-name').textContent = currentUser.name;
     document.getElementById('sb-username').textContent = currentUser.email;
