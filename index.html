@@ -6968,7 +6968,10 @@ function openChallengeModal(toId) {
   document.getElementById('challenge-time').value    = '';
   document.getElementById('challenge-resort').value  = '';
   document.getElementById('challenge-message').value = '';
-  resetPicker('pp-challenge-judge');
+  // Reset judge picker with custom placeholder
+  document.getElementById('challenge-judge').value = '';
+  const jLabel = document.getElementById('pp-challenge-judge-label');
+  if (jLabel) { jLabel.textContent = 'No judge — players call each other'; jLabel.style.color = 'var(--text-muted)'; }
   fillPicker('pp-challenge-judge');
   openModal('challenge-modal');
 }
