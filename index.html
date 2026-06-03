@@ -2869,6 +2869,21 @@
         <input type="text" class="form-input" id="challenge-resort" placeholder="e.g. Whistler, Park City…" autocomplete="off">
       </div>
       <div class="form-group">
+        <label class="form-label">⚖️ Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">A third person who will call all tricks — neither player can judge</div>
+        <div class="pp-wrap" id="pp-challenge-judge">
+          <input type="hidden" id="challenge-judge">
+          <button type="button" class="pp-trigger" onclick="openPicker('pp-challenge-judge')">
+            <span id="pp-challenge-judge-label" style="color:var(--text-muted);">No judge — players call each other</span>
+            <span class="pp-caret">▾</span>
+          </button>
+          <div class="pp-dropdown" id="pp-challenge-judge-drop" style="display:none;">
+            <input class="pp-search" placeholder="Search riders…" oninput="filterPicker('pp-challenge-judge',this.value)" onclick="event.stopPropagation()">
+            <div class="pp-list" id="pp-challenge-judge-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="form-label">💬 Message <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <input type="text" class="form-input" id="challenge-message" placeholder="Let's run it on the big kicker…" maxlength="120">
       </div>
@@ -6953,6 +6968,8 @@ function openChallengeModal(toId) {
   document.getElementById('challenge-time').value    = '';
   document.getElementById('challenge-resort').value  = '';
   document.getElementById('challenge-message').value = '';
+  resetPicker('pp-challenge-judge');
+  fillPicker('pp-challenge-judge');
   openModal('challenge-modal');
 }
 
@@ -6963,7 +6980,13 @@ function sendChallenge() {
   const timeVal    = document.getElementById('challenge-time').value;
   const resortVal  = document.getElementById('challenge-resort').value.trim();
   const msgVal     = document.getElementById('challenge-message').value.trim();
+  const judgeId    = document.getElementById('challenge-judge').value || null;
   const toPlayer   = byId(_challengeTargetId);
+
+  // Judge can't be one of the two players
+  if (judgeId && (judgeId === _challengeTargetId || judgeId === currentUser.id)) {
+    toast('Judge must be different from both players.', 'err'); return;
+  }
 
   if (!Array.isArray(S.challenges)) S.challenges = [];
   S.challenges.push({
@@ -6972,6 +6995,8 @@ function sendChallenge() {
     fromName: currentUser.name,
     toId:     _challengeTargetId,
     toName:   toPlayer?.name || '',
+    judgeId:  judgeId,
+    judgeName: judgeId ? byId(judgeId)?.name : null,
     date:     dateVal,
     time:     timeVal || null,
     resort:   resortVal || null,
@@ -6983,7 +7008,8 @@ function sendChallenge() {
   checkNotifications();
   closeModal('challenge-modal');
   const dateStr = new Date(dateVal + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-  toast(`Challenge sent to ${toPlayer?.name} for ${dateStr} ⚡`, 'ok');
+  const judgeNote = judgeId ? ` · ⚖️ ${byId(judgeId)?.name} judging` : '';
+  toast(`Challenge sent to ${toPlayer?.name} for ${dateStr}${judgeNote} ⚡`, 'ok');
 }
 
 function acceptChallenge(id) {
@@ -7003,6 +7029,18 @@ function declineChallenge(id) {
   checkNotifications();
   renderConfirmations();
   toast('Challenge declined.', 'ok');
+}
+
+function startChallengeGame(challengeId) {
+  const c = (S.challenges || []).find(x => x.id === challengeId);
+  if (!c) return;
+  const opponentId = c.fromId === currentUser?.id ? c.toId : c.fromId;
+  _challengeOpponentId = opponentId;
+  if (c.judgeId) {
+    // Pre-fill judge after live setup renders
+    setTimeout(() => setPickerValue('pp-lv-judge', c.judgeId), 200);
+  }
+  nav('live-game');
 }
 
 function cancelChallenge(id) {
@@ -7057,8 +7095,9 @@ function renderChallenges() {
                   : `<span style="color:var(--text-muted);font-weight:400;">You challenged</span> ${pLink(c.toId, c.toName)}`}
               </div>
               <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;">📅 ${dateStr}${timeStr}</div>
-              ${c.resort  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">🏔 ${c.resort}</div>`  : ''}
-              ${c.message ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${c.message}"</div>` : ''}
+              ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">🏔 ${c.resort}</div>`  : ''}
+              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">⚖️ Judge: <strong style="color:var(--text-secondary);">${c.judgeName}</strong></div>` : ''}
+              ${c.message    ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${c.message}"</div>` : ''}
             </div>
           </div>
           <span class="badge ${isAccepted ? 'badge-success' : isIncoming ? 'badge-accent' : 'badge-muted'}" style="font-size:9px;flex-shrink:0;">
@@ -7068,7 +7107,7 @@ function renderChallenges() {
         ${isAccepted ? `
           <div style="font-size:12px;color:var(--success);padding:6px 0 4px;">✓ Challenge accepted — see you on the mountain!</div>
           <div class="pending-card-actions">
-            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="challengePlayer('${isIncoming ? c.fromId : c.toId}')">🎿 Start Live Game</button>
+            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="startChallengeGame('${c.id}')">🎿 Start Live Game</button>
             <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="cancelChallenge('${c.id}')">Remove</button>
           </div>` :
         isIncoming ? `
