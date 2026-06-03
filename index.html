@@ -1570,6 +1570,36 @@
       padding-bottom:max(12px, env(safe-area-inset-bottom));
       border-top:1px solid var(--border);
     }
+    /* ── Ski Trick Builder ── */
+    .builder-mode-tabs { display:flex; gap:6px; margin-bottom:12px; }
+    .builder-mode-tab {
+      flex:1; padding:8px 4px; border-radius:10px; font-size:13px; font-weight:700;
+      border:1px solid var(--border); background:transparent; color:var(--text-muted);
+      cursor:pointer; text-align:center; -webkit-tap-highlight-color:transparent;
+      transition:all .15s;
+    }
+    .builder-mode-tab.active { background:rgba(0,212,255,0.12); border-color:rgba(0,212,255,0.45); color:var(--ice); }
+    .builder-section { margin-bottom:14px; }
+    .builder-section-label {
+      font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+      color:var(--text-muted); margin-bottom:7px;
+    }
+    .builder-pills { display:flex; flex-wrap:wrap; gap:6px; }
+    .builder-pill {
+      padding:6px 13px; border-radius:99px; font-size:13px; font-weight:600;
+      border:1px solid var(--border); background:rgba(255,255,255,0.03);
+      color:var(--text-secondary); cursor:pointer; transition:all .15s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .builder-pill:active { transform:scale(0.94); }
+    .builder-pill.selected { background:rgba(0,212,255,0.14); border-color:rgba(0,212,255,0.5); color:var(--ice); }
+    .builder-preview {
+      background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.2);
+      border-radius:14px; padding:14px 16px; margin:0 0 4px;
+    }
+    .builder-preview-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+    .builder-preview-trick { font-size:17px; font-weight:800; color:var(--text-primary); line-height:1.3; min-height:24px; }
+    .builder-preview-empty { font-size:14px; color:var(--text-muted); font-style:italic; }
 
     /* ── Onboarding ── */
     #onboard-overlay {
@@ -3344,14 +3374,29 @@ const TRICK_LIBRARY = [
 
 const DIFF_LABELS = { easy:'Easy', medium:'Medium', hard:'Hard', expert:'Expert' };
 
-let _trickLibTarget = 'live'; // 'live' | 'log'
+// ── Ski builder components ──────────────────────────────
+const SKI = {
+  spins:        ['180','360','540','720','900','1080','1260','1440','1620','1800','1980','2160','2340','Switch Zero Spin'],
+  axes:         ['Cork','Double Cork','Triple Cork','Quadruple Cork','Rodeo','Double Rodeo','Triple Rodeo','Bio','Double Bio','Triple Bio','Misty','Double Misty','Triple Misty','Flat'],
+  jumpTakeoffs: ['Switch','Switch Blender','Switch Tailbutter','Nosebutter'],
+  grabs:        ['Safety','Japan','Mute','Blunt','Nosegrab','Truckdriver','Critical'],
+  railTakeoffs: ['Lip-on','Switch Lip-on','Switch Tail-on','Nosebutter','Switch Blender','Switch Tailbutter'],
+  spinsOn:      ['270-on','450-on','630-on'],
+  onRails:      ['Frontslide','Backslide','Front Swap','Back Swap','Front 360 Swap','Back 360 Swap','50-50','Front Surface Swap','Back Surface Swap'],
+  spinsOff:     ['Front 270-off','Back 270-off','Front 450-off','Back 450-off','Front 630-off','Back 630-off','Front 810-off','Back 810-off'],
+  unique:       ['Frontflip','Backflip'],
+};
+
+// Builder state
+let _trickLibTarget = 'live';
 let _trickLibCat    = 'All';
+let _builderMode    = 'jump'; // 'jump' | 'rail' | 'unique'
+let _b = { takeoff:null, axis:null, spin:null, grab:null,
+           railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
 
 function _trickSport() {
-  // Determine sport from the current user's rider type
   return (currentUser?.riderType === 'boarder') ? 'snowboard' : 'ski';
 }
-
 function _filteredLibrary() {
   const sport = _trickSport();
   return TRICK_LIBRARY.filter(t => t.sport === sport || t.sport === 'both');
@@ -3359,63 +3404,245 @@ function _filteredLibrary() {
 
 function openTrickLib(target) {
   _trickLibTarget = target;
-  _trickLibCat = 'All';
-  document.getElementById('trick-lib-search').value = '';
-  // Update header sport label
   const sport = _trickSport();
-  document.querySelector('#trick-lib-sheet .trick-lib-sport-label').textContent =
-    sport === 'snowboard' ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
-  renderTrickCats();
-  renderTrickList();
+  document.querySelector('.trick-lib-sport-label').textContent = sport === 'snowboard' ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
+  document.getElementById('trick-lib-list-controls').style.display = sport === 'ski' ? 'none' : 'block';
+  document.getElementById('trick-lib-builder-tabs').style.display  = sport === 'ski' ? 'block' : 'none';
+  document.getElementById('trick-lib-footer').style.display        = sport === 'ski' ? 'block' : 'none';
+  if (sport === 'ski') {
+    _b = { takeoff:null, axis:null, spin:null, grab:null, railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
+    _builderMode = 'jump';
+    renderBuilderModeTabs();
+    renderBuilder();
+  } else {
+    _trickLibCat = 'All';
+    document.getElementById('trick-lib-search').value = '';
+    renderTrickCats();
+    renderTrickList();
+    setTimeout(() => document.getElementById('trick-lib-search').focus(), 350);
+  }
   document.getElementById('trick-lib-overlay').style.display = 'flex';
-  setTimeout(() => document.getElementById('trick-lib-search').focus(), 350);
 }
 
 function closeTrickLib() {
   document.getElementById('trick-lib-overlay').style.display = 'none';
 }
 
+// ── Snowboard list mode ─────────────────────────────────
 function renderTrickCats() {
   const cats = ['All', ...new Set(_filteredLibrary().map(t => t.cat))];
   document.getElementById('trick-lib-cats').innerHTML = cats.map(c =>
     `<button class="tcat-btn ${c === _trickLibCat ? 'active' : ''}" onclick="setTrickCat('${c}')">${c}</button>`
   ).join('');
 }
-
-function setTrickCat(cat) {
-  _trickLibCat = cat;
-  renderTrickCats();
-  renderTrickList();
-}
-
+function setTrickCat(cat) { _trickLibCat = cat; renderTrickCats(); renderTrickList(); }
 function renderTrickList() {
   const q = document.getElementById('trick-lib-search').value.toLowerCase().trim();
   let tricks = _filteredLibrary();
   if (_trickLibCat !== 'All') tricks = tricks.filter(t => t.cat === _trickLibCat);
   if (q) tricks = tricks.filter(t => t.name.toLowerCase().includes(q));
-
   if (!tricks.length) {
-    document.getElementById('trick-lib-list').innerHTML =
-      `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q ? ` for "${q}"` : ''}</div>`;
+    document.getElementById('trick-lib-list').innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q?` for "${q}"`:''}.</div>`;
     return;
   }
-
-  // Group by category when browsing all without a search query
   const grouped = {};
-  if (_trickLibCat === 'All' && !q) {
-    tricks.forEach(t => { (grouped[t.cat] = grouped[t.cat]||[]).push(t); });
-  } else {
-    grouped[''] = tricks;
-  }
+  if (_trickLibCat === 'All' && !q) tricks.forEach(t => { (grouped[t.cat]=grouped[t.cat]||[]).push(t); });
+  else grouped[''] = tricks;
+  document.getElementById('trick-lib-list').innerHTML = Object.entries(grouped).map(([cat,list]) =>
+    `${cat ? `<div class="trick-cat-heading">${cat}</div>` : ''}
+    ${list.map(t => `<div class="trick-item" onclick="selectTrick('${t.name.replace(/'/g,"\\'")}')">
+      <span class="trick-item-name">${t.name}</span>
+      <span class="trick-item-diff diff-${t.diff}">${DIFF_LABELS[t.diff]}</span>
+    </div>`).join('')}`
+  ).join('');
+}
 
-  document.getElementById('trick-lib-list').innerHTML = Object.entries(grouped).map(([cat, list]) => `
-    ${cat ? `<div class="trick-cat-heading">${cat}</div>` : ''}
-    ${list.map(t => `
-      <div class="trick-item" onclick="selectTrick('${t.name.replace(/'/g,"\\'")}')">
-        <span class="trick-item-name">${t.name}</span>
-        <span class="trick-item-diff diff-${t.diff}">${DIFF_LABELS[t.diff]}</span>
-      </div>`).join('')}
-  `).join('');
+// ── Ski builder mode ────────────────────────────────────
+function setBuilderMode(mode) {
+  _builderMode = mode;
+  _b = { takeoff:null, axis:null, spin:null, grab:null, railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
+  renderBuilderModeTabs();
+  renderBuilder();
+}
+
+function renderBuilderModeTabs() {
+  document.querySelectorAll('.builder-mode-tab').forEach(btn => btn.classList.remove('active'));
+  const map = { jump:0, rail:1, unique:2 };
+  document.querySelectorAll('.builder-mode-tab')[map[_builderMode]]?.classList.add('active');
+}
+
+function _pill(label, key, val) {
+  const sel = _b[key] === val;
+  return `<button class="builder-pill${sel?' selected':''}" onclick="builderPick('${key}','${val.replace(/'/g,"\\'")}')">
+    ${label}</button>`;
+}
+
+function renderBuilder() {
+  const list = document.getElementById('trick-lib-list');
+  if (_builderMode === 'jump') {
+    list.innerHTML = `
+      <div style="padding:12px 12px 80px;">
+        <div class="builder-section">
+          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Axis <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.axes.map(v => _pill(v,'axis',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Spin</div>
+          <div class="builder-pills">
+            ${SKI.spins.map(v => _pill(v,'spin',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Grab <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+          </div>
+        </div>
+      </div>`;
+  } else if (_builderMode === 'rail') {
+    list.innerHTML = `
+      <div style="padding:12px 12px 80px;">
+        <div class="builder-section">
+          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.railTakeoffs.map(v => _pill(v,'railTakeoff',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Spin On <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.spinsOn.map(v => _pill(v,'spinOn',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">On Rail <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.onRails.map(v => _pill(v,'onRail',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Spin Off <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.spinsOff.map(v => _pill(v,'spinOff',v)).join('')}
+          </div>
+        </div>
+      </div>`;
+  } else {
+    list.innerHTML = `
+      <div style="padding:12px 12px 80px;">
+        <div class="builder-section">
+          <div class="builder-section-label">Trick</div>
+          <div class="builder-pills">
+            ${SKI.unique.map(v => _pill(v,'unique',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Grab <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.grabs.map(v => _pill(v,'grab',v)).join('')}
+          </div>
+        </div>
+        <div class="builder-section">
+          <div class="builder-section-label">Takeoff <span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span></div>
+          <div class="builder-pills">
+            ${SKI.jumpTakeoffs.map(v => _pill(v,'takeoff',v)).join('')}
+          </div>
+        </div>
+      </div>`;
+  }
+  updateBuilderPreview();
+}
+
+function builderPick(key, val) {
+  // Toggle: tap selected pill again to deselect
+  _b[key] = _b[key] === val ? null : val;
+  renderBuilder();
+}
+
+function _assembleTrick() {
+  if (_builderMode === 'jump') {
+    const parts = [];
+    if (_b.takeoff) parts.push(_b.takeoff);
+    if (_b.axis)    parts.push(_b.axis);
+    if (_b.spin)    parts.push(_b.spin);
+    if (_b.grab)    parts.push(_b.grab);
+    return parts.join(' ') || null;
+  } else if (_builderMode === 'rail') {
+    const parts = [];
+    if (_b.railTakeoff && _b.spinOn) {
+      // "two ons" rule: strip trailing -on from takeoff, combine with spinOn
+      parts.push(_b.railTakeoff.replace(/-on$/, '') + ' ' + _b.spinOn);
+    } else {
+      if (_b.railTakeoff) parts.push(_b.railTakeoff);
+      if (_b.spinOn)      parts.push(_b.spinOn);
+    }
+    if (_b.onRail)  parts.push(_b.onRail);
+    if (_b.spinOff) parts.push(_b.spinOff);
+    return parts.join(' ') || null;
+  } else {
+    const parts = [];
+    if (_b.takeoff) parts.push(_b.takeoff);
+    if (_b.unique)  parts.push(_b.unique);
+    if (_b.grab)    parts.push(_b.grab);
+    return parts.join(' ') || null;
+  }
+}
+
+function _trickDifficulty(name) {
+  if (!name) return 'easy';
+  const levels = ['easy','medium','hard','expert'];
+  let level = 0;
+  // Spin degree
+  const deg = (() => { const m = name.match(/\b(180|360|540|720|900|1080|1260|1440|1620|1800|1980|2160|2340)\b/); return m ? parseInt(m[1]) : 0; })();
+  if (deg >= 1260) level = Math.max(level, 3);
+  else if (deg >= 900) level = Math.max(level, 2);
+  else if (deg >= 540) level = Math.max(level, 1);
+  // Spin off degree
+  const offDeg = (() => { const m = name.match(/(270|450|630|810)-off/); return m ? parseInt(m[1]) : 0; })();
+  if (offDeg >= 630) level = Math.max(level, 3);
+  else if (offDeg >= 450) level = Math.max(level, 2);
+  else if (offDeg >= 270) level = Math.max(level, 1);
+  // Spin on degree
+  const onDeg = (() => { const m = name.match(/(270|450|630)-on/); return m ? parseInt(m[1]) : 0; })();
+  if (onDeg >= 630) level = Math.max(level, 3);
+  else if (onDeg >= 450) level = Math.max(level, 2);
+  else if (onDeg >= 270) level = Math.max(level, 1);
+  // Axis
+  if (/Quadruple/i.test(name)) level = Math.min(3, level + 3);
+  else if (/Triple/i.test(name)) level = Math.min(3, level + 2);
+  else if (/Double/i.test(name)) level = Math.min(3, level + 1);
+  else if (/Cork|Rodeo|Bio|Misty/i.test(name)) level = Math.min(3, level + 1);
+  // Switch takeoff
+  if (/^Switch/i.test(name)) level = Math.min(3, level + 1);
+  return levels[Math.min(level, 3)];
+}
+
+function updateBuilderPreview() {
+  const name = _assembleTrick();
+  const nameEl = document.getElementById('builder-trick-name');
+  const btn = document.getElementById('builder-select-btn');
+  if (name) {
+    const diff = _trickDifficulty(name);
+    nameEl.innerHTML = `${name} <span class="trick-item-diff diff-${diff}" style="font-size:12px;margin-left:6px;">${DIFF_LABELS[diff]}</span>`;
+    btn.disabled = false;
+  } else {
+    nameEl.innerHTML = `<span class="builder-preview-empty">Pick components below</span>`;
+    btn.disabled = true;
+  }
+}
+
+function builderSelectTrick() {
+  const name = _assembleTrick();
+  if (!name) return;
+  selectTrick(name);
 }
 
 function selectTrick(name) {
@@ -7593,12 +7820,29 @@ async function adminWipeEverything() {
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;" class="trick-lib-sport-label">⛷️ Ski Tricks</div>
         <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;">✕</button>
       </div>
-      <input id="trick-lib-search" type="text" placeholder="Search tricks…" oninput="renderTrickList()" autocomplete="off" autocorrect="off" spellcheck="false">
-      <div id="trick-lib-cats"></div>
+      <!-- List mode (snowboard) -->
+      <div id="trick-lib-list-controls">
+        <input id="trick-lib-search" type="text" placeholder="Search tricks…" oninput="renderTrickList()" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div id="trick-lib-cats"></div>
+      </div>
+      <!-- Builder mode (ski) -->
+      <div id="trick-lib-builder-tabs" style="display:none;">
+        <div class="builder-mode-tabs">
+          <button class="builder-mode-tab active" onclick="setBuilderMode('jump')">🏔 Jumps</button>
+          <button class="builder-mode-tab" onclick="setBuilderMode('rail')">🛤 Rails</button>
+          <button class="builder-mode-tab" onclick="setBuilderMode('unique')">⚡ Unique</button>
+        </div>
+      </div>
     </div>
     <div id="trick-lib-list"></div>
-    <div id="trick-lib-footer">
-      <div style="font-size:12px;color:var(--text-muted);text-align:center;">Tap a trick to select it</div>
+    <div id="trick-lib-footer" style="display:none;">
+      <div id="trick-lib-preview">
+        <div class="builder-preview">
+          <div class="builder-preview-label">Your Trick</div>
+          <div id="builder-trick-name" class="builder-preview-trick"><span class="builder-preview-empty">Pick components below</span></div>
+        </div>
+      </div>
+      <button id="builder-select-btn" class="btn btn-primary" onclick="builderSelectTrick()" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:14px;margin-top:10px;" disabled>Select Trick</button>
     </div>
   </div>
 </div>
