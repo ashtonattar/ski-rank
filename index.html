@@ -1077,6 +1077,23 @@
     }
     .profile-game-row:last-child { border-bottom:none; }
 
+    /* ── RATING HISTORY CHART ── */
+    #rating-history-chart { width:100%; overflow:visible; }
+    #rating-history-chart svg { width:100%; display:block; }
+    .rh-tooltip {
+      position:fixed; z-index:900; pointer-events:none;
+      background:var(--bg-elevated); border:1px solid var(--border-light);
+      border-radius:var(--radius-sm); padding:8px 12px;
+      font-size:12px; color:var(--text-primary);
+      box-shadow:0 8px 24px rgba(0,0,0,0.35);
+      white-space:nowrap; opacity:0; transition:opacity .15s;
+    }
+    .rh-tooltip.visible { opacity:1; }
+    .rh-empty {
+      text-align:center; padding:32px 16px;
+      color:var(--text-muted); font-size:13px;
+    }
+
     /* ── PENDING / CONFIRMATION CARDS ── */
     .pending-card {
       border-radius:var(--radius);
@@ -2689,6 +2706,15 @@
 
       </div>
 
+      <!-- Rating History Graph -->
+      <div class="card" id="rating-history-card" style="margin-bottom:20px;">
+        <div class="card-hdr">
+          <span class="card-title">Rating History</span>
+          <span id="rating-history-count" style="font-size:11px;color:var(--text-muted);"></span>
+        </div>
+        <div id="rating-history-chart"></div>
+      </div>
+
       <!-- Friends -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
@@ -2808,6 +2834,7 @@
 </div>
 
 <div class="toast-wrap" id="toast-wrap"></div>
+<div class="rh-tooltip" id="rh-tooltip"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -7609,6 +7636,148 @@ function closeResortDropdown() { closeDropdown('resort-dropdown'); }
 // ═══════════════════════════════════════════════════════
 //  MY PROFILE
 // ═══════════════════════════════════════════════════════
+function renderRatingHistory(playerId) {
+  const container = document.getElementById('rating-history-chart');
+  const countEl   = document.getElementById('rating-history-count');
+  if (!container) return;
+
+  // Build chronological list of rating snapshots
+  const playerGames = [...S.games]
+    .filter(g => g.winnerId === playerId || g.loserId === playerId)
+    .sort((a, b) => a.date - b.date);
+
+  if (!playerGames.length) {
+    container.innerHTML = `<div class="rh-empty">🎿 No games yet — your rating graph will appear after your first game.</div>`;
+    if (countEl) countEl.textContent = '';
+    document.getElementById('rating-history-card').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('rating-history-card').style.display = 'block';
+  if (countEl) countEl.textContent = `${playerGames.length} game${playerGames.length !== 1 ? 's' : ''}`;
+
+  // Build points: each game gives an (endRating, date, isWin, opponent) point
+  const points = playerGames.map(g => {
+    const isWin = g.winnerId === playerId;
+    const endRating = isWin ? g.player1EndRating : g.player2EndRating;
+    const oppId = isWin ? g.loserId : g.winnerId;
+    const opp = byId(oppId);
+    const delta = isWin ? g.winnerDelta : g.loserDelta;
+    return { rating: endRating, date: g.date, isWin, oppName: opp?.name || 'Unknown', delta, id: g.id };
+  });
+
+  // Chart dimensions
+  const W = 560, H = 180;
+  const PAD = { top: 16, right: 16, bottom: 28, left: 46 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top  - PAD.bottom;
+
+  const ratings = points.map(p => p.rating);
+  const minR = Math.min(...ratings), maxR = Math.max(...ratings);
+  const spread = Math.max(maxR - minR, 50); // at least 50pt spread for visual
+  const rLo = minR - spread * 0.15, rHi = maxR + spread * 0.15;
+
+  const xOf = (i) => PAD.left + (points.length === 1 ? chartW / 2 : (i / (points.length - 1)) * chartW);
+  const yOf = (r) => PAD.top  + chartH - ((r - rLo) / (rHi - rLo)) * chartH;
+
+  // Y-axis labels (4 ticks)
+  const yTicks = 4;
+  const isLight = document.body.classList.contains('light');
+  const gridColor   = isLight ? 'rgba(0,0,0,0.06)'  : 'rgba(255,255,255,0.05)';
+  const labelColor  = isLight ? 'rgba(0,0,0,0.40)'  : 'rgba(255,255,255,0.35)';
+  const lineColor   = isLight ? '#0099cc'            : '#00d4ff';
+  const gradStop    = isLight ? '#0099cc'            : '#00d4ff';
+  let yLabels = '';
+  for (let i = 0; i <= yTicks; i++) {
+    const r = rLo + (rHi - rLo) * (i / yTicks);
+    const y = PAD.top + chartH - (i / yTicks) * chartH;
+    yLabels += `
+      <line x1="${PAD.left}" y1="${y}" x2="${W - PAD.right}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>
+      <text x="${PAD.left - 6}" y="${y + 4}" text-anchor="end" fill="${labelColor}" font-size="9" font-family="Inter,sans-serif">${fmt(r)}</text>`;
+  }
+
+  // X-axis date labels (first, middle, last)
+  let xLabels = '';
+  const labelIdxs = points.length === 1 ? [0]
+    : points.length === 2 ? [0, 1]
+    : [0, Math.floor((points.length - 1) / 2), points.length - 1];
+  labelIdxs.forEach(i => {
+    const d = new Date(points[i].date);
+    const label = `${d.getMonth()+1}/${d.getDate()}`;
+    xLabels += `<text x="${xOf(i)}" y="${H - 6}" text-anchor="middle" fill="${labelColor}" font-size="9" font-family="Inter,sans-serif">${label}</text>`;
+  });
+
+  // Line path + fill area
+  let linePts = '', areaPts = `${xOf(0)},${PAD.top + chartH}`;
+  points.forEach((p, i) => {
+    const x = xOf(i), y = yOf(p.rating);
+    linePts  += `${i === 0 ? 'M' : 'L'}${x},${y} `;
+    areaPts  += ` ${x},${y}`;
+  });
+  areaPts += ` ${xOf(points.length - 1)},${PAD.top + chartH}`;
+
+  // Dots (coloured win/loss)
+  let dots = '';
+  points.forEach((p, i) => {
+    const x = xOf(i), y = yOf(p.rating);
+    const col = p.isWin ? '#00e676' : '#ff3355';
+    dots += `<circle class="rh-dot" cx="${x}" cy="${y}" r="5" fill="${col}" stroke="var(--bg-card,#030c1c)" stroke-width="2"
+      data-idx="${i}" style="cursor:pointer;" />`;
+  });
+
+  // Gradient def id (unique to avoid conflicts)
+  const gid = 'rhg_' + playerId.slice(-4);
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${gradStop}" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="${gradStop}" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="rh-clip-${gid}">
+          <rect x="${PAD.left}" y="${PAD.top}" width="${chartW}" height="${chartH}"/>
+        </clipPath>
+      </defs>
+      <!-- Grid lines & Y labels -->
+      ${yLabels}
+      <!-- Area fill -->
+      <polygon points="${areaPts}" fill="url(#${gid})" clip-path="url(#rh-clip-${gid})"/>
+      <!-- Line -->
+      <path d="${linePts}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#rh-clip-${gid})"/>
+      <!-- X labels -->
+      ${xLabels}
+      <!-- Dots -->
+      ${dots}
+    </svg>`;
+
+  // Tooltip interaction
+  const tooltip = document.getElementById('rh-tooltip');
+  container.querySelectorAll('.rh-dot').forEach(dot => {
+    const idx = parseInt(dot.dataset.idx);
+    const pt  = points[idx];
+    const show = (e) => {
+      const d = new Date(pt.date);
+      const dateStr = `${d.toLocaleString('default',{month:'short'})} ${d.getDate()}, ${d.getFullYear()}`;
+      const sign = pt.delta >= 0 ? '+' : '';
+      tooltip.innerHTML = `
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${fmt(pt.rating)}</div>
+        <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '✓ Win' : '✗ Loss'} vs ${pt.oppName}</div>
+        <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${sign === '+' ? pt.delta : pt.delta} pts · ${dateStr}</div>`;
+      const x = e.clientX + 14, y = e.clientY - 48;
+      tooltip.style.left = Math.min(x, window.innerWidth - 180) + 'px';
+      tooltip.style.top  = Math.max(y, 8) + 'px';
+      tooltip.classList.add('visible');
+    };
+    const hide = () => tooltip.classList.remove('visible');
+    dot.addEventListener('mouseenter', show);
+    dot.addEventListener('mousemove',  show);
+    dot.addEventListener('mouseleave', hide);
+    dot.addEventListener('touchstart', (e) => { e.preventDefault(); show(e.touches[0]); }, { passive:false });
+    dot.addEventListener('touchend',   hide);
+  });
+}
+
 function renderMyProfile() {
   if (!currentUser) return;
   const p = S.players.find(x => x.id === currentUser.id);
@@ -7643,6 +7812,9 @@ function renderMyProfile() {
   // ── Edit fields ──
   document.getElementById('prof-bio').value    = p.bio        || '';
   document.getElementById('prof-resort').value = p.homeResort || '';
+
+  // ── Rating history chart ──
+  renderRatingHistory(p.id);
 
   // ── Game history ──
   const games = [...S.games]
