@@ -3956,6 +3956,12 @@ function sorted() {
   });
 }
 
+// Returns only players matching the current user's riderType (sport-segregated lists)
+function sortedSameSport() {
+  const myType = currentUser?.riderType || 'skier';
+  return sorted().filter(p => (p.riderType || 'skier') === myType);
+}
+
 function initials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
 
 function dateFmt(ts) {
@@ -4055,8 +4061,9 @@ function fillSelect(id) {
   const el = document.getElementById(id);
   if (!el) return;
   const cur = el.value;
-  el.innerHTML = `<option value="">Select skier...</option>`;
-  sorted().forEach(p => {
+  const sportLabel = (currentUser?.riderType === 'boarder') ? 'snowboarder' : 'skier';
+  el.innerHTML = `<option value="">Select ${sportLabel}...</option>`;
+  sortedSameSport().forEach(p => {
     el.innerHTML += `<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name} (${ratingDisplay(p.rating)})</option>`;
   });
 }
@@ -4065,7 +4072,7 @@ function fillSelects(ids) { ids.forEach(id => fillSelect(id)); }
 
 function fillPicker(pickerId) {
   const myFriends = currentUser ? (S.players.find(p => p.id === currentUser.id)?.friends || []) : [];
-  const all = sorted();
+  const all = sortedSameSport();
   const friends = all.filter(p => myFriends.includes(p.id));
   const others  = all.filter(p => !myFriends.includes(p.id));
   _pickerData[pickerId] = { friends, others };
@@ -4092,7 +4099,8 @@ function renderPickerList(pickerId, query) {
   let html = '';
   if (friendRows.length) html += `<div class="pp-section">Friends</div>` + friendRows.map(itemHtml).join('');
   if (otherRows.length)  html += `<div class="pp-section">${friendRows.length ? 'Everyone Else' : 'All Riders'}</div>` + otherRows.map(itemHtml).join('');
-  if (!friendRows.length && !otherRows.length) html = `<div class="pp-empty">No riders found</div>`;
+  const _sport = (currentUser?.riderType === 'boarder') ? 'snowboarders' : 'skiers';
+  if (!friendRows.length && !otherRows.length) html = `<div class="pp-empty">No ${_sport} found</div>`;
   list.innerHTML = html;
 }
 
@@ -4135,7 +4143,8 @@ function resetPicker(pickerId) {
   const hidden = document.getElementById(hiddenId);
   const label  = document.getElementById(pickerId + '-label');
   if (hidden) hidden.value = '';
-  if (label)  { label.textContent = 'Select skier…'; label.style.color = 'var(--text-muted)'; }
+  const sportLabel = (currentUser?.riderType === 'boarder') ? 'snowboarder' : 'skier';
+  if (label)  { label.textContent = `Select ${sportLabel}…`; label.style.color = 'var(--text-muted)'; }
 }
 
 function setPickerValue(pickerId, playerId) {
@@ -4713,8 +4722,11 @@ function submitLog() {
   const resort  = (document.getElementById('lg-resort')?.value || '').trim();
   const winnerLetters = getWinnerLetters();
 
-  if (!p1Id||!p2Id||!wId) { toast('Please select both skiers and a winner.','err'); return; }
-  if (p1Id===p2Id)          { toast('Skiers must be different.','err'); return; }
+  if (!p1Id||!p2Id||!wId) { toast('Please select both riders and a winner.','err'); return; }
+  if (p1Id===p2Id)          { toast('Riders must be different.','err'); return; }
+  // Enforce sport segregation
+  const _p1rt = (byId(p1Id)?.riderType || 'skier'), _p2rt = (byId(p2Id)?.riderType || 'skier');
+  if (_p1rt !== _p2rt) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
   if (winnerLetters === 'SKI') { toast("Score can't be SKI–SKI — the loser always spells SKI last.", 'err'); return; }
 
   const lId = wId===p1Id ? p2Id : p1Id;
@@ -4840,9 +4852,12 @@ function startLive() {
   const p1    = document.getElementById('lv-p1').value;
   const p2    = document.getElementById('lv-p2').value;
   const judge = document.getElementById('lv-judge').value || null;
-  if (!p1||!p2) { toast('Select two skiers.','err'); return; }
-  if (p1===p2)  { toast('Skiers must be different.','err'); return; }
+  if (!p1||!p2) { toast('Select two riders.','err'); return; }
+  if (p1===p2)  { toast('Riders must be different.','err'); return; }
   if (judge && (judge===p1||judge===p2)) { toast('Judge must be different from both players.','err'); return; }
+  // Enforce sport segregation
+  const _rt1 = (byId(p1)?.riderType || 'skier'), _rt2 = (byId(p2)?.riderType || 'skier');
+  if (_rt1 !== _rt2) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
 
   S.live = {
     p1, p2,
@@ -6742,9 +6757,12 @@ function sendLiveInvite() {
   const p1      = document.getElementById('lv-p1').value;
   const p2      = document.getElementById('lv-p2').value;
   const judgeId = document.getElementById('lv-judge').value || null;
-  if (!p1 || !p2) { toast('Select both skiers first.', 'err'); return; }
-  if (p1 === p2)  { toast('Skiers must be different.', 'err'); return; }
+  if (!p1 || !p2) { toast('Select both riders first.', 'err'); return; }
+  if (p1 === p2)  { toast('Riders must be different.', 'err'); return; }
   if (judgeId && (judgeId === p1 || judgeId === p2)) { toast('Judge must be different from both players.', 'err'); return; }
+  // Enforce sport segregation
+  const _lirt1 = (byId(p1)?.riderType || 'skier'), _lirt2 = (byId(p2)?.riderType || 'skier');
+  if (_lirt1 !== _lirt2) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
 
   const opponentId = p2 === currentUser?.id ? p1 : p2;
   const opponent   = byId(opponentId);
