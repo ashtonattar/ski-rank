@@ -440,6 +440,13 @@
 
     /* ── FORMS ── */
     .form-group { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
+    /* Toggle switch */
+    .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,0.12); border-radius:24px; transition:.2s; }
+    .toggle-slider:before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+    .toggle-switch input:checked + .toggle-slider { background:var(--primary); }
+    .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
     .form-label {
       font-size:10px; font-weight:700; color:var(--text-muted);
       text-transform:uppercase; letter-spacing:1px;
@@ -2165,6 +2172,21 @@
               </div>
             </div>
           </div>
+          <!-- Handicap Mode -->
+          <div id="lv-handicap-section" style="margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <label class="form-label" style="margin-bottom:2px;">⚡ Handicap Mode <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+                <div style="font-size:12px;color:var(--text-muted);">Higher-rated player starts with letter(s) to level the game</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="lv-handicap-toggle" onchange="refreshHandicapPreview()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div id="lv-handicap-preview" style="display:none;background:rgba(255,200,0,0.07);border:1px solid rgba(255,200,0,0.2);border-radius:10px;padding:10px 14px;font-size:13px;"></div>
+          </div>
+
           <button class="btn btn-accent btn-lg" onclick="sendLiveInvite()" style="width:100%;">Send Game Invite</button>
         </div>
 
@@ -4908,6 +4930,50 @@ function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score=''
 }
 
 // ═══════════════════════════════════════════════════════
+//  HANDICAP
+// ═══════════════════════════════════════════════════════
+// Returns { letters: {p1Id: n, p2Id: n}, diff, hcap, higherId }
+// hcap = 0 (even), 1 (S), 2 (SK)
+function calcHandicap(p1Id, p2Id) {
+  const p1 = byId(p1Id), p2 = byId(p2Id);
+  const r1 = p1?.rating ?? START_RATING, r2 = p2?.rating ?? START_RATING;
+  const diff = Math.abs(r1 - r2);
+  const higherId = r1 >= r2 ? p1Id : p2Id;
+  let hcap = 0;
+  if (diff >= 300) hcap = 2;
+  else if (diff >= 150) hcap = 1;
+  return {
+    letters: { [p1Id]: higherId === p1Id ? hcap : 0, [p2Id]: higherId === p2Id ? hcap : 0 },
+    diff, hcap, higherId
+  };
+}
+
+function refreshHandicapPreview() {
+  const p1Id  = document.getElementById('lv-p1')?.value;
+  const p2Id  = document.getElementById('lv-p2')?.value;
+  const on    = document.getElementById('lv-handicap-toggle')?.checked;
+  const box   = document.getElementById('lv-handicap-preview');
+  if (!box) return;
+  if (!on || !p1Id || !p2Id || p1Id === p2Id) { box.style.display = 'none'; return; }
+  const { letters, diff, hcap, higherId } = calcHandicap(p1Id, p2Id);
+  if (hcap === 0) {
+    box.style.display = 'block';
+    box.innerHTML = `<span style="color:var(--text-muted);">Ratings within 150 pts — no handicap needed for this matchup.</span>`;
+    return;
+  }
+  const highP = byId(higherId), lowId = higherId === p1Id ? p2Id : p1Id, lowP = byId(lowId);
+  const startLetters = LETTERS.slice(0, hcap).join('');
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:15px;">⚡</span>
+      <span><strong>${highP?.name}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
+      <span style="color:var(--text-muted);font-size:12px;">(${Math.round(diff/100).toFixed(1)} pt gap · ${hcap === 1 ? '1 letter' : '2 letters'} head start)</span>
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">${lowP?.name} starts clean — even the odds</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 //  LIVE GAME
 // ═══════════════════════════════════════════════════════
 function challengePlayer(opponentId) {
@@ -4927,6 +4993,15 @@ function renderLiveSetup() {
     setPickerValue('pp-lv-p2', _challengeOpponentId);
     _challengeOpponentId = null;
   }
+  // Wire handicap preview refresh to player selection changes
+  ['lv-p1','lv-p2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._handicapBound) {
+      el.addEventListener('change', refreshHandicapPreview);
+      el._handicapBound = true;
+    }
+  });
+  refreshHandicapPreview();
   if (S.live) {
     document.getElementById('live-setup').style.display='none';
     document.getElementById('live-active').style.display='block';
@@ -4959,10 +5034,15 @@ function startLive() {
   const _rt1 = (byId(p1)?.riderType || 'skier'), _rt2 = (byId(p2)?.riderType || 'skier');
   if (_rt1 !== _rt2) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
 
+  const _hcapOn = document.getElementById('lv-handicap-toggle')?.checked;
+  const _hcap   = _hcapOn ? calcHandicap(p1, p2) : null;
+  const _startLetters = _hcap?.hcap > 0 ? _hcap.letters : { [p1]:0, [p2]:0 };
+
   S.live = {
     p1, p2,
     judgeId: judge,
-    letters:{[p1]:0,[p2]:0},
+    letters: { ..._startLetters },
+    handicap: _hcap?.hcap > 0 ? { higherId: _hcap.higherId, hcap: _hcap.hcap } : null,
     setterId: p1,
     trick: null,
     setterVotes: {},
@@ -4981,7 +5061,8 @@ function startLive() {
   document.getElementById('live-over-section').style.display='none';
   document.getElementById('live-log').innerHTML='';
   const judgeNote = judge ? ` · ⚖️ ${byId(judge).name} is the judge` : '';
-  addLog('🎿', `Game started! ${byId(p1).name} sets first.${judgeNote}`);
+  const hcapInfo  = S.live.handicap ? ` · ⚡ Handicap: ${byId(S.live.handicap.higherId)?.name} starts with ${LETTERS.slice(0,S.live.handicap.hcap).join('')}` : '';
+  addLog('🎿', `Game started! ${byId(p1).name} sets first.${judgeNote}${hcapInfo}`);
   drawBoard();
 }
 
@@ -5006,6 +5087,12 @@ function drawBoard() {
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       <div class="avatar avatar-sm" style="background:${avatarGrad(judgePlayer.id)}">${initials(judgePlayer.name)}</div>
       <span style="font-size:13px;color:var(--text-muted);">⚖️ <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
+    </div>` : ''}
+    ${g.handicap ? `
+    <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
+      <span style="font-size:13px;">⚡</span>
+      <span style="font-size:12px;color:#ffd700;font-weight:600;">Handicap Mode</span>
+      <span style="font-size:12px;color:var(--text-muted);">— ${byId(g.handicap.higherId)?.name} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
     </div>` : ''}
   `;
 
@@ -6868,6 +6955,11 @@ function sendLiveInvite() {
   const opponent   = byId(opponentId);
   const resort     = (document.getElementById('lv-resort')?.value || '').trim();
 
+  // Handicap
+  const _hcapOn = document.getElementById('lv-handicap-toggle')?.checked;
+  const _hcap   = _hcapOn ? calcHandicap(p1, p2) : null;
+  const _startLetters = (_hcap?.hcap > 0) ? _hcap.letters : { [p1]: 0, [p2]: 0 };
+
   // Cancel any existing pending invites from this user
   S.liveInvites = S.liveInvites.filter(i => !(i.fromId === currentUser.id && i.status === 'pending'));
 
@@ -6875,7 +6967,9 @@ function sendLiveInvite() {
     id: uid(), fromId: currentUser.id, fromName: currentUser.name,
     toId: opponentId, toName: opponent.name,
     p1Id: p1, p2Id: p2, judgeId: judgeId || null,
-    resort, status: 'pending', createdAt: Date.now()
+    resort, status: 'pending', createdAt: Date.now(),
+    handicapLetters: { ..._startLetters },
+    handicap: (_hcap?.hcap > 0) ? { higherId: _hcap.higherId, hcap: _hcap.hcap } : null
   };
   S.liveInvites.push(invite);
 
@@ -6958,10 +7052,12 @@ function acceptLiveInvite(inviteId) {
   // any votes or state the host has already set (e.g. pick-setter votes).
   // Only create it as a fallback if it doesn't exist yet.
   if (!S.live || S.live.p1 !== inv.p1Id || S.live.p2 !== inv.p2Id) {
+    const _initLetters = inv.handicapLetters || { [inv.p1Id]: 0, [inv.p2Id]: 0 };
     S.live = {
       p1: inv.p1Id, p2: inv.p2Id,
       judgeId:     inv.judgeId || null,
-      letters:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
+      letters:     { ..._initLetters },
+      handicap:    inv.handicap || null,
       setterId:    inv.p1Id,
       trick:       null,
       setterVotes: {},
