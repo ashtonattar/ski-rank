@@ -1512,6 +1512,28 @@
         z-index:99;
       }
 
+      /* ── Theme toggle: floating pill on mobile ── */
+      #theme-fab {
+        display:flex !important;
+        position:fixed; top:14px; right:14px; z-index:500;
+        align-items:center; gap:6px;
+        padding:7px 13px 7px 10px;
+        background:rgba(3,12,28,0.88);
+        border:1px solid rgba(0,212,255,0.22);
+        border-radius:99px;
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+        box-shadow:0 4px 16px rgba(0,0,0,0.4);
+        cursor:pointer; font-size:13px; font-weight:600;
+        color:var(--text-primary);
+        transition:background .2s, border-color .2s;
+      }
+      body.light #theme-fab {
+        background:rgba(255,255,255,0.90);
+        border-color:rgba(0,120,180,0.22);
+        box-shadow:0 4px 16px rgba(0,0,0,0.10);
+      }
+
       /* ── Main content ── */
       .main {
         margin-left:0 !important; max-width:100% !important;
@@ -1895,6 +1917,12 @@
 </div>
 
 <div id="app" class="app" style="display:none;">
+
+  <!-- Theme toggle floating button — mobile only (hidden on desktop via CSS) -->
+  <button id="theme-fab" onclick="toggleTheme()" style="display:none;" aria-label="Toggle theme">
+    <span id="theme-fab-icon">☀️</span>
+    <span id="theme-fab-label">Light</span>
+  </button>
 
   <!-- ═══ Sidebar ═══ -->
   <nav class="sidebar">
@@ -2789,12 +2817,19 @@
 // ═══════════════════════════════════════════════════════
 function _applyTheme(theme) {
   document.body.classList.toggle('light', theme === 'light');
-  const icon = theme === 'light' ? '🌙' : '☀️';
-  const label = theme === 'light' ? '🌙 Dark mode' : '☀️ Light mode';
+  const isLight = theme === 'light';
+  const icon    = isLight ? '🌙' : '☀️';
+  const label   = isLight ? '🌙 Dark mode' : '☀️ Light mode';
+  // Sidebar desktop button
   const btn = document.getElementById('theme-toggle-btn');
   const btnG = document.getElementById('theme-toggle-btn-guest');
-  if (btn)  { btn.textContent  = icon;  btn.title  = label; }
+  if (btn)  { btn.textContent = icon;  btn.title = label; }
   if (btnG) { btnG.textContent = label; }
+  // Mobile floating button
+  const fabIcon  = document.getElementById('theme-fab-icon');
+  const fabLabel = document.getElementById('theme-fab-label');
+  if (fabIcon)  fabIcon.textContent  = isLight ? '🌙' : '☀️';
+  if (fabLabel) fabLabel.textContent = isLight ? 'Dark' : 'Light';
 }
 
 function toggleTheme() {
