@@ -60,6 +60,32 @@
       --glow-fire: 0 0 40px rgba(255,77,0,0.12);
     }
 
+    /* ── LIGHT MODE ── */
+    body.light {
+      --bg-base:     #dce8f0;
+      --bg-surface:  rgba(255,255,255,0.82);
+      --bg-elevated: rgba(255,255,255,0.94);
+      --bg-card:     rgba(255,255,255,0.78);
+      --border:      rgba(0,120,180,0.13);
+      --border-light:rgba(0,120,180,0.30);
+
+      --ice:         #0099cc;
+      --ice-dark:    #007aaa;
+      --ice-glow:    rgba(0,153,204,0.12);
+
+      --fire:        #e04000;
+      --fire-dark:   #b83300;
+      --fire-glow:   rgba(224,64,0,0.12);
+
+      --text-primary:   #081828;
+      --text-secondary: #1a5070;
+      --text-muted:     #6898b4;
+
+      --shadow:    0 12px 48px rgba(0,0,0,0.10);
+      --glow-ice:  0 0 40px rgba(0,153,204,0.06);
+      --glow-fire: 0 0 40px rgba(224,64,0,0.06);
+    }
+
   <style>
     /* ── BASE ── */
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -85,6 +111,14 @@
         rgba(2,12,24,0.82) 100%
       );
     }
+    body.light::before {
+      background: linear-gradient(
+        135deg,
+        rgba(200,225,240,0.78) 0%,
+        rgba(210,230,245,0.72) 50%,
+        rgba(200,225,240,0.78) 100%
+      );
+    }
 
     /* ── LAYOUT ── */
     .app {
@@ -104,6 +138,13 @@
         rgba(5,12,28,0.88) 100%
       );
     }
+    body.light .app::before {
+      background: linear-gradient(160deg,
+        rgba(200,225,240,0.80) 0%,
+        rgba(215,235,248,0.74) 40%,
+        rgba(205,225,242,0.82) 100%
+      );
+    }
     .sidebar, .main { position:relative; z-index:1; }
 
     /* ── SIDEBAR ── */
@@ -116,6 +157,14 @@
       display: flex; flex-direction:column;
       position: fixed; height:100vh; z-index:100;
       box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+    }
+
+    body.light .sidebar {
+      background: linear-gradient(180deg, rgba(240,248,255,0.96) 0%, rgba(230,242,252,0.98) 100%);
+      box-shadow: 4px 0 30px rgba(0,0,0,0.08);
+    }
+    body.light .sidebar::after {
+      background: linear-gradient(transparent, rgba(0,120,180,0.05));
     }
 
     /* Mountain ridge at sidebar bottom */
@@ -750,6 +799,57 @@
 
     /* ── DIVIDER ── */
     .divider { height:1px; background:var(--border); margin:18px 0; }
+
+    /* ── LIGHT MODE COMPONENT OVERRIDES ── */
+    body.light .form-input,
+    body.light .form-select,
+    body.light .form-textarea {
+      background:rgba(255,255,255,0.90);
+      border-color:rgba(0,120,180,0.18);
+      color:var(--text-primary);
+    }
+    body.light .form-input::placeholder,
+    body.light .form-textarea::placeholder { color:var(--text-muted); }
+    body.light .form-select option { background:#e8f4ff; color:#081828; }
+    body.light .pp-trigger {
+      background:rgba(255,255,255,0.90);
+      border-color:rgba(0,120,180,0.18);
+    }
+    body.light .pp-dropdown {
+      box-shadow:0 12px 32px rgba(0,0,0,0.12);
+    }
+    body.light .pp-search {
+      background:rgba(0,0,0,0.04);
+      border-bottom-color:rgba(0,120,180,0.13);
+    }
+    body.light .pp-item:hover { background:rgba(0,120,180,0.06); }
+    body.light .pp-item.selected { background:rgba(0,153,204,0.12); }
+    body.light .toast {
+      background:rgba(240,248,255,0.97);
+      color:var(--text-primary);
+      box-shadow:0 8px 32px rgba(0,0,0,0.12);
+    }
+    body.light .card {
+      box-shadow:0 4px 20px rgba(0,0,0,0.07), var(--glow-ice);
+    }
+    body.light .auth-card {
+      background:rgba(255,255,255,0.94);
+      border-color:rgba(0,120,180,0.20);
+      box-shadow:0 24px 64px rgba(0,0,0,0.12), var(--glow-ice);
+    }
+    body.light .auth-screen::before {
+      background: linear-gradient(160deg,
+        rgba(200,225,240,0.80) 0%,
+        rgba(215,235,248,0.74) 40%,
+        rgba(205,225,242,0.82) 100%
+      );
+    }
+    body.light .nav-btn { color:var(--text-secondary); }
+    body.light .nav-btn:hover { background:rgba(0,120,180,0.07); }
+    body.light .nav-btn.active { color:var(--ice); background:rgba(0,120,180,0.10); }
+    body.light td { color:var(--text-secondary); border-bottom-color:rgba(0,120,180,0.07); }
+    body.light tr:hover td { background:rgba(0,120,180,0.04); }
+    body.light #rating-anim-overlay { background:rgba(220,235,245,0.92); }
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width:4px; height:4px; }
@@ -1862,12 +1962,14 @@
         <div id="sb-display-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
         <div id="sb-username" style="font-size:10.5px;color:var(--text-muted);">—</div>
       </div>
+      <button class="btn-logout" id="theme-toggle-btn" onclick="event.stopPropagation();toggleTheme()" title="Toggle light/dark mode" style="margin-right:4px;">🌙</button>
       <button class="btn-logout" onclick="event.stopPropagation();logout()" title="Sign out">⏻</button>
     </div>
     <!-- Guest footer (shown when browsing without an account) -->
     <div class="sidebar-user" id="sb-guest-footer" style="display:none;gap:8px;flex-direction:column;align-items:stretch;">
       <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('signup')">Join Free</button>
       <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('login')">Sign In</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="toggleTheme()" id="theme-toggle-btn-guest">🌙 Dark mode</button>
     </div>
   </nav>
 
@@ -2682,6 +2784,32 @@
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  THEME (dark / light)
+// ═══════════════════════════════════════════════════════
+function _applyTheme(theme) {
+  document.body.classList.toggle('light', theme === 'light');
+  const icon = theme === 'light' ? '🌙' : '☀️';
+  const label = theme === 'light' ? '🌙 Dark mode' : '☀️ Light mode';
+  const btn = document.getElementById('theme-toggle-btn');
+  const btnG = document.getElementById('theme-toggle-btn-guest');
+  if (btn)  { btn.textContent  = icon;  btn.title  = label; }
+  if (btnG) { btnG.textContent = label; }
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light');
+  const next = isLight ? 'dark' : 'light';
+  localStorage.setItem('skirank_theme', next);
+  _applyTheme(next);
+}
+
+// Apply saved theme immediately on load
+(function() {
+  const saved = localStorage.getItem('skirank_theme') || 'dark';
+  _applyTheme(saved);
+})();
+
 // ═══════════════════════════════════════════════════════
 //  FIREBASE / FIRESTORE  (real-time shared storage)
 // ═══════════════════════════════════════════════════════
