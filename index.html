@@ -2601,6 +2601,20 @@
         </div>
       </div>
 
+      <!-- Match Challenges -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-hdr">
+          <span class="card-title">⚡ Match Challenges</span>
+          <span class="badge badge-accent" id="challenge-count">0</span>
+        </div>
+        <div id="challenge-list"></div>
+        <div id="challenge-empty" class="empty" style="display:none;padding:22px 0;">
+          <div class="empty-icon">⚡</div>
+          <h3>No challenges</h3>
+          <p>When someone challenges you to a scheduled match, it'll show here.</p>
+        </div>
+      </div>
+
       <!-- Awaiting my confirmation -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
@@ -2833,6 +2847,36 @@
   </div>
 </div>
 
+<!-- ─── Send Challenge Modal ─── -->
+<div class="modal-overlay hidden" id="challenge-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-hdr">
+      <span class="modal-title">⚡ Challenge</span>
+      <button class="modal-close" onclick="closeModal('challenge-modal')">✕</button>
+    </div>
+    <div id="challenge-modal-body">
+      <div style="margin-bottom:16px;font-size:14px;font-weight:600;" id="challenge-modal-to"></div>
+      <div class="form-group">
+        <label class="form-label">📅 Date</label>
+        <input type="date" class="form-input" id="challenge-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🕐 Time <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <input type="time" class="form-input" id="challenge-time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🏔 Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-input" id="challenge-resort" placeholder="e.g. Whistler, Park City…" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💬 Message <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-input" id="challenge-message" placeholder="Let's run it on the big kicker…" maxlength="120">
+      </div>
+      <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="sendChallenge()">⚡ Send Challenge</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toast-wrap"></div>
 <div class="rh-tooltip" id="rh-tooltip"></div>
 
@@ -2974,7 +3018,7 @@ function startFirestoreSync() {
             _saveToFirestore();
           } else {
             // Guest or wipe in progress — clear stale local cache
-            S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+            S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
             try { localStorage.removeItem(userStoreKey()); } catch(_) {}
             const safe = ['leaderboard','players','explore','friends','confirmations'];
             if (safe.includes(_activeSection)) nav(_activeSection);
@@ -2993,7 +3037,7 @@ function startFirestoreSync() {
         });
 
         // Ensure all arrays exist
-        ['pending','liveInvites','friendRequests','messages'].forEach(k => {
+        ['pending','liveInvites','friendRequests','messages','challenges'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
         });
         fresh.players.forEach(p => {
@@ -3301,7 +3345,7 @@ function logout() {
     stopPolling();
     stopFirestoreSync();
     clearSession();
-    S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+    S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
     load(); // reload public data so preview is still populated
     document.getElementById('sb-user-footer').style.display  = 'none';
     document.getElementById('sb-guest-footer').style.display = 'flex';
@@ -3322,6 +3366,7 @@ function deleteAccount() {
       S.pending = S.pending.filter(r => r.winnerId !== currentUser.id && r.loserId !== currentUser.id);
       // Remove live invites involving this user
       S.liveInvites = S.liveInvites.filter(i => i.fromId !== currentUser.id && i.toId !== currentUser.id);
+      S.challenges  = (S.challenges||[]).filter(c => c.fromId !== currentUser.id && c.toId !== currentUser.id);
       // Remove from friends lists
       S.players.forEach(p => { p.friends = (p.friends || []).filter(id => id !== currentUser.id); });
       // Remove friend requests involving this user
@@ -3335,7 +3380,7 @@ function deleteAccount() {
       stopPolling();
       stopFirestoreSync();
       clearSession();
-      S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+      S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
       load();
       document.getElementById('sb-user-footer').style.display  = 'none';
       document.getElementById('sb-guest-footer').style.display = 'flex';
@@ -3382,7 +3427,7 @@ function launchPreview() {
   _setFabVisible(false);
   // Always start empty — Firestore is the source of truth.
   // Don't call load() here or stale localStorage data would show up.
-  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
   nav('leaderboard');
@@ -4112,7 +4157,7 @@ function _animateAuthOut(cb) {
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[] };
+let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
 
 function load() {
   try {
@@ -4125,6 +4170,7 @@ function load() {
       if (!Array.isArray(S.liveInvites))    S.liveInvites = [];
       if (!Array.isArray(S.friendRequests)) S.friendRequests = [];
       if (!Array.isArray(S.messages))       S.messages = [];
+      if (!Array.isArray(S.challenges))     S.challenges = [];
       // Migration: players who have never played a game but still carry the old
       // default START_RATING should be treated as unrated.
       S.players.forEach(p => {
@@ -6876,7 +6922,7 @@ function showProfile(id) {
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
       ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
       <button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');">Log Game vs ${p.name}</button>
-      <button class="btn btn-accent btn-sm" onclick="challengePlayer('${id}')">⚡ Challenge ${p.name}</button>
+      <button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')">⚡ Challenge ${p.name}</button>
     </div>`;
 
   openModal('profile-modal');
@@ -6890,12 +6936,160 @@ function showProfile(id) {
 // ═══════════════════════════════════════════════════════
 //  PENDING GAME CONFIRMATIONS
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  MATCH CHALLENGES
+// ═══════════════════════════════════════════════════════
+let _challengeTargetId = null;
+
+function openChallengeModal(toId) {
+  _challengeTargetId = toId;
+  const p = byId(toId);
+  closeModal('profile-modal');
+  document.getElementById('challenge-modal-to').innerHTML =
+    `Challenging <strong style="color:var(--accent);">${p?.name || 'Unknown'}</strong> to a match`;
+  // Pre-fill date to tomorrow
+  const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+  document.getElementById('challenge-date').value = tmr.toISOString().slice(0, 10);
+  document.getElementById('challenge-time').value    = '';
+  document.getElementById('challenge-resort').value  = '';
+  document.getElementById('challenge-message').value = '';
+  openModal('challenge-modal');
+}
+
+function sendChallenge() {
+  if (!_challengeTargetId || !currentUser) return;
+  const dateVal = document.getElementById('challenge-date').value;
+  if (!dateVal) { toast('Pick a date for the challenge.', 'err'); return; }
+  const timeVal    = document.getElementById('challenge-time').value;
+  const resortVal  = document.getElementById('challenge-resort').value.trim();
+  const msgVal     = document.getElementById('challenge-message').value.trim();
+  const toPlayer   = byId(_challengeTargetId);
+
+  if (!Array.isArray(S.challenges)) S.challenges = [];
+  S.challenges.push({
+    id: uid(),
+    fromId:   currentUser.id,
+    fromName: currentUser.name,
+    toId:     _challengeTargetId,
+    toName:   toPlayer?.name || '',
+    date:     dateVal,
+    time:     timeVal || null,
+    resort:   resortVal || null,
+    message:  msgVal   || null,
+    status:   'pending',
+    createdAt: Date.now()
+  });
+  save();
+  checkNotifications();
+  closeModal('challenge-modal');
+  const dateStr = new Date(dateVal + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  toast(`Challenge sent to ${toPlayer?.name} for ${dateStr} ⚡`, 'ok');
+}
+
+function acceptChallenge(id) {
+  const c = (S.challenges || []).find(x => x.id === id);
+  if (!c) return;
+  c.status = 'accepted';
+  save();
+  checkNotifications();
+  renderConfirmations();
+  const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  toast(`Challenge accepted! See you ${dateStr} ⚡`, 'ok');
+}
+
+function declineChallenge(id) {
+  S.challenges = (S.challenges || []).filter(x => x.id !== id);
+  save();
+  checkNotifications();
+  renderConfirmations();
+  toast('Challenge declined.', 'ok');
+}
+
+function cancelChallenge(id) {
+  S.challenges = (S.challenges || []).filter(x => x.id !== id);
+  save();
+  checkNotifications();
+  renderConfirmations();
+  toast('Challenge cancelled.', 'ok');
+}
+
+function renderChallenges() {
+  if (!currentUser) return;
+  const incoming = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending');
+  const accepted = (S.challenges || []).filter(c =>
+    (c.toId === currentUser.id || c.fromId === currentUser.id) && c.status === 'accepted');
+  const sent     = (S.challenges || []).filter(c => c.fromId === currentUser.id && c.status === 'pending');
+
+  const allVisible = [...incoming, ...accepted, ...sent];
+
+  const countEl = document.getElementById('challenge-count');
+  if (countEl) countEl.textContent = incoming.length;
+
+  const list  = document.getElementById('challenge-list');
+  const empty = document.getElementById('challenge-empty');
+  if (!list) return;
+
+  if (!allVisible.length) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  list.innerHTML = allVisible.map(c => {
+    const isIncoming = c.toId === currentUser.id;
+    const isAccepted = c.status === 'accepted';
+    const other = byId(isIncoming ? c.fromId : c.toId);
+    const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const timeStr = c.time ? ` at ${c.time}` : '';
+    const borderCol = isAccepted ? 'rgba(0,230,118,0.35)' : isIncoming ? 'rgba(255,77,0,0.3)' : 'rgba(255,200,0,0.2)';
+    const bgCol     = isAccepted ? 'rgba(0,230,118,0.04)'  : isIncoming ? 'rgba(255,77,0,0.04)' : 'rgba(255,200,0,0.03)';
+
+    return `
+      <div class="pending-card" style="border-color:${borderCol};background:${bgCol};">
+        <div class="pending-card-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${avatarHtml(other || {id:'?',name:c.fromName}, 'avatar-sm')}
+            <div>
+              <div style="font-size:13px;font-weight:700;">
+                ${isIncoming
+                  ? `${pLink(c.fromId, c.fromName)} <span style="color:var(--text-muted);font-weight:400;">challenged you</span>`
+                  : `<span style="color:var(--text-muted);font-weight:400;">You challenged</span> ${pLink(c.toId, c.toName)}`}
+              </div>
+              <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;">📅 ${dateStr}${timeStr}</div>
+              ${c.resort  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">🏔 ${c.resort}</div>`  : ''}
+              ${c.message ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${c.message}"</div>` : ''}
+            </div>
+          </div>
+          <span class="badge ${isAccepted ? 'badge-success' : isIncoming ? 'badge-accent' : 'badge-muted'}" style="font-size:9px;flex-shrink:0;">
+            ${isAccepted ? '✓ ACCEPTED' : isIncoming ? '⚡ INCOMING' : '📤 SENT'}
+          </span>
+        </div>
+        ${isAccepted ? `
+          <div style="font-size:12px;color:var(--success);padding:6px 0 4px;">✓ Challenge accepted — see you on the mountain!</div>
+          <div class="pending-card-actions">
+            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="challengePlayer('${isIncoming ? c.fromId : c.toId}')">🎿 Start Live Game</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="cancelChallenge('${c.id}')">Remove</button>
+          </div>` :
+        isIncoming ? `
+          <div class="pending-card-actions">
+            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="acceptChallenge('${c.id}')">⚡ Accept</button>
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="declineChallenge('${c.id}')">Decline</button>
+          </div>` : `
+          <div class="pending-card-actions">
+            <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="cancelChallenge('${c.id}')">Cancel Challenge</button>
+          </div>`}
+      </div>`;
+  }).join('');
+}
+
 function checkNotifications() {
   if (!currentUser) return;
-  const gameCount   = S.pending.filter(r => r.opponentId === currentUser.id && r.status === 'pending').length;
-  const inviteCount = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending').length;
-  const friendCount = (S.friendRequests || []).filter(r => r.toId === currentUser.id && r.status === 'pending').length;
-  const total = gameCount + inviteCount + friendCount;
+  const gameCount      = S.pending.filter(r => r.opponentId === currentUser.id && r.status === 'pending').length;
+  const inviteCount    = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending').length;
+  const friendCount    = (S.friendRequests || []).filter(r => r.toId === currentUser.id && r.status === 'pending').length;
+  const challengeCount = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending').length;
+  const total = gameCount + inviteCount + friendCount + challengeCount;
   updateMessagesBadge();
   const badge = document.getElementById('inbox-badge');
   if (!badge) return;
@@ -6909,6 +7103,9 @@ function checkNotifications() {
 
 function renderConfirmations() {
   if (!currentUser) return;
+
+  // ── Match Challenges ──
+  renderChallenges();
 
   // ── Friend Requests ──
   const myFriendReqs = (S.friendRequests || []).filter(r => r.toId === currentUser.id && r.status === 'pending');
@@ -8168,6 +8365,7 @@ function adminDeleteUser(id) {
     if (db) db.collection('users').doc(id).delete().catch(()=>{});
     S.players = S.players.filter(x => x.id !== id);
     S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
+    S.challenges = (S.challenges||[]).filter(c => c.fromId !== id && c.toId !== id);
     S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
     save();
     toast(`${p.name} deleted.`, 'ok');
