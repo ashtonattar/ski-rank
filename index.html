@@ -1997,7 +1997,6 @@
     <div class="sidebar-user" id="sb-guest-footer" style="display:none;gap:8px;flex-direction:column;align-items:stretch;">
       <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('signup')">Join Free</button>
       <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('login')">Sign In</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="toggleTheme()" id="theme-toggle-btn-guest">🌙 Dark mode</button>
     </div>
   </nav>
 
@@ -2822,9 +2821,7 @@ function _applyTheme(theme) {
   const label   = isLight ? '🌙 Dark mode' : '☀️ Light mode';
   // Sidebar desktop button
   const btn = document.getElementById('theme-toggle-btn');
-  const btnG = document.getElementById('theme-toggle-btn-guest');
-  if (btn)  { btn.textContent = icon;  btn.title = label; }
-  if (btnG) { btnG.textContent = label; }
+  if (btn) { btn.textContent = icon; btn.title = label; }
   // Mobile floating button
   const fabIcon  = document.getElementById('theme-fab-icon');
   const fabLabel = document.getElementById('theme-fab-label');
