@@ -194,11 +194,11 @@
       text-transform:uppercase; letter-spacing:2.5px; margin-top:5px;
     }
 
-    .sidebar-nav { flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:4px; }
+    .sidebar-nav { flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:4px; overflow-y:auto; min-height:0; }
 
     .nav-btn {
       display:flex; align-items:center; gap:11px;
-      padding: 11px 14px; border-radius:var(--radius-sm);
+      padding: 9px 14px; border-radius:var(--radius-sm);
       cursor:pointer; color:var(--text-muted);
       font-size:13px; font-weight:500;
       transition:all 0.18s;
@@ -1570,9 +1570,10 @@
       }
       .sidebar::after { display:none; }
       .sidebar-logo { display:none; }
-      .sidebar-nav { flex-direction:row; padding:6px 4px; overflow-x:auto; justify-content:space-around; gap:0; width:100%; }
+      .sidebar-nav { flex-direction:row; padding:4px 2px; overflow-x:auto; justify-content:flex-start; gap:0; width:100%; scrollbar-width:none; }
+      .sidebar-nav::-webkit-scrollbar { display:none; }
       /* Nav buttons: pill active state */
-      .nav-btn { flex-direction:column; gap:2px; padding:6px 8px; font-size:9.5px; min-width:48px; flex:1; text-align:center; border-radius:var(--radius-sm); }
+      .nav-btn { flex-direction:column; gap:1px; padding:5px 6px; font-size:9px; min-width:44px; flex:0 0 auto; text-align:center; border-radius:var(--radius-sm); }
       .nav-btn .nav-icon { font-size:17px; }
       .nav-btn::before { display:none; }
       .nav-btn.active { background:rgba(0,212,255,0.12); color:var(--ice); }
