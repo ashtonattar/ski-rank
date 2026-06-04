@@ -1152,6 +1152,11 @@
     .invite-pick-item:last-child { border-bottom:none; }
     .invite-pick-item:hover { background:rgba(0,212,255,0.04); }
     .invite-pick-item input[type=checkbox] { accent-color:var(--ice);width:15px;height:15px; }
+    .tinv-tab {
+      font-size:11.5px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;
+      background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;
+    }
+    .tinv-tab.active { background:var(--ice);color:#fff; }
 
     /* ── PENDING / CONFIRMATION CARDS ── */
     .pending-card {
@@ -2980,8 +2985,17 @@
     </div>
     <div class="form-group">
       <label class="form-label">Invite Participants</label>
-      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;">Select riders to invite. You are always included.</div>
-      <div id="tourney-invite-picker" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
+      <!-- Filter bar: tabs + search -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="display:flex;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;gap:2px;">
+          <button type="button" id="tinv-tab-all"     class="tinv-tab active" onclick="setInviteTab('all')">All Riders</button>
+          <button type="button" id="tinv-tab-friends" class="tinv-tab"        onclick="setInviteTab('friends')">Friends</button>
+        </div>
+        <input type="text" id="tinv-search" class="form-input" placeholder="Search name…"
+          style="flex:1;min-width:110px;padding:7px 12px;font-size:13px;"
+          oninput="filterInvitePicker(this.value)" autocomplete="off">
+      </div>
+      <div id="tourney-invite-picker" style="max-height:210px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
     </div>
     <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="createTournament()">🏆 Create Tournament</button>
   </div>
@@ -7396,30 +7410,78 @@ function buildRoundRobinMatches(participants) {
 }
 
 // ── Open create modal ────────────────────────────────────
+let _inviteTab = 'all'; // 'all' | 'friends'
+
 function openCreateTournamentModal() {
   if (!currentUser) { toast('Sign in to create a tournament.', 'err'); return; }
   document.getElementById('tourney-name').value   = '';
   document.getElementById('tourney-date').value   = '';
   document.getElementById('tourney-resort').value = '';
   document.getElementById('fmt-single').checked   = true;
-
-  // Fill invite picker with same-sport players (excluding self)
-  const list = document.getElementById('tourney-invite-picker');
-  const others = sortedSameSport().filter(p => p.id !== currentUser.id);
-  if (!others.length) {
-    list.innerHTML = '<div style="padding:14px 12px;font-size:13px;color:var(--text-muted);">No other riders to invite yet.</div>';
-  } else {
-    list.innerHTML = others.map(p => `
-      <div class="invite-pick-item" onclick="event.currentTarget.querySelector('input').click();event.stopPropagation();">
-        <input type="checkbox" value="${p.id}" id="tinv-${p.id}" onclick="event.stopPropagation();">
-        ${avatarHtml(p, 'avatar-sm')}
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;">${p.name}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${p.rating ? '#'+ranked(p.id) : 'Unrated'}</div>
-        </div>
-      </div>`).join('');
-  }
+  const searchEl = document.getElementById('tinv-search');
+  if (searchEl) searchEl.value = '';
+  _inviteTab = 'all';
+  setInviteTab('all', true);
   openModal('create-tourney-modal');
+}
+
+function _inviteCandidates() {
+  const myFriends = currentUser?.friends || [];
+  const others = sortedSameSport().filter(p => p.id !== currentUser?.id);
+  if (_inviteTab === 'friends') {
+    return others.filter(p => myFriends.includes(p.id));
+  }
+  return others;
+}
+
+function setInviteTab(tab, skipFilter) {
+  _inviteTab = tab;
+  document.querySelectorAll('.tinv-tab').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tinv-tab-' + tab);
+  if (btn) btn.classList.add('active');
+  if (!skipFilter) {
+    const searchEl = document.getElementById('tinv-search');
+    if (searchEl) searchEl.value = '';
+  }
+  renderInvitePicker('');
+}
+
+function filterInvitePicker(query) {
+  renderInvitePicker(query.trim().toLowerCase());
+}
+
+function renderInvitePicker(query) {
+  const list = document.getElementById('tourney-invite-picker');
+  if (!list) return;
+
+  // Preserve which ids are already checked
+  const checked = new Set(
+    Array.from(document.querySelectorAll('#tourney-invite-picker input[type=checkbox]:checked')).map(cb => cb.value)
+  );
+
+  let candidates = _inviteCandidates();
+  if (query) candidates = candidates.filter(p => p.name.toLowerCase().includes(query));
+
+  if (!candidates.length) {
+    const msg = _inviteTab === 'friends'
+      ? (query ? 'No friends match your search.' : 'No friends to invite — add some first!')
+      : (query ? 'No riders match your search.' : 'No other riders to invite yet.');
+    list.innerHTML = `<div style="padding:16px 14px;font-size:13px;color:var(--text-muted);text-align:center;">${msg}</div>`;
+    return;
+  }
+
+  list.innerHTML = candidates.map(p => {
+    const isFriend = (currentUser?.friends || []).includes(p.id);
+    return `
+    <div class="invite-pick-item" onclick="event.currentTarget.querySelector('input').click();event.stopPropagation();">
+      <input type="checkbox" value="${p.id}" id="tinv-${p.id}" onclick="event.stopPropagation()" ${checked.has(p.id) ? 'checked' : ''}>
+      ${avatarHtml(p, 'avatar-sm')}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${p.name}${isFriend ? ' <span style="font-size:10px;color:var(--ice);">★ Friend</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${p.rating ? '#'+ranked(p.id) : 'Unrated'}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function ranked(id) {
