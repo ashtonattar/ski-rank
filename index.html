@@ -1094,6 +1094,65 @@
       color:var(--text-muted); font-size:13px;
     }
 
+    /* ── TOURNAMENT ── */
+    .tourney-card {
+      border:1px solid var(--border-light);
+      border-radius:var(--radius);
+      background:var(--bg-card);
+      padding:16px 18px;
+      margin-bottom:12px;
+      cursor:pointer;
+      transition:border-color .15s, box-shadow .15s;
+    }
+    .tourney-card:hover { border-color:var(--ice); box-shadow:0 0 18px var(--ice-glow); }
+    .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+    .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
+    .tourney-badge { font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase; }
+    .tourney-badge.setup   { background:rgba(255,196,0,.15);color:var(--warning); }
+    .tourney-badge.active  { background:rgba(0,230,118,.15);color:var(--success); }
+    .tourney-badge.complete{ background:rgba(0,212,255,.12);color:var(--ice); }
+    .tourney-meta { font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap; }
+
+    /* Bracket */
+    .bracket-wrap { overflow-x:auto;padding-bottom:8px; }
+    .bracket { display:flex;gap:0;align-items:flex-start; }
+    .bracket-round { display:flex;flex-direction:column;min-width:180px; }
+    .bracket-round-title { font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-bottom:10px;padding:0 8px; }
+    .bracket-match {
+      border:1px solid var(--border-light);
+      border-radius:var(--radius-sm);
+      background:var(--bg-card);
+      margin:6px 8px;
+      overflow:hidden;
+    }
+    .bracket-match.clickable { cursor:pointer; transition:border-color .15s; }
+    .bracket-match.clickable:hover { border-color:var(--ice); }
+    .bracket-slot {
+      display:flex;align-items:center;gap:8px;
+      padding:8px 10px;
+      font-size:12.5px;font-weight:500;
+    }
+    .bracket-slot + .bracket-slot { border-top:1px solid var(--border); }
+    .bracket-slot.winner { color:var(--success);font-weight:700; }
+    .bracket-slot.loser  { color:var(--text-muted);text-decoration:line-through; }
+    .bracket-slot.bye    { color:var(--text-muted);font-style:italic; }
+    .bracket-seed { font-size:10px;color:var(--text-muted);min-width:16px;text-align:center; }
+
+    /* Round-robin standings */
+    .rr-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .rr-table th { font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border); }
+    .rr-table td { padding:9px 10px;border-bottom:1px solid var(--border); }
+    .rr-table tr:last-child td { border-bottom:none; }
+
+    /* Invite picker list */
+    .invite-pick-item {
+      display:flex;align-items:center;gap:10px;padding:10px 12px;
+      border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
+    }
+    .invite-pick-item:last-child { border-bottom:none; }
+    .invite-pick-item:hover { background:rgba(0,212,255,0.04); }
+    .invite-pick-item input[type=checkbox] { accent-color:var(--ice);width:15px;height:15px; }
+
     /* ── PENDING / CONFIRMATION CARDS ── */
     .pending-card {
       border-radius:var(--radius);
@@ -1998,6 +2057,9 @@
       <button class="nav-btn" data-view="explore" onclick="nav('explore')">
         <span>Explore</span>
       </button>
+      <button class="nav-btn" data-view="tournaments" onclick="nav('tournaments')" id="nav-tournaments">
+        <span style="flex:1;">Tournaments</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
+      </button>
     </div>
     <!-- Signed-in user footer -->
     <div class="sidebar-user" id="sb-user-footer" onclick="nav('profile')" style="cursor:pointer;" title="View my profile">
@@ -2644,6 +2706,37 @@
       </div>
     </div>
 
+    <!-- ─── TOURNAMENTS ─── -->
+    <div id="view-tournaments" class="view">
+      <div class="view-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h2>Tournaments</h2>
+          <p>Create and run single-elimination or round-robin brackets with your crew</p>
+        </div>
+        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="openCreateTournamentModal()">🏆 Create</button>
+      </div>
+      <!-- Tournament invites (incoming) -->
+      <div class="card" id="tourney-invites-card" style="margin-bottom:20px;display:none;">
+        <div class="card-hdr">
+          <span class="card-title">📬 Tournament Invites</span>
+          <span class="badge badge-accent" id="tourney-invite-count">0</span>
+        </div>
+        <div id="tourney-invite-list"></div>
+      </div>
+      <!-- Active / upcoming tournaments -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-hdr">
+          <span class="card-title">🏔 My Tournaments</span>
+        </div>
+        <div id="tourney-list"></div>
+        <div id="tourney-empty" class="empty" style="padding:32px 0;display:none;">
+          <div class="empty-icon">🏆</div>
+          <h3>No tournaments yet</h3>
+          <p>Create a tournament and invite your friends to compete.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── MY PROFILE ─── -->
     <div id="view-profile" class="view">
       <div class="view-header">
@@ -2847,6 +2940,64 @@
   </div>
 </div>
 
+<!-- ─── Create Tournament Modal ─── -->
+<div class="modal-overlay hidden" id="create-tourney-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-hdr">
+      <span class="modal-title">🏆 Create Tournament</span>
+      <button class="modal-close" onclick="closeModal('create-tourney-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tournament Name</label>
+      <input type="text" class="form-input" id="tourney-name" placeholder="e.g. Winter Park Classic…" maxlength="60" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Format</label>
+      <div style="display:flex;gap:10px;">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;" id="fmt-single-label">
+          <input type="radio" name="tourney-format" value="single-elim" id="fmt-single" checked style="accent-color:var(--ice);">
+          <div>
+            <div style="font-size:13px;font-weight:600;">Single Elimination</div>
+            <div style="font-size:11px;color:var(--text-muted);">Lose once, you're out</div>
+          </div>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;" id="fmt-rr-label">
+          <input type="radio" name="tourney-format" value="round-robin" id="fmt-rr" style="accent-color:var(--ice);">
+          <div>
+            <div style="font-size:13px;font-weight:600;">Round Robin</div>
+            <div style="font-size:11px;color:var(--text-muted);">Everyone plays everyone</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📅 Date <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <input type="date" class="form-input" id="tourney-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">🏔 Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <input type="text" class="form-input" id="tourney-resort" placeholder="e.g. Whistler…" maxlength="80" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Invite Participants</label>
+      <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;">Select riders to invite. You are always included.</div>
+      <div id="tourney-invite-picker" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
+    </div>
+    <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="createTournament()">🏆 Create Tournament</button>
+  </div>
+</div>
+
+<!-- ─── Tournament Detail Modal ─── -->
+<div class="modal-overlay hidden" id="tourney-detail-modal">
+  <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-hdr">
+      <span class="modal-title" id="tourney-detail-title">Tournament</span>
+      <button class="modal-close" onclick="closeModal('tourney-detail-modal')">✕</button>
+    </div>
+    <div id="tourney-detail-body"></div>
+  </div>
+</div>
+
 <!-- ─── Send Challenge Modal ─── -->
 <div class="modal-overlay hidden" id="challenge-modal">
   <div class="modal" style="max-width:440px;">
@@ -3033,9 +3184,9 @@ function startFirestoreSync() {
             _saveToFirestore();
           } else {
             // Guest or wipe in progress — clear stale local cache
-            S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
+            S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
             try { localStorage.removeItem(userStoreKey()); } catch(_) {}
-            const safe = ['leaderboard','players','explore','friends','confirmations'];
+            const safe = ['leaderboard','players','explore','friends','confirmations','tournaments'];
             if (safe.includes(_activeSection)) nav(_activeSection);
           }
           return;
@@ -3052,7 +3203,7 @@ function startFirestoreSync() {
         });
 
         // Ensure all arrays exist
-        ['pending','liveInvites','friendRequests','messages','challenges'].forEach(k => {
+        ['pending','liveInvites','friendRequests','messages','challenges','tournaments'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
         });
         fresh.players.forEach(p => {
@@ -3147,7 +3298,7 @@ function startFirestoreSync() {
         if (_activeChatId) openChat(_activeChatId, true);
         const listEl = document.getElementById('friends-list-items');
         if (listEl) renderFriendsView();
-        const safe = ['leaderboard','players','explore','friends','confirmations'];
+        const safe = ['leaderboard','players','explore','friends','confirmations','tournaments'];
         if (safe.includes(_activeSection)) nav(_activeSection);
         if (_activeSection === 'profile') renderMyProfile();
         updateSidebarAvatar();
@@ -3360,7 +3511,7 @@ function logout() {
     stopPolling();
     stopFirestoreSync();
     clearSession();
-    S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
+    S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
     load(); // reload public data so preview is still populated
     document.getElementById('sb-user-footer').style.display  = 'none';
     document.getElementById('sb-guest-footer').style.display = 'flex';
@@ -3395,7 +3546,7 @@ function deleteAccount() {
       stopPolling();
       stopFirestoreSync();
       clearSession();
-      S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
+      S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
       load();
       document.getElementById('sb-user-footer').style.display  = 'none';
       document.getElementById('sb-guest-footer').style.display = 'flex';
@@ -3442,7 +3593,7 @@ function launchPreview() {
   _setFabVisible(false);
   // Always start empty — Firestore is the source of truth.
   // Don't call load() here or stale localStorage data would show up.
-  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
+  S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
   nav('leaderboard');
@@ -4172,7 +4323,7 @@ function _animateAuthOut(cb) {
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[] };
+let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
 
 function load() {
   try {
@@ -4186,6 +4337,7 @@ function load() {
       if (!Array.isArray(S.friendRequests)) S.friendRequests = [];
       if (!Array.isArray(S.messages))       S.messages = [];
       if (!Array.isArray(S.challenges))     S.challenges = [];
+      if (!Array.isArray(S.tournaments))   S.tournaments = [];
       // Migration: players who have never played a game but still carry the old
       // default START_RATING should be treated as unrated.
       S.players.forEach(p => {
@@ -4354,7 +4506,7 @@ function avatarGrad(id) {
 // Renders an avatar — uses photo if available, falls back to gradient + initials
 function avatarHtml(player, sizeClass='avatar-sm') {
   if (!player) return '';
-  const sizes = { 'avatar-sm':30, 'avatar-md':44, 'avatar-lg':64 };
+  const sizes = { 'avatar-xs':22, 'avatar-sm':30, 'avatar-md':44, 'avatar-lg':64 };
   const px = sizes[sizeClass] || 30;
   const fontSize = { 'avatar-sm':'11px', 'avatar-md':'15px', 'avatar-lg':'22px' }[sizeClass] || '11px';
   if (player.avatarUrl) {
@@ -4390,13 +4542,14 @@ function confirm_(title, msg, fn) {
 // ═══════════════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════════════
-const AUTH_REQUIRED_VIEWS = ['log-game','live-game','friends','profile','confirmations'];
+const AUTH_REQUIRED_VIEWS = ['log-game','live-game','friends','profile','confirmations','tournaments'];
 const AUTH_HINTS = {
   'log-game':      '⛷️ Sign in to log a game and track your rating.',
   'live-game':     '⛷️ Sign in to challenge someone to a live game.',
   'friends':       '👥 Sign in to add friends and chat.',
   'profile':       '🏔 Sign in to view your profile and stats.',
   'confirmations': '📬 Sign in to manage your game inbox.',
+  'tournaments':   '🏆 Sign in to create and join tournaments.',
 };
 
 let _activeSection = 'leaderboard'; // tracked so Firestore sync can refresh the right view
@@ -4423,6 +4576,7 @@ function nav(view) {
     'explore':     renderExplore,
     'profile':         renderMyProfile,
     'confirmations':   renderConfirmations,
+    'tournaments':     renderTournaments,
   })[view]?.();
 }
 
@@ -7125,13 +7279,590 @@ function renderChallenges() {
   }).join('');
 }
 
+// ═══════════════════════════════════════════════════════
+//  TOURNAMENTS
+// ═══════════════════════════════════════════════════════
+
+// ── Helpers ─────────────────────────────────────────────
+function getTourney(id) { return (S.tournaments || []).find(t => t.id === id); }
+
+function tourneyInvolvesMe(t) {
+  if (!currentUser) return false;
+  return t.creatorId === currentUser.id ||
+    (t.invitees || []).some(i => i.id === currentUser.id);
+}
+
+function tourneyStatus(t) {
+  if (t.status === 'complete') return 'complete';
+  if (t.status === 'active')   return 'active';
+  return 'setup';
+}
+
+// ── Seeding: sort participants by rating desc ────────────
+function seedParticipants(participants) {
+  return [...participants].sort((a, b) => {
+    const ra = byId(a.id)?.rating ?? 400;
+    const rb = byId(b.id)?.rating ?? 400;
+    return rb - ra;
+  });
+}
+
+// ── Build single-elimination bracket ────────────────────
+// Returns array of rounds; each round = array of match objects.
+function buildSingleElimBracket(seededParticipants) {
+  const n = seededParticipants.length;
+  if (n < 2) return [];
+
+  // Power of 2 ceiling
+  let slots = 1;
+  while (slots < n) slots *= 2;
+  const byes = slots - n;
+
+  // Round 1: interleave seeds and byes
+  // Standard single-elim seeding: 1 vs last, 2 vs second-last, etc.
+  // With byes, top seeds get the byes (auto-advance).
+  const round1 = [];
+  const padded = [...seededParticipants];
+  // Fill with null (BYE) up to slots
+  while (padded.length < slots) padded.push(null);
+
+  // Create pairs: seed 0 vs seed (slots-1), seed 1 vs seed (slots-2), …
+  for (let i = 0; i < slots / 2; i++) {
+    round1.push({
+      id: uid(),
+      p1: padded[i],         // p1: { id, name }
+      p2: padded[slots-1-i], // null = BYE
+      winnerId: null,
+      status: 'pending',
+      round: 1,
+      matchIndex: i
+    });
+  }
+
+  const rounds = [round1];
+  // Build subsequent rounds as empty shells (TBD)
+  let prevCount = slots / 2;
+  let roundNum = 2;
+  while (prevCount > 1) {
+    const count = prevCount / 2;
+    const round = [];
+    for (let i = 0; i < count; i++) {
+      round.push({ id: uid(), p1: null, p2: null, winnerId: null, status: 'pending', round: roundNum, matchIndex: i });
+    }
+    rounds.push(round);
+    prevCount = count;
+    roundNum++;
+  }
+  return rounds;
+}
+
+// Auto-advance BYE matches and propagate winners forward
+function propagateBracket(rounds) {
+  for (let ri = 0; ri < rounds.length; ri++) {
+    const round = rounds[ri];
+    for (let mi = 0; mi < round.length; mi++) {
+      const m = round[mi];
+      // Auto-advance byes in round 1
+      if (ri === 0 && m.p2 === null && m.p1 !== null && !m.winnerId) {
+        m.winnerId = m.p1.id;
+        m.status = 'bye';
+      }
+      // Propagate winner to next round
+      if (m.winnerId && ri + 1 < rounds.length) {
+        const nextMatch = rounds[ri + 1][Math.floor(mi / 2)];
+        const slot = mi % 2 === 0 ? 'p1' : 'p2';
+        const winner = m.p1?.id === m.winnerId ? m.p1 : m.p2;
+        nextMatch[slot] = winner;
+      }
+    }
+  }
+}
+
+// ── Build round-robin matches ────────────────────────────
+function buildRoundRobinMatches(participants) {
+  const matches = [];
+  for (let i = 0; i < participants.length; i++) {
+    for (let j = i + 1; j < participants.length; j++) {
+      matches.push({
+        id: uid(),
+        p1: participants[i],
+        p2: participants[j],
+        winnerId: null,
+        status: 'pending'
+      });
+    }
+  }
+  return matches;
+}
+
+// ── Open create modal ────────────────────────────────────
+function openCreateTournamentModal() {
+  if (!currentUser) { toast('Sign in to create a tournament.', 'err'); return; }
+  document.getElementById('tourney-name').value   = '';
+  document.getElementById('tourney-date').value   = '';
+  document.getElementById('tourney-resort').value = '';
+  document.getElementById('fmt-single').checked   = true;
+
+  // Fill invite picker with same-sport players (excluding self)
+  const list = document.getElementById('tourney-invite-picker');
+  const others = sortedSameSport().filter(p => p.id !== currentUser.id);
+  if (!others.length) {
+    list.innerHTML = '<div style="padding:14px 12px;font-size:13px;color:var(--text-muted);">No other riders to invite yet.</div>';
+  } else {
+    list.innerHTML = others.map(p => `
+      <div class="invite-pick-item" onclick="event.currentTarget.querySelector('input').click();event.stopPropagation();">
+        <input type="checkbox" value="${p.id}" id="tinv-${p.id}" onclick="event.stopPropagation();">
+        ${avatarHtml(p, 'avatar-sm')}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;">${p.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${p.rating ? '#'+ranked(p.id) : 'Unrated'}</div>
+        </div>
+      </div>`).join('');
+  }
+  openModal('create-tourney-modal');
+}
+
+function ranked(id) {
+  const s = sorted();
+  const i = s.findIndex(p => p.id === id);
+  return i >= 0 ? i + 1 : '?';
+}
+
+// ── Create tournament ────────────────────────────────────
+function createTournament() {
+  if (!currentUser) return;
+  const name = document.getElementById('tourney-name').value.trim();
+  if (!name) { toast('Give your tournament a name.', 'err'); return; }
+  const format = document.querySelector('input[name="tourney-format"]:checked')?.value || 'single-elim';
+  const dateVal  = document.getElementById('tourney-date').value   || null;
+  const resort   = document.getElementById('tourney-resort').value.trim() || null;
+
+  // Collect invited player ids
+  const checks = document.querySelectorAll('#tourney-invite-picker input[type=checkbox]:checked');
+  const invitees = Array.from(checks).map(cb => {
+    const p = byId(cb.value);
+    return { id: p.id, name: p.name, status: 'pending' };
+  });
+
+  if (!Array.isArray(S.tournaments)) S.tournaments = [];
+  const t = {
+    id: uid(),
+    name, format, dateVal, resort,
+    sport: currentUser.riderType || 'skier',
+    creatorId: currentUser.id,
+    creatorName: currentUser.name,
+    invitees,
+    participants: [{ id: currentUser.id, name: currentUser.name }],
+    rounds: [],      // for single-elim
+    matches: [],     // for round-robin
+    status: 'setup',
+    createdAt: Date.now()
+  };
+  S.tournaments.push(t);
+  save();
+  checkNotifications();
+  closeModal('create-tourney-modal');
+  toast(`Tournament "${name}" created! ${invitees.length ? invitees.length+' invites sent.' : ''}`, 'ok');
+  renderTournaments();
+}
+
+// ── Accept / decline tournament invite ───────────────────
+function acceptTourneyInvite(tourneyId) {
+  const t = getTourney(tourneyId);
+  if (!t || !currentUser) return;
+  const inv = (t.invitees || []).find(i => i.id === currentUser.id);
+  if (inv) inv.status = 'accepted';
+  // Add to participants if not already there
+  if (!t.participants.find(p => p.id === currentUser.id)) {
+    t.participants.push({ id: currentUser.id, name: currentUser.name });
+  }
+  save();
+  checkNotifications();
+  renderTournaments();
+  toast('You joined the tournament! 🏆', 'ok');
+}
+
+function declineTourneyInvite(tourneyId) {
+  const t = getTourney(tourneyId);
+  if (!t || !currentUser) return;
+  const inv = (t.invitees || []).find(i => i.id === currentUser.id);
+  if (inv) inv.status = 'declined';
+  save();
+  checkNotifications();
+  renderTournaments();
+  toast('Tournament invite declined.', 'ok');
+}
+
+// ── Start tournament (creator locks it in) ───────────────
+function startTournament(tourneyId) {
+  const t = getTourney(tourneyId);
+  if (!t || t.creatorId !== currentUser?.id) return;
+  if (t.participants.length < 2) { toast('Need at least 2 participants to start.', 'err'); return; }
+
+  const seeded = seedParticipants(t.participants);
+  if (t.format === 'single-elim') {
+    t.rounds = buildSingleElimBracket(seeded);
+    propagateBracket(t.rounds);
+  } else {
+    t.matches = buildRoundRobinMatches(seeded);
+  }
+  t.status = 'active';
+  save();
+  renderTournaments();
+  openTourneyDetail(tourneyId);
+  toast('Tournament started! Bracket is live. 🏆', 'ok');
+}
+
+// ── Delete tournament (creator only) ─────────────────────
+function deleteTournament(tourneyId) {
+  if (!confirm('Delete this tournament? This cannot be undone.')) return;
+  S.tournaments = (S.tournaments || []).filter(t => t.id !== tourneyId);
+  save();
+  closeModal('tourney-detail-modal');
+  renderTournaments();
+  toast('Tournament deleted.', 'ok');
+}
+
+// ── Record match winner (single-elim) ────────────────────
+function recordMatchWinner(tourneyId, roundIdx, matchIdx, winnerId) {
+  const t = getTourney(tourneyId);
+  if (!t) return;
+  const m = t.rounds[roundIdx][matchIdx];
+  m.winnerId = winnerId;
+  m.status = 'played';
+  propagateBracket(t.rounds);
+  // Check if tournament is complete (final match played)
+  const finalRound = t.rounds[t.rounds.length - 1];
+  if (finalRound && finalRound[0].winnerId) {
+    t.status = 'complete';
+    t.winnerId = finalRound[0].winnerId;
+    t.winnerName = finalRound[0].p1?.id === finalRound[0].winnerId ? finalRound[0].p1?.name : finalRound[0].p2?.name;
+  }
+  save();
+  openTourneyDetail(tourneyId); // refresh
+}
+
+// ── Record round-robin match winner ──────────────────────
+function recordRRWinner(tourneyId, matchId, winnerId) {
+  const t = getTourney(tourneyId);
+  if (!t) return;
+  const m = (t.matches || []).find(m => m.id === matchId);
+  if (!m) return;
+  m.winnerId = winnerId;
+  m.status = 'played';
+  // Check if all matches played
+  if (t.matches.every(m => m.status === 'played')) {
+    t.status = 'complete';
+    // Find winner by wins
+    const wins = {};
+    t.participants.forEach(p => wins[p.id] = 0);
+    t.matches.forEach(m => { if (m.winnerId) wins[m.winnerId] = (wins[m.winnerId]||0) + 1; });
+    const top = Object.entries(wins).sort((a,b) => b[1]-a[1])[0];
+    t.winnerId   = top?.[0];
+    t.winnerName = t.participants.find(p => p.id === t.winnerId)?.name;
+  }
+  save();
+  openTourneyDetail(tourneyId); // refresh
+}
+
+// ── Render tournaments view ──────────────────────────────
+function renderTournaments() {
+  if (!currentUser) return;
+  const all = S.tournaments || [];
+  const mine = all.filter(t => tourneyInvolvesMe(t));
+
+  // Pending invites for me
+  const pendingInvites = all.filter(t =>
+    (t.invitees || []).some(i => i.id === currentUser.id && i.status === 'pending')
+  );
+  const invCard = document.getElementById('tourney-invites-card');
+  const invList = document.getElementById('tourney-invite-list');
+  const invCount = document.getElementById('tourney-invite-count');
+  if (invCard) {
+    invCard.style.display = pendingInvites.length ? '' : 'none';
+    if (invCount) invCount.textContent = pendingInvites.length;
+    if (invList) {
+      invList.innerHTML = pendingInvites.map(t => `
+        <div class="pending-card" style="border-color:rgba(0,212,255,0.2);background:rgba(0,212,255,0.03);">
+          <div class="pending-card-header">
+            <div>
+              <div style="font-size:13px;font-weight:700;">🏆 <strong>${t.name}</strong></div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">
+                Created by ${t.creatorName}
+                · ${t.format === 'single-elim' ? 'Single Elimination' : 'Round Robin'}
+                ${t.dateVal ? ' · ' + dateFmt(t.dateVal+'T12:00') : ''}
+              </div>
+            </div>
+          </div>
+          <div class="pending-card-actions">
+            <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="acceptTourneyInvite('${t.id}')">✓ Join</button>
+            <button class="btn btn-ghost btn-sm"   style="flex:1;justify-content:center;" onclick="declineTourneyInvite('${t.id}')">Decline</button>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // My tournaments list
+  const list  = document.getElementById('tourney-list');
+  const empty = document.getElementById('tourney-empty');
+  if (!list) return;
+
+  const myTourneys = mine.filter(t => !(t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending'));
+  if (!myTourneys.length) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = myTourneys.sort((a,b) => b.createdAt - a.createdAt).map(t => {
+    const status = tourneyStatus(t);
+    const participantNames = (t.participants||[]).map(p=>p.name).join(', ');
+    return `
+    <div class="tourney-card" onclick="openTourneyDetail('${t.id}')">
+      <div class="tourney-card-hdr">
+        <span class="tourney-card-name">🏆 ${t.name}</span>
+        <span class="tourney-badge ${status}">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
+      </div>
+      <div class="tourney-meta">
+        <span>${t.format === 'single-elim' ? '🔥 Single Elimination' : '🔄 Round Robin'}</span>
+        <span>👥 ${(t.participants||[]).length} riders</span>
+        ${t.resort ? `<span>🏔 ${t.resort}</span>` : ''}
+        ${t.dateVal ? `<span>📅 ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
+        ${status === 'complete' ? `<span style="color:var(--warning);">🥇 ${t.winnerName||'TBD'}</span>` : ''}
+      </div>
+      <div style="margin-top:8px;font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${participantNames}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Open tournament detail modal ─────────────────────────
+function openTourneyDetail(tourneyId) {
+  const t = getTourney(tourneyId);
+  if (!t) return;
+  document.getElementById('tourney-detail-title').textContent = '🏆 ' + t.name;
+  const body = document.getElementById('tourney-detail-body');
+  const isCreator = t.creatorId === currentUser?.id;
+  const status = tourneyStatus(t);
+
+  let html = '';
+
+  // Meta row
+  html += `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--text-muted);">
+    <span>${t.format === 'single-elim' ? '🔥 Single Elimination' : '🔄 Round Robin'}</span>
+    <span class="tourney-badge ${status}" style="align-self:center;">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
+    ${t.resort ? `<span>🏔 ${t.resort}</span>` : ''}
+    ${t.dateVal ? `<span>📅 ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
+  </div>`;
+
+  // Complete banner
+  if (status === 'complete' && t.winnerName) {
+    html += `<div style="text-align:center;padding:18px;background:linear-gradient(135deg,rgba(255,196,0,.15),rgba(255,77,0,.08));border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
+      <div style="font-size:28px;margin-bottom:4px;">🥇</div>
+      <div style="font-size:18px;font-weight:800;">${t.winnerName}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Tournament Champion</div>
+    </div>`;
+  }
+
+  // Participants
+  html += `<div style="margin-bottom:16px;">
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Participants (${(t.participants||[]).length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${(t.participants||[]).map(p => `
+        <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:4px 10px 4px 4px;font-size:12px;font-weight:500;">
+          ${avatarHtml(byId(p.id)||p,'avatar-sm')} ${p.name}
+        </div>`).join('')}
+    </div>
+  </div>`;
+
+  // Pending invites
+  const pendingInvs = (t.invitees||[]).filter(i => i.status === 'pending');
+  if (pendingInvs.length) {
+    html += `<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);">⏳ Waiting for: ${pendingInvs.map(i=>i.name).join(', ')}</div>`;
+  }
+
+  // Setup controls (creator only, status=setup)
+  if (isCreator && status === 'setup') {
+    html += `<button class="btn btn-accent" style="width:100%;justify-content:center;margin-bottom:16px;"
+      onclick="startTournament('${t.id}')">▶ Start Tournament</button>`;
+  }
+
+  // Bracket (single-elim)
+  if (t.format === 'single-elim' && t.rounds?.length) {
+    html += renderBracketHTML(t);
+  }
+
+  // Standings + matches (round-robin)
+  if (t.format === 'round-robin' && t.matches?.length) {
+    html += renderRRHTML(t);
+  }
+
+  // Delete (creator only)
+  if (isCreator) {
+    html += `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteTournament('${t.id}')">🗑 Delete Tournament</button>
+    </div>`;
+  }
+
+  body.innerHTML = html;
+  openModal('tourney-detail-modal');
+}
+
+// ── Render single-elim bracket HTML ─────────────────────
+function renderBracketHTML(t) {
+  const rounds = t.rounds;
+  const isCreator = t.creatorId === currentUser?.id;
+  const roundNames = ['Round 1','Quarterfinals','Semifinals','Final','Grand Final'];
+  // Map round count to sensible labels
+  const labelFor = (ri, total) => {
+    if (total === 1) return 'Final';
+    if (ri === total - 1) return 'Final';
+    if (ri === total - 2) return 'Semifinals';
+    if (ri === total - 3) return 'Quarterfinals';
+    return 'Round ' + (ri + 1);
+  };
+
+  let html = '<div class="bracket-wrap"><div class="bracket">';
+  rounds.forEach((round, ri) => {
+    html += `<div class="bracket-round">
+      <div class="bracket-round-title">${labelFor(ri, rounds.length)}</div>`;
+    round.forEach((m, mi) => {
+      const p1Name = m.p1?.name || 'TBD';
+      const p2Name = m.p2 ? m.p2.name : (ri === 0 ? 'BYE' : 'TBD');
+      const isBye  = m.status === 'bye';
+      const isPlayed = m.status === 'played';
+      const canRecord = isCreator && !isPlayed && !isBye && m.p1 && m.p2 && t.status === 'active';
+      const p1Class = isPlayed ? (m.winnerId === m.p1?.id ? 'winner' : 'loser') : (isBye ? 'winner' : '');
+      const p2Class = isPlayed ? (m.winnerId === m.p2?.id ? 'winner' : 'loser') : (m.p2 ? '' : 'bye');
+
+      html += `<div class="bracket-match ${canRecord?'clickable':''}" ${canRecord ? `onclick="pickMatchWinner('${t.id}',${ri},${mi})"` : ''}>
+        <div class="bracket-slot ${p1Class}">
+          <span class="bracket-seed">${ri===0?mi+1:''}</span>
+          <span style="flex:1;">${p1Name}</span>
+          ${isPlayed && m.winnerId===m.p1?.id ? '<span style="color:var(--success);font-size:11px;">✓</span>' : ''}
+        </div>
+        <div class="bracket-slot ${p2Class}">
+          <span class="bracket-seed">${ri===0 && m.p2 ? rounds[0].length+1-(mi) : ''}</span>
+          <span style="flex:1;">${p2Name}</span>
+          ${isPlayed && m.winnerId===m.p2?.id ? '<span style="color:var(--success);font-size:11px;">✓</span>' : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div></div>';
+  if (isCreator && t.status === 'active') {
+    html += `<div style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">Tap a match to record the winner.</div>`;
+  }
+  return html;
+}
+
+// ── Pick winner dialog for bracket match ─────────────────
+function pickMatchWinner(tourneyId, roundIdx, matchIdx) {
+  const t = getTourney(tourneyId);
+  if (!t) return;
+  const m = t.rounds[roundIdx][matchIdx];
+  if (!m.p1 || !m.p2) return;
+  // Simple inline confirm via custom mini modal approach
+  const existing = document.getElementById('pick-winner-overlay');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.id = 'pick-winner-overlay';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  div.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:28px 24px;max-width:320px;width:90%;text-align:center;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:18px;">Who won this match?</div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="recordMatchWinner('${tourneyId}',${roundIdx},${matchIdx},'${m.p1.id}');document.getElementById('pick-winner-overlay').remove();">${m.p1.name}</button>
+        <button class="btn btn-accent"  style="flex:1;justify-content:center;" onclick="recordMatchWinner('${tourneyId}',${roundIdx},${matchIdx},'${m.p2.id}');document.getElementById('pick-winner-overlay').remove();">${m.p2.name}</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:14px;width:100%;justify-content:center;" onclick="document.getElementById('pick-winner-overlay').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+// ── Render round-robin HTML ──────────────────────────────
+function renderRRHTML(t) {
+  const isCreator = t.creatorId === currentUser?.id;
+  // Standings
+  const wins = {}, played = {};
+  t.participants.forEach(p => { wins[p.id] = 0; played[p.id] = 0; });
+  t.matches.forEach(m => {
+    if (m.status === 'played') {
+      played[m.p1.id]++; played[m.p2.id]++;
+      if (m.winnerId) wins[m.winnerId] = (wins[m.winnerId]||0) + 1;
+    }
+  });
+  const standings = [...t.participants].sort((a,b) => (wins[b.id]||0)-(wins[a.id]||0));
+
+  let html = '<div style="margin-bottom:16px;">';
+  html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Standings</div>`;
+  html += '<table class="rr-table"><thead><tr><th>#</th><th>Rider</th><th>W</th><th>Played</th></tr></thead><tbody>';
+  standings.forEach((p, i) => {
+    html += `<tr>
+      <td style="color:var(--text-muted);font-weight:700;">${i+1}</td>
+      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'🥇 ':''}${p.name}</td>
+      <td style="color:var(--success);font-weight:600;">${wins[p.id]||0}</td>
+      <td style="color:var(--text-muted);">${played[p.id]||0}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // Matches
+  html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Matches</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+  t.matches.forEach(m => {
+    const done = m.status === 'played';
+    const canRecord = isCreator && !done && t.status === 'active';
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-card);border:1px solid ${done?'var(--border)':'var(--border-light)'};border-radius:var(--radius-sm);">
+      <span style="flex:1;font-size:13px;font-weight:${m.winnerId===m.p1.id?'700':'400'};color:${m.winnerId===m.p1.id?'var(--success)':m.winnerId===m.p2.id?'var(--text-muted)':'inherit'};">${m.p1.name}</span>
+      <span style="font-size:11px;color:var(--text-muted);font-weight:600;">vs</span>
+      <span style="flex:1;text-align:right;font-size:13px;font-weight:${m.winnerId===m.p2.id?'700':'400'};color:${m.winnerId===m.p2.id?'var(--success)':m.winnerId===m.p1.id?'var(--text-muted)':'inherit'};">${m.p2.name}</span>
+      ${done ? `<span class="badge badge-success" style="font-size:10px;">Done</span>`
+             : canRecord ? `<button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="pickRRWinner('${t.id}','${m.id}')">Record</button>` : '<span style="font-size:11px;color:var(--text-muted);">Pending</span>'}
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// ── Pick round-robin winner ──────────────────────────────
+function pickRRWinner(tourneyId, matchId) {
+  const t = getTourney(tourneyId);
+  if (!t) return;
+  const m = (t.matches||[]).find(m => m.id === matchId);
+  if (!m) return;
+
+  const existing = document.getElementById('pick-winner-overlay');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'pick-winner-overlay';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  div.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:28px 24px;max-width:320px;width:90%;text-align:center;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:18px;">Who won this match?</div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="recordRRWinner('${tourneyId}','${matchId}','${m.p1.id}');document.getElementById('pick-winner-overlay').remove();">${m.p1.name}</button>
+        <button class="btn btn-accent"  style="flex:1;justify-content:center;" onclick="recordRRWinner('${tourneyId}','${matchId}','${m.p2.id}');document.getElementById('pick-winner-overlay').remove();">${m.p2.name}</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:14px;width:100%;justify-content:center;" onclick="document.getElementById('pick-winner-overlay').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+
 function checkNotifications() {
   if (!currentUser) return;
   const gameCount      = S.pending.filter(r => r.opponentId === currentUser.id && r.status === 'pending').length;
   const inviteCount    = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending').length;
   const friendCount    = (S.friendRequests || []).filter(r => r.toId === currentUser.id && r.status === 'pending').length;
-  const challengeCount = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending').length;
-  const total = gameCount + inviteCount + friendCount + challengeCount;
+  const challengeCount  = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending').length;
+  const tourneyCount    = (S.tournaments || []).filter(t =>
+    (t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending')
+  ).length;
+  const total = gameCount + inviteCount + friendCount + challengeCount + tourneyCount;
+  // Update tournaments badge
+  const tb = document.getElementById('tournaments-badge');
+  if (tb) { if (tourneyCount > 0) { tb.textContent = tourneyCount; tb.style.display='inline-flex'; } else { tb.style.display='none'; } }
   updateMessagesBadge();
   const badge = document.getElementById('inbox-badge');
   if (!badge) return;
@@ -8408,6 +9139,7 @@ function adminDeleteUser(id) {
     S.players = S.players.filter(x => x.id !== id);
     S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
     S.challenges = (S.challenges||[]).filter(c => c.fromId !== id && c.toId !== id);
+    S.tournaments = (S.tournaments||[]).filter(t => t.creatorId !== id);
     S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
     save();
     toast(`${p.name} deleted.`, 'ok');
