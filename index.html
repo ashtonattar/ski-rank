@@ -2994,6 +2994,7 @@
         <input type="text" id="tinv-search" class="form-input" placeholder="Search name…"
           style="flex:1;min-width:110px;padding:7px 12px;font-size:13px;"
           oninput="filterInvitePicker(this.value)" autocomplete="off">
+        <span id="tinv-counter" style="font-size:11.5px;color:var(--text-muted);white-space:nowrap;">0 / 31</span>
       </div>
       <div id="tourney-invite-picker" style="max-height:210px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
     </div>
@@ -7420,6 +7421,8 @@ function openCreateTournamentModal() {
   document.getElementById('fmt-single').checked   = true;
   const searchEl = document.getElementById('tinv-search');
   if (searchEl) searchEl.value = '';
+  const counter = document.getElementById('tinv-counter');
+  if (counter) { counter.textContent = '0 / 31'; counter.style.color = 'var(--text-muted)'; }
   _inviteTab = 'all';
   setInviteTab('all', true);
   openModal('create-tourney-modal');
@@ -7470,11 +7473,17 @@ function renderInvitePicker(query) {
     return;
   }
 
+  const atCap = checked.size >= 31; // creator is always slot 1, so 31 invitees = 32 total
   list.innerHTML = candidates.map(p => {
-    const isFriend = (currentUser?.friends || []).includes(p.id);
+    const isFriend  = (currentUser?.friends || []).includes(p.id);
+    const isChecked = checked.has(p.id);
+    const disabled  = atCap && !isChecked; // can't check more once at cap
     return `
-    <div class="invite-pick-item" onclick="event.currentTarget.querySelector('input').click();event.stopPropagation();">
-      <input type="checkbox" value="${p.id}" id="tinv-${p.id}" onclick="event.stopPropagation()" ${checked.has(p.id) ? 'checked' : ''}>
+    <div class="invite-pick-item" style="${disabled ? 'opacity:.45;cursor:not-allowed;' : ''}"
+      onclick="${disabled ? '' : "event.currentTarget.querySelector('input').click();event.stopPropagation();"}">
+      <input type="checkbox" value="${p.id}" id="tinv-${p.id}"
+        onclick="event.stopPropagation();updateInvitePickerCap()"
+        ${isChecked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
       ${avatarHtml(p, 'avatar-sm')}
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;">${p.name}${isFriend ? ' <span style="font-size:10px;color:var(--ice);">★ Friend</span>' : ''}</div>
@@ -7482,6 +7491,18 @@ function renderInvitePicker(query) {
       </div>
     </div>`;
   }).join('');
+}
+
+function updateInvitePickerCap() {
+  const count   = document.querySelectorAll('#tourney-invite-picker input[type=checkbox]:checked').length;
+  const counter = document.getElementById('tinv-counter');
+  if (counter) {
+    counter.textContent = count + ' / 31';
+    counter.style.color = count >= 31 ? 'var(--warning)' : 'var(--text-muted)';
+  }
+  // Re-render to update disabled states
+  const query = (document.getElementById('tinv-search')?.value || '').trim().toLowerCase();
+  renderInvitePicker(query);
 }
 
 function ranked(id) {
@@ -7505,6 +7526,9 @@ function createTournament() {
     const p = byId(cb.value);
     return { id: p.id, name: p.name, status: 'pending' };
   });
+
+  // creator counts as 1 participant, so max invitees = 31
+  if (invitees.length > 31) { toast('Maximum 32 participants (you + 31 invitees).', 'err'); return; }
 
   if (!Array.isArray(S.tournaments)) S.tournaments = [];
   const t = {
@@ -7559,7 +7583,8 @@ function declineTourneyInvite(tourneyId) {
 function startTournament(tourneyId) {
   const t = getTourney(tourneyId);
   if (!t || t.creatorId !== currentUser?.id) return;
-  if (t.participants.length < 2) { toast('Need at least 2 participants to start.', 'err'); return; }
+  if (t.participants.length < 3) { toast('Need at least 3 participants to start.', 'err'); return; }
+  if (t.participants.length > 32) { toast('Maximum 32 participants allowed.', 'err'); return; }
 
   const seeded = seedParticipants(t.participants);
   if (t.format === 'single-elim') {
