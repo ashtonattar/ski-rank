@@ -5910,6 +5910,29 @@ function finishLive(winnerId, loserId) {
   addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '');
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
+  // Auto-record result in tournament bracket if this was a tournament match
+  if (g.tournamentId != null && g.tournamentRoundIdx != null && g.tournamentMatchIdx != null) {
+    const tourney = getTourney(g.tournamentId);
+    if (tourney) {
+      const tm = tourney.rounds[g.tournamentRoundIdx]?.[g.tournamentMatchIdx];
+      if (tm && !tm.winnerId) {
+        tm.winnerId = winnerId;
+        tm.status   = 'played';
+        propagateBracket(tourney.rounds);
+        // Check if tournament is complete
+        const finalRound = tourney.rounds[tourney.rounds.length - 1];
+        if (finalRound && finalRound[0].winnerId) {
+          tourney.status    = 'complete';
+          tourney.winnerId  = finalRound[0].winnerId;
+          const fp = finalRound[0];
+          tourney.winnerName = fp.p1?.id === fp.winnerId ? fp.p1.name : fp.p2?.name;
+          toast('🏆 Tournament complete! ' + tourney.winnerName + ' wins!', 'ok');
+        } else {
+          toast('Match recorded in tournament bracket ✓', 'ok');
+        }
+      }
+    }
+  }
   // Clear ALL invites tied to this game so no one gets stuck on the waiting screen
   S.liveInvites = (S.liveInvites || []).filter(i =>
     !(i.p1Id === g.p1 && i.p2Id === g.p2)
@@ -7461,6 +7484,58 @@ function renderInvitePicker(query) {
   }).join('');
 }
 
+// ── Start a live game from a tournament match ────────────
+function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
+  const t = getTourney(tourneyId);
+  if (!t || !currentUser) return;
+  const m = t.rounds[roundIdx][matchIdx];
+  if (!m || !m.p1 || !m.p2) return;
+
+  // Round locking
+  if (roundIdx > 0 && !isRoundComplete(t, roundIdx - 1)) {
+    toast('Complete all previous-round matches before playing this one.', 'err');
+    return;
+  }
+
+  const iAmP1 = m.p1.id === currentUser.id;
+  const iAmP2 = m.p2.id === currentUser.id;
+  if (!iAmP1 && !iAmP2) { toast("You're not in this match.", 'err'); return; }
+
+  const opponent = iAmP1 ? m.p2 : m.p1;
+
+  // Cancel any existing pending invites from this user first
+  S.liveInvites = S.liveInvites.filter(i => !(i.fromId === currentUser.id && i.status === 'pending'));
+
+  const invite = {
+    id: uid(),
+    fromId:   currentUser.id,
+    fromName: currentUser.name,
+    toId:     opponent.id,
+    toName:   opponent.name,
+    p1Id: m.p1.id, p2Id: m.p2.id,
+    judgeId: null,
+    resort: t.resort || '',
+    status: 'pending',
+    createdAt: Date.now(),
+    handicapLetters: { [m.p1.id]: 0, [m.p2.id]: 0 },
+    handicap: null,
+    // Tournament linkage
+    tournamentId:       tourneyId,
+    tournamentRoundIdx: roundIdx,
+    tournamentMatchIdx: matchIdx
+  };
+  S.liveInvites.push(invite);
+  save();
+  checkNotifications();
+
+  // Navigate to live game view and show waiting state
+  nav('live-game');
+  setTimeout(() => {
+    showInviteWaiting(invite);
+    toast(`Challenge sent to ${opponent.name} for your tournament match! ⛷️`, 'ok');
+  }, 80);
+}
+
 function updateInvitePickerCap() {
   const count   = document.querySelectorAll('#tourney-invite-picker input[type=checkbox]:checked').length;
   const counter = document.getElementById('tinv-counter');
@@ -7762,53 +7837,286 @@ function openTourneyDetail(tourneyId) {
   openModal('tourney-detail-modal');
 }
 
-// ── Render single-elim bracket HTML ─────────────────────
+// ── Round helpers ────────────────────────────────────────
+function isRoundComplete(t, ri) {
+  return (t.rounds[ri] || []).every(m => m.status === 'played' || m.status === 'bye');
+}
+
+// ── Classic SVG bracket renderer ─────────────────────────
 function renderBracketHTML(t) {
   const rounds = t.rounds;
+  if (!rounds || !rounds.length) return '<div class="rh-empty">No bracket yet.</div>';
+
   const isCreator = t.creatorId === currentUser?.id;
-  const roundNames = ['Round 1','Quarterfinals','Semifinals','Final','Grand Final'];
-  // Map round count to sensible labels
-  const labelFor = (ri, total) => {
-    if (total === 1) return 'Final';
-    if (ri === total - 1) return 'Final';
-    if (ri === total - 2) return 'Semifinals';
-    if (ri === total - 3) return 'Quarterfinals';
-    return 'Round ' + (ri + 1);
-  };
+  const isActive  = t.status === 'active';
+  const numRounds = rounds.length;
 
-  let html = '<div class="bracket-wrap"><div class="bracket">';
-  rounds.forEach((round, ri) => {
-    html += `<div class="bracket-round">
-      <div class="bracket-round-title">${labelFor(ri, rounds.length)}</div>`;
-    round.forEach((m, mi) => {
-      const p1Name = m.p1?.name || 'TBD';
-      const p2Name = m.p2 ? m.p2.name : (ri === 0 ? 'BYE' : 'TBD');
-      const isBye  = m.status === 'bye';
-      const isPlayed = m.status === 'played';
-      const canRecord = isCreator && !isPlayed && !isBye && m.p1 && m.p2 && t.status === 'active';
-      const p1Class = isPlayed ? (m.winnerId === m.p1?.id ? 'winner' : 'loser') : (isBye ? 'winner' : '');
-      const p2Class = isPlayed ? (m.winnerId === m.p2?.id ? 'winner' : 'loser') : (m.p2 ? '' : 'bye');
+  // Layout constants
+  const SH  = 28;   // slot height (one player row)
+  const MH  = SH * 2; // match height = 2 slots
+  const MW  = 150;  // match width
+  const MG  = 8;    // gap between two matches within a pair (between the two slots of adjacent matches — intra-pair spacing)
+  const PG  = 32;   // gap between pairs in the same round
+  const CW  = 44;   // connector width (horizontal gap between rounds)
+  const PAD_X = 12;
+  const PAD_Y = 28; // top padding (for round labels)
 
-      html += `<div class="bracket-match ${canRecord?'clickable':''}" ${canRecord ? `onclick="pickMatchWinner('${t.id}',${ri},${mi})"` : ''}>
-        <div class="bracket-slot ${p1Class}">
-          <span class="bracket-seed">${ri===0?mi+1:''}</span>
-          <span style="flex:1;">${p1Name}</span>
-          ${isPlayed && m.winnerId===m.p1?.id ? '<span style="color:var(--success);font-size:11px;">✓</span>' : ''}
-        </div>
-        <div class="bracket-slot ${p2Class}">
-          <span class="bracket-seed">${ri===0 && m.p2 ? rounds[0].length+1-(mi) : ''}</span>
-          <span style="flex:1;">${p2Name}</span>
-          ${isPlayed && m.winnerId===m.p2?.id ? '<span style="color:var(--success);font-size:11px;">✓</span>' : ''}
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-  });
-  html += '</div></div>';
-  if (isCreator && t.status === 'active') {
-    html += `<div style="font-size:11.5px;color:var(--text-muted);margin-top:8px;">Tap a match to record the winner.</div>`;
+  // Split rounds into left / right halves
+  function halfL(ri) { return rounds[ri].slice(0, Math.ceil(rounds[ri].length / 2)); }
+  function halfR(ri) { return rounds[ri].slice(Math.ceil(rounds[ri].length / 2)); }
+
+  const leftCount = halfL(0).length;
+
+  // Y-center of match mi_half (index within one half) in round ri
+  function yCenter(ri, mi) {
+    if (ri === 0) {
+      const pair = Math.floor(mi / 2);
+      const slot = mi % 2;
+      return PAD_Y + pair * (2 * MH + MG + PG) + slot * (MH + MG) + SH;
+    }
+    return (yCenter(ri - 1, mi * 2) + yCenter(ri - 1, mi * 2 + 1)) / 2;
   }
-  return html;
+
+  // X positions
+  function xLeft(ri)  { return PAD_X + ri * (MW + CW); }
+  const finalX = PAD_X + (numRounds - 1) * (MW + CW);
+  function xRight(ri) { return finalX + MW + CW + (numRounds - 2 - ri) * (MW + CW); }
+
+  // SVG dimensions
+  const numPairs = Math.ceil(leftCount / 2);
+  const svgH = PAD_Y + (numPairs === 0 ? MH : numPairs * (2 * MH + MG) + (numPairs - 1) * PG) + PAD_Y;
+  const rightW = halfR(0).length > 0 ? CW + (numRounds - 1) * (MW + CW) : 0;
+  const svgW = finalX + MW + rightW + PAD_X;
+
+  // Escape helper
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function trunc(s, n) { return s.length > n ? s.slice(0, n-1) + '…' : s; }
+
+  // Round label helper
+  function roundLabel(ri) {
+    if (ri === numRounds - 1) return 'FINAL';
+    if (ri === numRounds - 2 && numRounds > 2) return 'SEMIFINALS';
+    if (ri === numRounds - 3 && numRounds > 3) return 'QUARTERS';
+    return 'ROUND ' + (ri + 1);
+  }
+
+  const C_LINE   = '#1e3a52';
+  const C_WIN    = '#00e676';
+  const C_LOSE   = '#2d5a73';
+  const C_TEXT   = '#d0e8f8';
+  const C_MUTED  = '#3a6a84';
+  const C_ICE    = '#00d4ff';
+  const C_ORANGE = '#ff7a00';
+  const C_BG     = 'rgba(3,12,28,0.55)';
+  const C_PLAY   = 'rgba(0,212,255,0.10)';
+
+  let lines = '', boxes = '', labels = '';
+
+  // Draw a match box at (x, y) — y is top of match
+  function drawMatch(x, y, match, ri, mi_global, side) {
+    if (!match) return;
+    const isBye    = match.status === 'bye';
+    const isPlayed = match.status === 'played' || isBye;
+    const p1 = match.p1, p2 = match.p2;
+    const winnerId = match.winnerId;
+
+    const p1Won  = isPlayed && winnerId === p1?.id;
+    const p1Lost = isPlayed && winnerId && !p1Won;
+    const p2Won  = isPlayed && winnerId === p2?.id;
+    const p2Lost = isPlayed && winnerId && !p2Won;
+
+    const p1Name = esc(trunc(p1?.name || 'TBD', 17));
+    const p2Name = p2 ? esc(trunc(p2.name, 17)) : (ri === 0 ? 'BYE' : 'TBD');
+
+    const iAmP1 = currentUser && p1?.id === currentUser.id;
+    const iAmP2 = currentUser && p2?.id === currentUser.id;
+    const iAmIn = iAmP1 || iAmP2;
+
+    // Round locking: can only play if previous round is fully done
+    const prevDone = ri === 0 || isRoundComplete(t, ri - 1);
+    const canPlay  = isActive && !isPlayed && !isBye && p1 && p2 && iAmIn && prevDone;
+    const isCreatorRecord = isCreator && !isPlayed && !isBye && p1 && p2 && isActive;
+
+    const borderCol  = canPlay ? C_ICE : isCreatorRecord ? C_ORANGE : C_LINE;
+    const bgFill     = canPlay ? C_PLAY : 'rgba(3,12,28,0.45)';
+    const bw         = canPlay || isCreatorRecord ? 1.5 : 1;
+
+    // Match background rect
+    const clickFn = canPlay
+      ? `startTournamentMatch('${t.id}',${ri},${mi_global})`
+      : isCreatorRecord
+        ? `pickMatchWinner('${t.id}',${ri},${mi_global})`
+        : '';
+    const cursor = clickFn ? 'pointer' : 'default';
+
+    boxes += `<rect x="${x}" y="${y}" width="${MW}" height="${MH}"
+      fill="${bgFill}" stroke="${borderCol}" stroke-width="${bw}" rx="3"
+      style="cursor:${cursor};" ${clickFn ? `onclick="${clickFn}"` : ''}/>`;
+
+    // Divider between slots
+    boxes += `<line x1="${x}" y1="${y+SH}" x2="${x+MW}" y2="${y+SH}"
+      stroke="${C_LINE}" stroke-width="1"/>`;
+
+    // P1 text
+    const p1c = p1Won ? C_WIN : p1Lost ? C_LOSE : C_TEXT;
+    const p1w = p1Won ? 'bold' : 'normal';
+    boxes += `<text x="${x+7}" y="${y+SH-8}" fill="${p1c}" font-size="11"
+      font-family="Inter,sans-serif" font-weight="${p1w}" style="cursor:${cursor};"
+      ${clickFn ? `onclick="${clickFn}"` : ''}>${p1Won?'✓ ':''}${p1Name}</text>`;
+
+    // P2 text
+    const p2c = p2Won ? C_WIN : p2Lost ? C_LOSE : isBye ? C_MUTED : C_TEXT;
+    const p2w = p2Won ? 'bold' : 'normal';
+    boxes += `<text x="${x+7}" y="${y+MH-8}" fill="${p2c}" font-size="11"
+      font-family="Inter,sans-serif" font-weight="${p2w}" font-style="${isBye?'italic':'normal'}"
+      style="cursor:${cursor};" ${clickFn ? `onclick="${clickFn}"` : ''}>${p2Won?'✓ ':''}${p2Name}</text>`;
+
+    // "▶ Play" badge for playable matches
+    if (canPlay) {
+      boxes += `<rect x="${x+MW-42}" y="${y+SH-10}" width="38" height="14" rx="7"
+        fill="${C_ICE}" opacity="0.18"/>`;
+      boxes += `<text x="${x+MW-23}" y="${y+SH-1}" fill="${C_ICE}" font-size="8.5"
+        font-family="Inter,sans-serif" font-weight="700" text-anchor="middle"
+        style="cursor:pointer;" onclick="${clickFn}">▶ PLAY</text>`;
+    }
+    if (isCreatorRecord && !canPlay) {
+      boxes += `<text x="${x+MW-5}" y="${y+SH-1}" fill="${C_ORANGE}" font-size="8"
+        font-family="Inter,sans-serif" text-anchor="end" style="cursor:pointer;"
+        onclick="${clickFn}">record</text>`;
+    }
+  }
+
+  // Draw connector lines between round ri and ri+1, left side
+  function drawConnectorsLeft(ri) {
+    const lh = halfL(ri);
+    for (let p = 0; p < Math.ceil(lh.length / 2); p++) {
+      const y1 = yCenter(ri, p * 2);
+      const y2 = yCenter(ri, p * 2 + 1);
+      const yM = (y1 + y2) / 2;
+      const x1 = xLeft(ri) + MW;
+      const xM = x1 + CW / 2;
+      const x2 = ri + 1 < numRounds - 1 ? xLeft(ri + 1) : finalX;
+      lines += `<line x1="${x1}" y1="${y1}" x2="${xM}" y2="${y1}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${x1}" y1="${y2}" x2="${xM}" y2="${y2}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${xM}" y1="${y1}" x2="${xM}" y2="${y2}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${xM}" y1="${yM}" x2="${x2}" y2="${yM}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+    }
+  }
+
+  // Draw connector lines right side
+  function drawConnectorsRight(ri) {
+    const rh = halfR(ri);
+    for (let p = 0; p < Math.ceil(rh.length / 2); p++) {
+      const y1 = yCenter(ri, p * 2);
+      const y2 = yCenter(ri, p * 2 + 1);
+      const yM = (y1 + y2) / 2;
+      const x1 = xRight(ri); // left edge of right match
+      const xM = x1 - CW / 2;
+      const x2 = ri + 1 < numRounds - 1 ? xRight(ri + 1) + MW : finalX + MW;
+      lines += `<line x1="${x1}" y1="${y1}" x2="${xM}" y2="${y1}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${x1}" y1="${y2}" x2="${xM}" y2="${y2}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${xM}" y1="${y1}" x2="${xM}" y2="${y2}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      lines += `<line x1="${xM}" y1="${yM}" x2="${x2}" y2="${yM}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+    }
+  }
+
+  // Round labels
+  for (let ri = 0; ri < numRounds - 1; ri++) {
+    const lbl = roundLabel(ri);
+    labels += `<text x="${xLeft(ri) + MW/2}" y="${PAD_Y - 8}" fill="${C_MUTED}"
+      font-size="8" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle"
+      letter-spacing="0.8">${lbl}</text>`;
+    if (halfR(ri).length) {
+      labels += `<text x="${xRight(ri) + MW/2}" y="${PAD_Y - 8}" fill="${C_MUTED}"
+        font-size="8" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle"
+        letter-spacing="0.8">${lbl}</text>`;
+    }
+  }
+  labels += `<text x="${finalX + MW/2}" y="${PAD_Y - 8}" fill="${C_MUTED}"
+    font-size="8" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle"
+    letter-spacing="0.8">FINAL</text>`;
+
+  // Draw left matches + connectors
+  for (let ri = 0; ri < numRounds - 1; ri++) {
+    halfL(ri).forEach((m, mi) => {
+      drawMatch(xLeft(ri), yCenter(ri, mi) - SH, m, ri, rounds[ri].indexOf(m), 'left');
+    });
+    if (ri < numRounds - 2) drawConnectorsLeft(ri);
+    else if (halfL(ri).length === 1) {
+      // Connect last left round to final
+      const y1 = yCenter(ri, 0);
+      const x1 = xLeft(ri) + MW;
+      lines += `<line x1="${x1}" y1="${y1}" x2="${finalX}" y2="${y1}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+    } else {
+      drawConnectorsLeft(ri);
+    }
+  }
+
+  // Draw right matches + connectors
+  for (let ri = 0; ri < numRounds - 1; ri++) {
+    const rh = halfR(ri);
+    rh.forEach((m, mi) => {
+      drawMatch(xRight(ri), yCenter(ri, mi) - SH, m, ri, rounds[ri].indexOf(m), 'right');
+    });
+    if (rh.length > 0) {
+      if (ri < numRounds - 2) drawConnectorsRight(ri);
+      else if (rh.length === 1) {
+        const y1 = yCenter(ri, 0);
+        lines += `<line x1="${xRight(ri)}" y1="${y1}" x2="${finalX + MW}" y2="${y1}" stroke="${C_LINE}" stroke-width="1.5"/>`;
+      } else {
+        drawConnectorsRight(ri);
+      }
+    }
+  }
+
+  // Draw final match
+  const finalMatch = rounds[numRounds - 1][0];
+  const finalY = svgH / 2 - MH / 2;
+  drawMatch(finalX, finalY, finalMatch, numRounds - 1, 0, 'center');
+
+  // Connect left last-round to final (from yCenter of its single match to final center)
+  if (numRounds > 1 && halfL(numRounds - 2).length === 1) {
+    // already handled above
+  } else if (numRounds > 1) {
+    // The last left round produces one winner feeding into finalMatch.p1
+    // Connector from last-left-round midpoint to final top slot
+  }
+
+  // Champion label at bottom
+  const champName = finalMatch?.winnerId
+    ? esc(finalMatch.p1?.id === finalMatch.winnerId ? finalMatch.p1.name : finalMatch.p2?.name || '')
+    : '';
+  const champY = svgH - 8;
+  const champX = finalX + MW / 2;
+  // Double underline + champion text below SVG
+  const champSection = `
+    <div style="text-align:center;margin-top:12px;padding-bottom:8px;">
+      <div style="display:inline-block;border-top:2px solid var(--text-primary);border-bottom:2px solid var(--text-primary);
+        padding:5px 32px;margin-top:4px;">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;
+          color:${champName ? 'var(--warning)' : 'var(--text-muted)'};">
+          ${champName ? '🥇 ' + champName : 'Champion'}
+        </span>
+      </div>
+    </div>`;
+
+  const hint = isActive
+    ? (isCreator
+        ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">🔶 Tap a match to record the winner &nbsp;|&nbsp; 🔷 Tap to start your live game</div>`
+        : `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Tap your highlighted match to start a live game against your opponent.</div>`)
+    : '';
+
+  return `
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg"
+        style="display:block;min-width:${svgW}px;">
+        <g>${lines}</g>
+        <g>${boxes}</g>
+        <g>${labels}</g>
+      </svg>
+    </div>
+    ${champSection}
+    ${hint}`;
 }
 
 // ── Pick winner dialog for bracket match ─────────────────
@@ -8302,7 +8610,11 @@ function acceptLiveInvite(inviteId) {
       log:      [],
       over:     false,
       resort:   inv.resort || '',
-      winnerId: null, loserId: null, _game: null
+      winnerId: null, loserId: null, _game: null,
+      // Tournament linkage (if this is a tournament match)
+      tournamentId:       inv.tournamentId       || null,
+      tournamentRoundIdx: inv.tournamentRoundIdx ?? null,
+      tournamentMatchIdx: inv.tournamentMatchIdx ?? null
     };
   }
   save();
