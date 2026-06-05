@@ -325,6 +325,104 @@
       text-transform:uppercase; color:var(--ice);
     }
 
+    /* ── PLAY HERO ── */
+    .play-hero {
+      position:relative; overflow:hidden;
+      border-radius:var(--radius-lg);
+      background:#031226;
+      border:1px solid rgba(0,212,255,0.20);
+      margin-bottom:18px;
+      box-shadow: var(--glow-ice), 0 24px 64px rgba(0,0,0,0.75);
+      min-height:240px;
+      display:flex; align-items:flex-end;
+    }
+    .play-hero-bg {
+      position:absolute; inset:0;
+      background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=1400&auto=format&fit=crop&q=75');
+      background-size:cover; background-position:60% 30%;
+      filter:brightness(.55) saturate(1.1);
+    }
+    .play-hero-bg::after {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(
+        120deg,
+        rgba(2,12,30,0.92) 0%,
+        rgba(2,12,30,0.70) 50%,
+        rgba(2,12,30,0.30) 100%
+      );
+    }
+    /* top accent bar */
+    .play-hero::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px; z-index:2;
+      background:linear-gradient(90deg, transparent 0%, var(--ice) 30%, var(--fire) 70%, transparent 100%);
+    }
+    .play-hero-content {
+      position:relative; z-index:2;
+      padding:32px 32px 30px;
+      flex:1;
+    }
+    .play-hero-eyebrow {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:11px; font-weight:700; letter-spacing:4px;
+      text-transform:uppercase; color:var(--ice);
+      margin-bottom:8px; display:flex; align-items:center; gap:8px;
+    }
+    .play-hero-eyebrow::before {
+      content:''; width:20px; height:1px; background:var(--ice); opacity:.6;
+    }
+    .play-hero-title {
+      font-family:'Bebas Neue',sans-serif;
+      font-size:58px; letter-spacing:5px; line-height:.95;
+      color:#fff; margin-bottom:12px;
+      text-shadow:0 0 40px rgba(0,212,255,0.40), 0 0 80px rgba(0,212,255,0.12);
+    }
+    .play-hero-sub {
+      font-size:13px; color:var(--text-secondary); max-width:340px;
+      line-height:1.6; margin-bottom:18px;
+    }
+    .play-hero-pills {
+      display:flex; gap:8px; flex-wrap:wrap;
+    }
+    .play-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(0,212,255,0.08);
+      border:1px solid rgba(0,212,255,0.18);
+      border-radius:99px; padding:4px 12px;
+      font-size:11.5px; font-weight:600; color:var(--text-secondary);
+      backdrop-filter:blur(8px);
+    }
+    /* Animated S·K·I letters in the right corner */
+    .play-hero-letters {
+      position:absolute; bottom:24px; right:28px; z-index:2;
+      display:flex; align-items:center; gap:4px;
+      font-family:'Bebas Neue',sans-serif;
+      user-select:none; pointer-events:none;
+    }
+    .ski-letter {
+      font-size:52px; line-height:1; letter-spacing:2px;
+      color:rgba(0,212,255,0.18);
+      text-shadow:0 0 30px rgba(0,212,255,0.3);
+      animation:skiLetterPulse 3s ease-in-out infinite;
+      animation-delay:var(--d,0s);
+    }
+    .ski-letter-dot {
+      font-size:28px; color:rgba(0,212,255,0.10);
+      line-height:1; margin-bottom:4px;
+    }
+    @keyframes skiLetterPulse {
+      0%,100% { color:rgba(0,212,255,0.18); text-shadow:0 0 30px rgba(0,212,255,0.25); }
+      50%      { color:rgba(0,212,255,0.38); text-shadow:0 0 40px rgba(0,212,255,0.55); }
+    }
+    @media(max-width:600px) {
+      .play-hero { min-height:200px; }
+      .play-hero-title { font-size:42px; }
+      .play-hero-content { padding:22px 18px 20px; }
+      .play-hero-letters { bottom:16px; right:16px; }
+      .ski-letter { font-size:38px; }
+    }
+    body.light .play-hero-bg { filter:brightness(.65) saturate(.9); }
+    body.light .ski-letter { color:rgba(0,100,180,0.22); }
+
     /* ── STATS GRID ── */
     .stats-grid {
       display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
@@ -2303,14 +2401,43 @@
 
     <!-- ─── LIVE GAME ─── -->
     <div id="view-live-game" class="view active">
-      <div class="view-header">
-        <h2>⚡ Challenge a Rider</h2>
-        <p>Set a trick — your opponent copies it or collects a letter. First to spell S·K·I loses. No leaderboard needed — just two riders and a hill.</p>
+
+      <!-- Play Hero -->
+      <div class="play-hero">
+        <div class="play-hero-bg"></div>
+        <div class="play-hero-content">
+          <div class="play-hero-eyebrow">Freestyle H·O·R·S·E</div>
+          <h1 class="play-hero-title">CHALLENGE<br>A RIDER</h1>
+          <p class="play-hero-sub">Set a trick. Your opponent copies it or collects a letter.<br>First to spell <strong>S·K·I</strong> loses.</p>
+          <div class="play-hero-pills">
+            <div class="play-pill"><span>⚡</span> Instant invite</div>
+            <div class="play-pill"><span>📱</span> Live scoring</div>
+            <div class="play-pill"><span>🏆</span> No rating needed</div>
+          </div>
+        </div>
+        <!-- Animated ski letters -->
+        <div class="play-hero-letters" aria-hidden="true">
+          <span class="ski-letter" style="--d:0s">S</span>
+          <span class="ski-letter-dot">·</span>
+          <span class="ski-letter" style="--d:.15s">K</span>
+          <span class="ski-letter-dot">·</span>
+          <span class="ski-letter" style="--d:.3s">I</span>
+        </div>
+      </div>
+
+      <!-- Action shots strip -->
+      <div class="action-strip" style="margin-bottom:22px;">
+        <div class="action-shot" style="background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600&auto=format&fit=crop&q=75');background-position:center 30%;">
+          <div class="action-shot-label">Set Tricks</div>
+        </div>
+        <div class="action-shot" style="background-image:url('https://images.unsplash.com/photo-1576858574144-9ae1ebcf5ae5?w=600&auto=format&fit=crop&q=75');background-position:center 20%;">
+          <div class="action-shot-label">Collect Letters</div>
+        </div>
       </div>
 
       <!-- Setup panel -->
       <div id="live-setup" class="card" style="max-width:560px; margin-bottom:20px;">
-        <div class="card-hdr"><span class="card-title">Game Setup</span></div>
+        <div class="card-hdr"><span class="card-title">⚡ New Challenge</span></div>
 
         <!-- Invite form -->
         <div id="live-invite-form">
