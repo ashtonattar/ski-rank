@@ -4674,7 +4674,7 @@ function confirm_(title, msg, fn) {
 // ═══════════════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════════════
-const AUTH_REQUIRED_VIEWS = ['log-game','live-game','friends','profile','confirmations','tournaments'];
+const AUTH_REQUIRED_VIEWS = ['log-game','friends','profile','confirmations','tournaments'];
 const AUTH_HINTS = {
   'log-game':      '⛷️ Sign in to log a game and track your rating.',
   'live-game':     '⛷️ Sign in to challenge someone to a live game.',
@@ -8655,6 +8655,7 @@ function cancelPending(id) {
 //  LIVE GAME INVITES
 // ═══════════════════════════════════════════════════════
 function sendLiveInvite() {
+  if (!currentUser) { showAuthScreen('⛷️ Sign in to challenge someone to a live game.'); return; }
   const p1      = document.getElementById('lv-p1').value;
   const p2      = document.getElementById('lv-p2').value;
   const judgeId = document.getElementById('lv-judge').value || null;
