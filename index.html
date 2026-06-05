@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020c18">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>SKI RANK ⛷️ Freestyle Skiing Rating System</title>
+  <title>SKI RANK ⛷️ Freestyle Skiing H·O·R·S·E Game</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -2013,34 +2013,34 @@
         </svg>
         <div>
           <div class="logo-title">SKI RANK</div>
-          <div class="logo-sub">Freestyle Skiing Ratings</div>
+          <div class="logo-sub">Freestyle H·O·R·S·E Game</div>
         </div>
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="nav-btn active" data-view="leaderboard" onclick="nav('leaderboard')">
-        <span>Rankings</span>
-      </button>
-      <button class="nav-btn" data-view="log-game" onclick="nav('log-game')">
-        <span>Log Game</span>
+      <button class="nav-btn active" data-view="live-game" onclick="nav('live-game')" style="background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.25);color:var(--ice);font-weight:700;">
+        <span class="nav-icon">⚡</span><span>Play</span>
       </button>
       <button class="nav-btn" data-view="confirmations" onclick="nav('confirmations')" id="nav-confirmations">
-        <span style="flex:1;">Inbox</span><span class="nav-badge" id="inbox-badge" style="display:none;">0</span>
-      </button>
-      <button class="nav-btn" data-view="live-game" onclick="nav('live-game')">
-        <span>Live Game</span>
-      </button>
-      <button class="nav-btn" data-view="players" onclick="nav('players')">
-        <span>Riders</span>
-      </button>
-      <button class="nav-btn" data-view="friends" onclick="nav('friends')" id="nav-friends">
-        <span style="flex:1;">Friends</span><span class="nav-badge" id="friends-badge" style="display:none;">0</span>
-      </button>
-      <button class="nav-btn" data-view="explore" onclick="nav('explore')">
-        <span>Explore</span>
+        <span class="nav-icon">🔔</span><span style="flex:1;">Inbox</span><span class="nav-badge" id="inbox-badge" style="display:none;">0</span>
       </button>
       <button class="nav-btn" data-view="tournaments" onclick="nav('tournaments')" id="nav-tournaments">
-        <span style="flex:1;">Tournaments</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
+        <span class="nav-icon">🏆</span><span style="flex:1;">Tournaments</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" data-view="friends" onclick="nav('friends')" id="nav-friends">
+        <span class="nav-icon">👥</span><span style="flex:1;">Friends</span><span class="nav-badge" id="friends-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" data-view="players" onclick="nav('players')">
+        <span class="nav-icon">🎿</span><span>Riders</span>
+      </button>
+      <button class="nav-btn" data-view="explore" onclick="nav('explore')">
+        <span class="nav-icon">🌎</span><span>Explore</span>
+      </button>
+      <button class="nav-btn" data-view="log-game" onclick="nav('log-game')">
+        <span class="nav-icon">✏️</span><span>Log Game</span>
+      </button>
+      <button class="nav-btn" data-view="leaderboard" onclick="nav('leaderboard')">
+        <span class="nav-icon">📊</span><span>Rankings</span>
       </button>
     </div>
     <!-- Signed-in user footer -->
@@ -2064,11 +2064,11 @@
   <main class="main">
 
     <!-- ─── LEADERBOARD ─── -->
-    <div id="view-leaderboard" class="view active">
+    <div id="view-leaderboard" class="view">
       <div class="hero">
-        <div class="hero-eyebrow">Freestyle Skiing · Game Rating System</div>
+        <div class="hero-eyebrow">Freestyle Skiing · H·O·R·S·E for the Mountain</div>
         <h1>SKI RANK</h1>
-        <p>Set a trick, copy it or collect a letter. First to spell <strong style="color:var(--ice);">S·K·I</strong> loses. Your rating updates after every game.</p>
+        <p>Set a trick — your opponent copies it or collects a letter. First to spell <strong style="color:var(--ice);">S·K·I</strong> loses. Challenge anyone, anywhere, no leaderboard needed.</p>
       </div>
 
       <!-- Action shots strip -->
@@ -2083,9 +2083,20 @@
 
       <div class="stats-grid" id="global-stats"></div>
 
+      <!-- Play CTA — shown to users with 0 games -->
+      <div id="lb-play-cta" class="card" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(0,212,255,0.10),rgba(0,212,255,0.03));border:1px solid rgba(0,212,255,0.25);display:none;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:180px;">
+            <div style="font-weight:800;font-size:15px;margin-bottom:4px;">You haven't played yet</div>
+            <div style="font-size:13px;color:var(--text-muted);">Challenge a rider to start — no rating required.</div>
+          </div>
+          <button class="btn btn-primary" onclick="nav('live-game')">⚡ Play Now</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-hdr" style="flex-wrap:wrap;gap:10px;">
-          <span class="card-title">🏆 World Rankings</span>
+          <span class="card-title">📊 Rankings</span>
           <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;">
             <button id="lb-tab-alltime" onclick="switchLbTab('alltime')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:var(--primary);color:#000;">All-Time</button>
             <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
@@ -2291,10 +2302,10 @@
     </div>
 
     <!-- ─── LIVE GAME ─── -->
-    <div id="view-live-game" class="view">
+    <div id="view-live-game" class="view active">
       <div class="view-header">
-        <h2>Live SKI Game</h2>
-        <p>Track letters in real-time as you play — ratings update automatically when the game ends</p>
+        <h2>⚡ Challenge a Rider</h2>
+        <p>Set a trick — your opponent copies it or collects a letter. First to spell S·K·I loses. No leaderboard needed — just two riders and a hill.</p>
       </div>
 
       <!-- Setup panel -->
@@ -3579,7 +3590,7 @@ function launchPreview() {
   S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
-  nav('leaderboard');
+  nav('live-game');
   const appEl = document.getElementById('app');
   appEl.classList.add('animating-in');
   setTimeout(() => appEl.classList.remove('animating-in'), 500);
@@ -4172,20 +4183,20 @@ function selectTrick(name) {
 const ONBOARDING_STEPS = [
   {
     icon: '🎿',
-    title: 'Welcome to Ski Rank',
-    body: `Ski Rank is a competitive ranking app for skiers and snowboarders. Challenge your friends, track your rating, and climb the leaderboard.`,
-    cta: 'Let\'s go →'
+    title: 'Welcome to SKI RANK',
+    body: `SKI RANK is H·O·R·S·E for the mountain. Challenge any rider, set tricks, and see who folds first. No rating needed — just find someone and play.`,
+    cta: 'How do I play? →'
   },
   {
     icon: '🎯',
-    title: 'How Games Work',
-    body: `One rider sets a trick — the other must match it. Miss it and you collect a letter. Collect enough letters and you lose the game.<br><br>You can log a game manually after the fact, or play a <strong>Live Game</strong> in real time with a judge scoring each trick.`,
+    title: 'How It Works',
+    body: `One rider sets a trick — the other must match it. Miss it and you collect a letter: <strong style="color:var(--ice);">S → K → I</strong>. Collect all three and you lose.<br><br>Challenge someone right now with <strong>⚡ Play</strong> — they get an invite on their phone and you\'re in a live game.`,
     cta: 'Next →'
   },
   {
     icon: '📈',
-    title: 'Your Rating',
-    body: `Every game changes your rating. Beat a higher-rated rider and you gain more points. Lose to a lower-rated rider and you drop more.<br><br>Your rating starts at <strong>4.00</strong> and moves up or down after every confirmed game. Consistency and tough opponents are how you climb.`,
+    title: 'Ratings (Optional)',
+    body: `After a few games, you\'ll unlock a rating. Beat higher-rated riders and you climb. Lose to lower-ranked riders and you drop.<br><br>Ratings are just context — the real point is the game.`,
     cta: 'Next →'
   },
   {
@@ -4281,7 +4292,7 @@ function launchApp() {
   _healPlayerDone = false;      // allow heal to run once on this new session
   startFirestoreSync(); // Firestore snapshot will populate S and re-render
   if (S.live) nav('live-game');
-  else        nav('leaderboard');
+  else        nav('live-game');
   // Animate the app in
   const appEl = document.getElementById('app');
   appEl.classList.add('animating-in');
@@ -4868,6 +4879,10 @@ function renderLeaderboard() {
     <div class="stat-card"><div class="stat-label">Peak Rating</div><div class="stat-val c-success">${peakDisplay}</div></div>
     <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val">${winRateDisplay}</div></div>
   `;
+
+  // Show Play CTA for users who haven't played yet
+  const ctaEl = document.getElementById('lb-play-cta');
+  if (ctaEl) ctaEl.style.display = (me && me.gamesPlayed === 0) ? 'block' : 'none';
 
   if (!pl.length) { table.style.display='none'; empty.style.display='block'; return; }
   table.style.display='table'; empty.style.display='none';
@@ -5943,25 +5958,45 @@ function finishLive(winnerId, loserId) {
   drawBoard();
 }
 
+function shareGameResult(winnerName, loserName) {
+  const text = `🎿 ${winnerName} just beat ${loserName} in a SKI H·O·R·S·E game on SKI RANK! Challenge them at skirank.app`;
+  if (navigator.share) {
+    navigator.share({ title: 'SKI RANK Result', text }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(text).then(() => toast('Result copied to clipboard!', 'ok')).catch(() => {
+      toast(`${winnerName} beat ${loserName} — share manually!`, 'ok');
+    });
+  }
+}
+
 function showGameOver(winnerId, loserId, game) {
   const winner = byId(winnerId), loser = byId(loserId);
   if (!winner||!loser||!game) return;
+  const hasRatings = winner.gamesPlayed >= 3 && loser.gamesPlayed >= 3;
+  const ratingLine = hasRatings
+    ? `<div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;">Rating</div>
+          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-pos">+${game.winnerDelta} → ${fmt(winner.rating)}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;">Rating</div>
+          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-neg">${game.loserDelta} → ${fmt(loser.rating)}</div>
+        </div>
+      </div>`
+    : `<div style="margin-top:12px;font-size:11.5px;color:var(--text-muted);text-align:center;">Play more games to unlock ratings</div>`;
   document.getElementById('live-over-section').style.display='block';
   document.getElementById('live-over-section').innerHTML = `
     <div class="game-over-banner">
       <h2>🏆 GAME OVER!</h2>
-      <p style="font-size:17px;font-weight:700;margin-bottom:16px;">${pLink(winner.id, winner.name)} wins!</p>
-      <div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap;">
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-muted);">WINNER</div>
-          <div style="font-weight:800;font-size:16px;margin:4px 0;">${pLink(winner.id, winner.name)}</div>
-          <div class="rc-pos">+${game.winnerDelta} pts → ${fmt(winner.rating)}</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-muted);">SPELLS SKI</div>
-          <div style="font-weight:800;font-size:16px;margin:4px 0;">${pLink(loser.id, loser.name)}</div>
-          <div class="rc-neg">${game.loserDelta} pts → ${fmt(loser.rating)}</div>
-        </div>
+      <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${winner.name} wins!</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${loser.name} spells S·K·I</p>
+      ${ratingLine}
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="shareGameResult('${winner.name.replace(/'/g,"\\'")}','${loser.name.replace(/'/g,"\\'")}')">
+          📤 Share Result
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="submitLiveClipAndReset()">New Game</button>
       </div>
       <div style="margin-top:20px;text-align:left;">
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">🎥 Attach a Video Clip</div>
@@ -5975,8 +6010,7 @@ function showGameOver(winnerId, loserId, game) {
           <div id="lv-clip-preview" style="display:none;margin-top:12px;"></div>
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top:18px;" onclick="submitLiveClipAndReset()">Save &amp; New Game</button>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;display:block;margin-left:auto;margin-right:auto;" onclick="dismissLiveGameOver()">Skip</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px;display:block;margin-left:auto;margin-right:auto;opacity:.6;" onclick="dismissLiveGameOver()">Dismiss</button>
     </div>`;
 }
 
@@ -9369,6 +9403,8 @@ init();
 function showRatingAnim(winner, loser, game) {
   const el = document.getElementById('rating-anim-overlay');
   if (!el) return;
+  // Skip the rating animation until both players have enough games for ratings to be meaningful
+  if ((winner.gamesPlayed || 0) < 3 || (loser.gamesPlayed || 0) < 3) return;
   const wNew = fmt(game.player1EndRating), lNew = fmt(game.player2EndRating);
   const wD = game.winnerDelta, lD = game.loserDelta;
   el.innerHTML = `
