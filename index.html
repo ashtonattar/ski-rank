@@ -237,11 +237,15 @@
     }
 
     .nav-btn.active {
-      background:rgba(0,212,255,0.08);
+      background:rgba(0,212,255,0.10);
       color:var(--ice);
-      border-color:rgba(0,212,255,0.14);
+      border-color:rgba(0,212,255,0.22);
+      font-weight:700;
     }
     .nav-btn.active::before { opacity:1; }
+    /* Play button always gets a subtle ice tint even when inactive */
+    .nav-btn[data-view="live-game"] { color:var(--text-secondary); }
+    .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.06)); border-color:rgba(0,212,255,0.28); color:var(--ice); }
 
     .nav-icon { font-size:17px; width:20px; text-align:center; flex-shrink:0; }
 
@@ -1676,7 +1680,8 @@
       .nav-btn { flex-direction:column; gap:1px; padding:5px 6px; font-size:9px; width:auto; min-width:44px; flex:0 0 auto; text-align:center; border-radius:var(--radius-sm); }
       .nav-btn .nav-icon { font-size:17px; }
       .nav-btn::before { display:none; }
-      .nav-btn.active { background:rgba(0,212,255,0.12); color:var(--ice); }
+      .nav-btn.active { background:rgba(0,212,255,0.12); color:var(--ice); font-weight:700; }
+      .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(0,212,255,0.20),rgba(0,212,255,0.08)); }
 
       /* Profile footer: pill card above tab bar */
       .sidebar-user {
@@ -2116,7 +2121,7 @@
       </div>
     </div>
     <div class="sidebar-nav">
-      <button class="nav-btn active" data-view="live-game" onclick="nav('live-game')" style="background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.25);color:var(--ice);font-weight:700;">
+      <button class="nav-btn active" data-view="live-game" onclick="nav('live-game')">
         <span class="nav-icon">⚡</span><span>Play</span>
       </button>
       <button class="nav-btn" data-view="confirmations" onclick="nav('confirmations')" id="nav-confirmations">
@@ -2163,6 +2168,10 @@
 
     <!-- ─── LEADERBOARD ─── -->
     <div id="view-leaderboard" class="view">
+      <div class="view-header">
+        <h2>Rankings</h2>
+        <p>Your stats and where you stand among all riders</p>
+      </div>
       <div class="stats-grid" id="global-stats"></div>
 
       <!-- Play CTA — shown to users with 0 games -->
@@ -4967,12 +4976,12 @@ function renderWeeklyLeaderboard() {
     .sort((a, b) => b.delta - a.delta);
 
   body.innerHTML = rows.map((r, i) => `
-    <tr>
+    <tr onclick="showProfile('${r.id}')" style="cursor:pointer;">
       <td class="td-rank">${i + 1}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px;">
           ${avatarHtml(r.player, 'avatar-sm')}
-          <span class="td-name" onclick="showProfile('${r.id}')">${r.player.name}</span>
+          <span class="td-name">${r.player.name}</span>
         </div>
       </td>
       <td>
@@ -5036,13 +5045,13 @@ function renderLeaderboard() {
     const sk = calcStreaks(p.id);
     const medal = isUnrated ? '—' : (['🥇','🥈','🥉'][ratedRank-1] || ratedRank);
     return `
-      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}">
+      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
         <td class="td-rank ${!isUnrated && ratedRank<=3?'gold':''}">${medal}</td>
         <td>
           <div style="display:flex;align-items:center;gap:11px;">
             ${avatarHtml(p, 'avatar-sm')}
             <div>
-              <div class="td-name" onclick="showProfile('${p.id}')">${p.name}</div>
+              <div class="td-name">${p.name}</div>
               ${p.homeResort?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)">🏔 ${p.homeResort}</div>`:p.location?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)">📍 ${p.location}</div>`:''}
             </div>
           </div>
