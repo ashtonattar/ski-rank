@@ -3260,6 +3260,22 @@ async function _saveToFirestore() {
     // Strip avatarUrls — they live in the 'avatars' collection
     const copy = JSON.parse(JSON.stringify(S));
     copy.players.forEach(p => { delete p.avatarUrl; });
+
+    // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
+    // If we have fewer games or players than what's already saved in Firestore,
+    // something went wrong (e.g. page loaded before sync finished). Abort.
+    const safetySnap = await db.collection('state').doc('global').get();
+    if (safetySnap.exists) {
+      const remote = safetySnap.data();
+      const remoteGames   = (remote.games   || []).length;
+      const remotePlayers = (remote.players || []).length;
+      if (copy.games.length < remoteGames || copy.players.length < remotePlayers - 1) {
+        console.warn(`[save guard] Blocked overwrite — local has ${copy.games.length} games / ${copy.players.length} players, remote has ${remoteGames} / ${remotePlayers}. Aborting save.`);
+        toast('⚠️ Sync conflict detected — save blocked to protect data', 'err');
+        return;
+      }
+    }
+
     const batch = db.batch();
     batch.set(db.collection('state').doc('global'), copy);
     for (const pid of _dirtyAvatars) {
@@ -3268,6 +3284,17 @@ async function _saveToFirestore() {
     }
     await batch.commit();
     _dirtyAvatars.clear();
+
+    // ── Rolling backup: keep a snapshot of the largest state we've ever saved ──
+    try {
+      const backupKey = 'skirank_backup';
+      const existing  = JSON.parse(localStorage.getItem(backupKey) || '{}');
+      const existingGames = (existing.games || []).length;
+      if (copy.games.length >= existingGames) {
+        localStorage.setItem(backupKey, JSON.stringify({ ...copy, _backedUpAt: Date.now() }));
+      }
+    } catch(_) {}
+
   } catch(e) {
     console.warn('Firestore save error:', e);
     toast('⚠️ Cloud sync failed – changes saved locally', 'err');
@@ -9762,8 +9789,40 @@ function renderAdminData(panel) {
   S.players.forEach(p => { if (p.email) emailCounts[p.email] = (emailCounts[p.email]||0) + 1; });
   const dupCount = Object.values(emailCounts).reduce((acc, c) => acc + (c > 1 ? c - 1 : 0), 0);
 
+  // Check local backup
+  let backupInfo = '—';
+  let backupGames = 0, backupPlayers = 0;
+  try {
+    const b = JSON.parse(localStorage.getItem('skirank_backup') || 'null');
+    if (b) {
+      backupGames   = (b.games   || []).length;
+      backupPlayers = (b.players || []).length;
+      const ago = b._backedUpAt ? new Date(b._backedUpAt).toLocaleString() : 'unknown time';
+      backupInfo = `${backupGames} games · ${backupPlayers} players · saved ${ago}`;
+    }
+  } catch(_) {}
+
   panel.innerHTML = `
     <div style="display:grid;gap:14px;">
+
+      <div class="admin-card" style="padding:20px;border:1px solid rgba(0,230,118,0.25);">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">💾 Local Backup</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">${backupInfo}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-outline" onclick="adminExportJSON()">⬇️ Export JSON</button>
+          ${backupGames > (S.games||[]).length
+            ? `<button class="btn btn-primary" onclick="adminRestoreFromBackup()">⬆️ Restore from Backup (${backupGames} games)</button>`
+            : `<span style="font-size:12px;color:var(--text-muted);align-self:center;">✅ Live data is up to date</span>`}
+        </div>
+      </div>
+
+      <div class="admin-card" style="padding:20px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">📥 Import JSON Backup</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Restore from a previously exported JSON file.</div>
+        <input type="file" id="admin-import-file" accept=".json" style="display:none;" onchange="adminImportJSON(this)">
+        <button class="btn btn-outline" onclick="document.getElementById('admin-import-file').click()">Choose File</button>
+      </div>
+
       <div class="admin-card" style="padding:20px;">
         <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🧹 Remove Duplicate Accounts</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
@@ -9782,6 +9841,60 @@ function renderAdminData(panel) {
         <button class="btn btn-danger" onclick="adminWipeEverything()">Wipe Everything</button>
       </div>
     </div>`;
+}
+
+function adminExportJSON() {
+  const data = JSON.stringify({ ...S, _exportedAt: Date.now() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `skirank-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('Backup exported!', 'ok');
+}
+
+function adminRestoreFromBackup() {
+  try {
+    const b = JSON.parse(localStorage.getItem('skirank_backup') || 'null');
+    if (!b) { toast('No local backup found.', 'err'); return; }
+    const games   = (b.games   || []).length;
+    const players = (b.players || []).length;
+    confirm_('Restore from Backup', `Restore ${games} games and ${players} players from local backup? This will overwrite the current live data.`, () => {
+      delete b._backedUpAt;
+      Object.assign(S, b);
+      save();
+      toast('Restored from backup!', 'ok');
+      renderLeaderboard();
+      adminTab('data');
+    });
+  } catch(e) {
+    toast('Backup restore failed: ' + e.message, 'err');
+  }
+}
+
+function adminImportJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const games   = (data.games   || []).length;
+      const players = (data.players || []).length;
+      confirm_('Import JSON Backup', `Import ${games} games and ${players} players from "${file.name}"? This will overwrite current live data.`, () => {
+        delete data._exportedAt;
+        Object.assign(S, data);
+        save();
+        toast('Data imported successfully!', 'ok');
+        renderLeaderboard();
+        adminTab('data');
+      });
+    } catch(err) {
+      toast('Invalid JSON file: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 
 function adminDeduplicatePlayers() {
