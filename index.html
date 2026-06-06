@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020c18">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>SKI RANK ⛷️ Freestyle Skiing H·O·R·S·E Game</title>
+  <title>Slope Battles ⛷️ Freestyle Trick Duels</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -184,10 +184,17 @@
 
     .logo-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 38px; letter-spacing: 5px; line-height:1;
-      background: linear-gradient(140deg, #00d4ff 0%, #ffffff 45%, #ff4d00 100%);
+      font-size: 20px; letter-spacing: 3px; line-height:1;
+      background: linear-gradient(140deg, #00d4ff 0%, #ffffff 55%, #ff4d00 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip:text;
-      filter: drop-shadow(0 0 16px rgba(0,212,255,0.35));
+      filter: drop-shadow(0 0 12px rgba(0,212,255,0.35));
+    }
+    .logo-title-line2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px; letter-spacing: 3px; line-height:1;
+      background: linear-gradient(140deg, #ff4d00 0%, #ffaa00 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip:text;
+      filter: drop-shadow(0 0 10px rgba(255,77,0,0.35));
     }
 
     .logo-sub {
@@ -1994,7 +2001,7 @@
           <!-- Skier silhouette (airborne, spread eagle) -->
         </svg>
       </div>
-      <div class="logo-big">SKI RANK</div>
+      <div class="logo-big">SLOPE BATTLES</div>
       <div class="logo-tag">Freestyle Skiing Rating System</div>
     </div>
 
@@ -2093,35 +2100,50 @@
   <!-- ═══ Sidebar ═══ -->
   <nav class="sidebar">
     <div class="sidebar-logo">
-      <div style="display:flex;align-items:center;gap:11px;">
-        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <!-- Slope Battles logo: mountain with crossed poles -->
+        <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
           <defs>
-            <linearGradient id="sb-mtn-grad" x1="0" y1="38" x2="38" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#0099bb"/>
+            <linearGradient id="sb-mtn-grad" x1="0" y1="42" x2="42" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0077aa"/>
               <stop offset="100%" stop-color="#00d4ff"/>
             </linearGradient>
-            <linearGradient id="sb-fire-grad" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
+            <linearGradient id="sb-pole-ice" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#0099bb"/>
+            </linearGradient>
+            <linearGradient id="sb-pole-fire" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stop-color="#ff4d00"/>
               <stop offset="100%" stop-color="#ffaa00"/>
             </linearGradient>
-            <filter id="sb-glow">
-              <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <filter id="sb-glow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="1.8" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
-          <!-- Mountain background shape -->
-          <polygon points="19,3 35,33 3,33" fill="url(#sb-mtn-grad)" opacity="0.18"/>
-          <!-- Left peak -->
-          <polygon points="10,10 18,28 3,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
-          <!-- Right peak -->
-          <polygon points="28,10 35,28 20,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
-          <!-- Main center peak -->
-          <polygon points="19,3 33,32 5,32" fill="url(#sb-mtn-grad)"/>
+
+          <!-- Mountain silhouette -->
+          <polygon points="21,4 38,36 4,36" fill="url(#sb-mtn-grad)" opacity="0.22"/>
+          <polygon points="21,4 36,36 6,36" fill="url(#sb-mtn-grad)" opacity="0.70"/>
           <!-- Snow cap -->
-          <polygon points="19,3 24,14 14,14" fill="white" opacity="0.92"/>
+          <polygon points="21,4 26,15 16,15" fill="white" opacity="0.90"/>
+
+          <!-- Crossed ski poles (X) over the mountain -->
+          <!-- Ice pole: top-left to bottom-right -->
+          <line x1="8" y1="10" x2="34" y2="36" stroke="url(#sb-pole-ice)" stroke-width="2.8" stroke-linecap="round" filter="url(#sb-glow)" opacity="0.95"/>
+          <!-- Fire pole: top-right to bottom-left -->
+          <line x1="34" y1="10" x2="8" y2="36" stroke="url(#sb-pole-fire)" stroke-width="2.8" stroke-linecap="round" filter="url(#sb-glow)" opacity="0.95"/>
+
+          <!-- Pole baskets (small circles at tips) -->
+          <circle cx="8"  cy="10" r="2" fill="#00d4ff" opacity="0.9"/>
+          <circle cx="34" cy="10" r="2" fill="#ff4d00" opacity="0.9"/>
+          <circle cx="34" cy="36" r="2" fill="#00d4ff" opacity="0.6"/>
+          <circle cx="8"  cy="36" r="2" fill="#ff4d00" opacity="0.6"/>
         </svg>
+
         <div>
-          <div class="logo-title">SKI RANK</div>
+          <div class="logo-title">SLOPE</div>
+          <div class="logo-title-line2">BATTLES</div>
           <div class="logo-sub">Freestyle Trick Duels</div>
         </div>
       </div>
@@ -3029,7 +3051,7 @@
     <div style="background:rgba(5,16,34,0.95);border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">🔐</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--primary);margin-bottom:6px;">ADMIN CONSOLE</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">SKI RANK · Restricted Access</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Slope Battles · Restricted Access</div>
       <input type="password" id="admin-pw-input" class="form-input" placeholder="Password" style="margin-bottom:12px;text-align:center;"
         onkeydown="if(event.key==='Enter') verifyAdminPw()">
       <div id="admin-pw-error" style="display:none;color:var(--danger);font-size:13px;margin-bottom:10px;"></div>
@@ -3042,7 +3064,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--primary);">⚙️ ADMIN CONSOLE</div>
-        <div style="font-size:12px;color:var(--text-muted);">SKI RANK · Restricted</div>
+        <div style="font-size:12px;color:var(--text-muted);">Slope Battles · Restricted</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">✕ Close</button>
     </div>
@@ -4336,8 +4358,8 @@ function selectTrick(name) {
 const ONBOARDING_STEPS = [
   {
     icon: '🎿',
-    title: 'Welcome to SKI RANK',
-    body: `SKI RANK is H·O·R·S·E for the mountain. Challenge any rider, set tricks, and see who folds first. No rating needed — just find someone and play.`,
+    title: 'Welcome to Slope Battles',
+    body: `Slope Battles is trick duels for the mountain. Challenge any rider, set tricks, and see who folds first. No rating needed — just find someone and play.`,
     cta: 'How do I play? →'
   },
   {
@@ -6112,9 +6134,9 @@ function finishLive(winnerId, loserId) {
 }
 
 function shareGameResult(winnerName, loserName) {
-  const text = `🎿 ${winnerName} just beat ${loserName} in a SKI H·O·R·S·E game on SKI RANK! Challenge them at skirank.app`;
+  const text = `🎿 ${winnerName} just beat ${loserName} in a trick duel on Slope Battles! Challenge them at slopebattles.app`;
   if (navigator.share) {
-    navigator.share({ title: 'SKI RANK Result', text }).catch(() => {});
+    navigator.share({ title: 'Slope Battles Result', text }).catch(() => {});
   } else {
     navigator.clipboard?.writeText(text).then(() => toast('Result copied to clipboard!', 'ok')).catch(() => {
       toast(`${winnerName} beat ${loserName} — share manually!`, 'ok');
