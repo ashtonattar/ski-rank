@@ -184,17 +184,10 @@
 
     .logo-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 20px; letter-spacing: 3px; line-height:1;
-      background: linear-gradient(140deg, #00d4ff 0%, #ffffff 55%, #ff4d00 100%);
+      font-size: 22px; letter-spacing: 3px; line-height:1;
+      background: linear-gradient(140deg, #00d4ff 0%, #ffffff 45%, #ff4d00 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip:text;
-      filter: drop-shadow(0 0 12px rgba(0,212,255,0.35));
-    }
-    .logo-title-line2 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 20px; letter-spacing: 3px; line-height:1;
-      background: linear-gradient(140deg, #ff4d00 0%, #ffaa00 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip:text;
-      filter: drop-shadow(0 0 10px rgba(255,77,0,0.35));
+      filter: drop-shadow(0 0 16px rgba(0,212,255,0.35));
     }
 
     .logo-sub {
@@ -2100,50 +2093,30 @@
   <!-- ═══ Sidebar ═══ -->
   <nav class="sidebar">
     <div class="sidebar-logo">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <!-- Slope Battles logo: mountain with crossed poles -->
-        <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
           <defs>
-            <linearGradient id="sb-mtn-grad" x1="0" y1="42" x2="42" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#0077aa"/>
+            <linearGradient id="sb-mtn-grad" x1="0" y1="38" x2="38" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0099bb"/>
               <stop offset="100%" stop-color="#00d4ff"/>
             </linearGradient>
-            <linearGradient id="sb-pole-ice" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#00d4ff"/>
-              <stop offset="100%" stop-color="#0099bb"/>
-            </linearGradient>
-            <linearGradient id="sb-pole-fire" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
+            <linearGradient id="sb-fire-grad" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stop-color="#ff4d00"/>
               <stop offset="100%" stop-color="#ffaa00"/>
             </linearGradient>
-            <filter id="sb-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="1.8" result="blur"/>
+            <filter id="sb-glow">
+              <feGaussianBlur stdDeviation="1.5" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
-
-          <!-- Mountain silhouette -->
-          <polygon points="21,4 38,36 4,36" fill="url(#sb-mtn-grad)" opacity="0.22"/>
-          <polygon points="21,4 36,36 6,36" fill="url(#sb-mtn-grad)" opacity="0.70"/>
-          <!-- Snow cap -->
-          <polygon points="21,4 26,15 16,15" fill="white" opacity="0.90"/>
-
-          <!-- Crossed ski poles (X) over the mountain -->
-          <!-- Ice pole: top-left to bottom-right -->
-          <line x1="8" y1="10" x2="34" y2="36" stroke="url(#sb-pole-ice)" stroke-width="2.8" stroke-linecap="round" filter="url(#sb-glow)" opacity="0.95"/>
-          <!-- Fire pole: top-right to bottom-left -->
-          <line x1="34" y1="10" x2="8" y2="36" stroke="url(#sb-pole-fire)" stroke-width="2.8" stroke-linecap="round" filter="url(#sb-glow)" opacity="0.95"/>
-
-          <!-- Pole baskets (small circles at tips) -->
-          <circle cx="8"  cy="10" r="2" fill="#00d4ff" opacity="0.9"/>
-          <circle cx="34" cy="10" r="2" fill="#ff4d00" opacity="0.9"/>
-          <circle cx="34" cy="36" r="2" fill="#00d4ff" opacity="0.6"/>
-          <circle cx="8"  cy="36" r="2" fill="#ff4d00" opacity="0.6"/>
+          <polygon points="19,3 35,33 3,33" fill="url(#sb-mtn-grad)" opacity="0.18"/>
+          <polygon points="10,10 18,28 3,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
+          <polygon points="28,10 35,28 20,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
+          <polygon points="19,3 33,32 5,32" fill="url(#sb-mtn-grad)"/>
+          <polygon points="19,3 24,14 14,14" fill="white" opacity="0.92"/>
         </svg>
-
         <div>
-          <div class="logo-title">SLOPE</div>
-          <div class="logo-title-line2">BATTLES</div>
+          <div class="logo-title">SLOPE BATTLES</div>
           <div class="logo-sub">Freestyle Trick Duels</div>
         </div>
       </div>
