@@ -2397,7 +2397,7 @@
     <div id="view-live-game" class="view active">
 
       <!-- Play Hero -->
-      <div class="play-hero">
+      <div class="play-hero" id="play-hero-box">
         <div class="play-hero-bg"></div>
         <div class="play-hero-content">
           <div class="play-hero-eyebrow">Set It. Match It. Or Take A Letter.</div>
@@ -2420,7 +2420,7 @@
       </div>
 
       <!-- Action shots strip -->
-      <div class="action-strip" style="margin-bottom:22px;">
+      <div class="action-strip" id="play-action-strip" style="margin-bottom:22px;">
         <div class="action-shot" style="background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=600&auto=format&fit=crop&q=75');background-position:center 30%;">
           <div class="action-shot-label">Set Tricks</div>
         </div>
@@ -5603,7 +5603,11 @@ function renderLiveSetup() {
     }
   });
   refreshHandicapPreview();
-  if (S.live) {
+  const inGame = !!S.live;
+  document.getElementById('play-hero-box').style.display    = inGame ? 'none' : '';
+  document.getElementById('play-action-strip').style.display = inGame ? 'none' : '';
+
+  if (inGame) {
     document.getElementById('live-setup').style.display='none';
     document.getElementById('live-active').style.display='block';
     restoreLog();
@@ -6228,6 +6232,9 @@ function _resetLiveUI() {
   document.getElementById('live-invite-form').style.display    = 'block';
   document.getElementById('live-invite-waiting').style.display = 'none';
   fillSelects(['lv-p1','lv-p2','lv-judge']);
+  // Restore hero + action strip when returning to setup
+  document.getElementById('play-hero-box').style.display     = '';
+  document.getElementById('play-action-strip').style.display = '';
 }
 
 function resetLive() {
@@ -8766,6 +8773,9 @@ function showInviteWaiting(invite) {
   document.getElementById('live-invite-waiting').style.display = 'block';
   document.getElementById('live-invite-waiting-text').textContent =
     `Waiting for ${invite.toName} to accept your challenge…`;
+  // Hide hero + photo strip while waiting
+  document.getElementById('play-hero-box').style.display     = 'none';
+  document.getElementById('play-action-strip').style.display = 'none';
 }
 
 function cancelLiveInvite() {
