@@ -4760,7 +4760,21 @@ function renderPickerList(pickerId, query) {
   const q = query.trim().toLowerCase();
   const curVal = document.getElementById(pickerId.replace('pp-',''))?.value || '';
 
-  const match = p => !q || p.name.toLowerCase().includes(q) || (p.homeResort||'').toLowerCase().includes(q);
+  // Build a set of IDs already chosen by sibling pickers in the same form
+  // e.g. if opening pp-lv-p2, exclude whatever pp-lv-p1 and pp-lv-judge have selected
+  const siblingGroups = {
+    'pp-lv-p1':    ['pp-lv-p2', 'pp-lv-judge'],
+    'pp-lv-p2':    ['pp-lv-p1', 'pp-lv-judge'],
+    'pp-lv-judge': ['pp-lv-p1', 'pp-lv-p2'],
+    'pp-lg-p1':    ['pp-lg-p2'],
+    'pp-lg-p2':    ['pp-lg-p1'],
+  };
+  const siblings = siblingGroups[pickerId] || [];
+  const excluded = new Set(
+    siblings.map(sib => document.getElementById(sib.replace('pp-',''))?.value).filter(Boolean)
+  );
+
+  const match = p => !excluded.has(p.id) && (!q || p.name.toLowerCase().includes(q) || (p.homeResort||'').toLowerCase().includes(q));
   const itemHtml = p => `
     <div class="pp-item ${p.id===curVal?'selected':''}" onclick="selectPickerItem('${pickerId}','${p.id}','${p.name.replace(/'/g,"\\'")}')">
       ${avatarHtml(p,'avatar-sm')}
@@ -4810,6 +4824,18 @@ function selectPickerItem(pickerId, playerId, playerName) {
   if (label)  { label.textContent = playerName; label.style.color = ''; }
   if (drop)   { drop.style.display = 'none'; }
   trigger?.classList.remove('open');
+  // Re-render already-open sibling pickers so they immediately exclude this selection
+  const siblingGroups = {
+    'pp-lv-p1':    ['pp-lv-p2', 'pp-lv-judge'],
+    'pp-lv-p2':    ['pp-lv-p1', 'pp-lv-judge'],
+    'pp-lv-judge': ['pp-lv-p1', 'pp-lv-p2'],
+    'pp-lg-p1':    ['pp-lg-p2'],
+    'pp-lg-p2':    ['pp-lg-p1'],
+  };
+  (siblingGroups[pickerId] || []).forEach(sib => {
+    const sibDrop = document.getElementById(sib + '-drop');
+    if (sibDrop && sibDrop.style.display !== 'none') renderPickerList(sib, '');
+  });
 }
 
 function resetPicker(pickerId) {
