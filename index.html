@@ -641,10 +641,11 @@
     .pp-trigger .pp-caret { color:var(--text-muted); font-size:11px; flex-shrink:0; margin-left:6px; transition:transform .15s; }
     .pp-trigger.open .pp-caret { transform:rotate(180deg); }
     .pp-dropdown {
-      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:400;
+      position:fixed; z-index:1200;
       background:var(--bg-elevated); border:1px solid var(--border);
       border-radius:var(--radius); box-shadow:0 12px 32px rgba(0,0,0,0.5);
       overflow:hidden;
+      min-width:200px;
     }
     .pp-search {
       width:100%; box-sizing:border-box; padding:9px 12px;
@@ -4792,6 +4793,25 @@ function renderPickerList(pickerId, query) {
   list.innerHTML = html;
 }
 
+function _positionDropdown(drop, trigger) {
+  if (!drop || !trigger) return;
+  const rect = trigger.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  const dropH = Math.min(300, spaceBelow > 200 ? spaceBelow - 12 : spaceAbove - 12);
+  drop.style.width  = rect.width + 'px';
+  drop.style.left   = rect.left + 'px';
+  if (spaceBelow >= 200 || spaceBelow >= spaceAbove) {
+    drop.style.top    = (rect.bottom + 4) + 'px';
+    drop.style.bottom = '';
+  } else {
+    drop.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    drop.style.top    = '';
+  }
+  const listEl = drop.querySelector('.pp-list');
+  if (listEl) listEl.style.maxHeight = Math.max(120, dropH - 50) + 'px';
+}
+
 function openPicker(pickerId) {
   // Close any other open pickers first
   document.querySelectorAll('.pp-dropdown').forEach(d => {
@@ -4804,6 +4824,7 @@ function openPicker(pickerId) {
   drop.style.display = isOpen ? 'none' : 'block';
   trigger?.classList.toggle('open', !isOpen);
   if (!isOpen) {
+    _positionDropdown(drop, trigger);
     fillPicker(pickerId);
     const search = drop.querySelector('.pp-search');
     if (search) { search.value = ''; search.focus(); }
