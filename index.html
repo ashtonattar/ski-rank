@@ -4651,8 +4651,9 @@ function avatarHtml(player, sizeClass='avatar-sm') {
   const sizes = { 'avatar-xs':22, 'avatar-sm':30, 'avatar-md':44, 'avatar-lg':64 };
   const px = sizes[sizeClass] || 30;
   const fontSize = { 'avatar-sm':'11px', 'avatar-md':'15px', 'avatar-lg':'22px' }[sizeClass] || '11px';
-  if (player.avatarUrl) {
-    return `<img src="${player.avatarUrl}" style="width:${px}px;height:${px}px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">`;
+  const url = player.avatarUrl || _avatarCache[player.id];
+  if (url) {
+    return `<img src="${url}" style="width:${px}px;height:${px}px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">`;
   }
   return `<div class="avatar ${sizeClass}" style="background:${avatarGrad(player.id)};font-size:${fontSize};">${initials(player.name)}</div>`;
 }
@@ -5690,7 +5691,7 @@ function drawBoard() {
     ${playerPanel(p2, g, g.setterId===g.p2 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
     ${judgePlayer ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
-      <div class="avatar avatar-sm" style="background:${avatarGrad(judgePlayer.id)}">${initials(judgePlayer.name)}</div>
+      ${avatarHtml(judgePlayer, 'avatar-sm')}
       <span style="font-size:13px;color:var(--text-muted);">⚖️ <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
     </div>` : ''}
     ${g.handicap ? `
@@ -5860,7 +5861,7 @@ function playerPanel(player, g, role) {
   return `
     <div class="player-panel ${isRole}">
       <div style="display:flex;justify-content:center;margin-bottom:10px;">
-        <div class="avatar avatar-lg" style="background:${avatarGrad(player.id)}">${initials(player.name)}</div>
+        ${avatarHtml(player, 'avatar-lg')}
       </div>
       <div class="pp-name">${player.name}</div>
       <div class="pp-rating">${ratingDisplay(player.rating)} · <span onclick="showTierModal()" style="cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span></div>
