@@ -469,7 +469,7 @@
       background:var(--bg-card); border:1px solid var(--border);
       border-radius:var(--radius); padding:20px 22px;
       backdrop-filter:blur(20px); position:relative;
-      overflow:hidden;
+      overflow:visible;
     }
     .card::before {
       content:''; position:absolute;
@@ -641,11 +641,10 @@
     .pp-trigger .pp-caret { color:var(--text-muted); font-size:11px; flex-shrink:0; margin-left:6px; transition:transform .15s; }
     .pp-trigger.open .pp-caret { transform:rotate(180deg); }
     .pp-dropdown {
-      position:fixed; z-index:1200;
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:400;
       background:var(--bg-elevated); border:1px solid var(--border);
       border-radius:var(--radius); box-shadow:0 12px 32px rgba(0,0,0,0.5);
       overflow:hidden;
-      min-width:200px;
     }
     .pp-search {
       width:100%; box-sizing:border-box; padding:9px 12px;
@@ -4824,7 +4823,6 @@ function openPicker(pickerId) {
   drop.style.display = isOpen ? 'none' : 'block';
   trigger?.classList.toggle('open', !isOpen);
   if (!isOpen) {
-    _positionDropdown(drop, trigger);
     fillPicker(pickerId);
     const search = drop.querySelector('.pp-search');
     if (search) { search.value = ''; search.focus(); }
