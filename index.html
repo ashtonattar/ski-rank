@@ -4592,7 +4592,11 @@ function save() {
 //  RATING ENGINE  (Elo-based, display scale 1.00–16.00)
 //  Internal values stored *100 (e.g. 4.00 → 400)
 // ═══════════════════════════════════════════════════════
-const START_RATING = 400;
+const START_RATING     = 400;
+const RATED_THRESHOLD  = 5;   // games needed for an official rating
+
+// Returns true if a player has played enough games for an official rating
+function isRated(p) { return p && p.gamesPlayed >= RATED_THRESHOLD && p.rating != null; }
 const LETTERS = ['S','K','I'];
 
 function kFactor(games) {
@@ -4648,8 +4652,10 @@ function calcRatings(winner, loser, score='') {
 
 function fmt(raw) { return (raw / 100).toFixed(2); }
 
-function tier(raw) {
+function tier(raw, gamesPlayed) {
   if (raw == null) return { label:'Unrated', color:'#64748b', icon:'❔' };
+  if (gamesPlayed != null && gamesPlayed < RATED_THRESHOLD)
+    return { label:'Provisional', color:'#94a3b8', icon:'⏳', provisional: true };
   const r = raw / 100;
   if (r >= 14) return { label:'Elite',        color:'#f97316', icon:'🔥' };
   if (r >= 12) return { label:'Expert',       color:'#60a5fa', icon:'⭐' };
@@ -4659,9 +4665,17 @@ function tier(raw) {
   return              { label:'Beginner',      color:'#64748b', icon:'🏔️' };
 }
 
-// Null-safe rating formatter — shows 'Unrated' for players with no games yet
-function ratingDisplay(raw) {
-  return raw == null ? 'Unrated' : fmt(raw);
+// Null-safe rating formatter — shows 'Unrated', 'Provisional', or the numeric rating
+function ratingDisplay(raw, gamesPlayed) {
+  if (raw == null) return 'Unrated';
+  if (gamesPlayed != null && gamesPlayed < RATED_THRESHOLD) return fmt(raw) + '*';
+  return fmt(raw);
+}
+
+// Progress text shown under provisional ratings
+function provisionalProgress(gamesPlayed) {
+  const remaining = RATED_THRESHOLD - (gamesPlayed || 0);
+  return `${gamesPlayed || 0}/${RATED_THRESHOLD} games — ${remaining} more to get an official rating`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5171,19 +5185,20 @@ function renderLeaderboard() {
   if (!pl.length) { table.style.display='none'; empty.style.display='block'; return; }
   table.style.display='table'; empty.style.display='none';
 
-  // Ranked players get a position number; unrated ones just show —
-  const ratedCount = pl.filter(p => p.rating != null).length;
+  // Ranked players get a position number; provisional/unrated ones just show —
   body.innerHTML = pl.map((p, i) => {
-    const isUnrated = p.rating == null;
-    const ratedRank = isUnrated ? null : pl.slice(0, i + 1).filter(x => x.rating != null).length;
-    const t = tier(p.rating);
+    const isUnrated     = p.rating == null;
+    const isProvisional = !isUnrated && p.gamesPlayed < RATED_THRESHOLD;
+    const isOfficial    = !isUnrated && !isProvisional;
+    const ratedRank     = isOfficial ? pl.slice(0, i + 1).filter(x => x.rating != null && x.gamesPlayed >= RATED_THRESHOLD).length : null;
+    const t = tier(p.rating, p.gamesPlayed);
     const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
     const delta = lastDelta(p.id);
     const sk = calcStreaks(p.id);
-    const medal = isUnrated ? '—' : (['🥇','🥈','🥉'][ratedRank-1] || ratedRank);
+    const medal = isOfficial ? (['🥇','🥈','🥉'][ratedRank-1] || ratedRank) : '—';
     return `
       <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
-        <td class="td-rank ${!isUnrated && ratedRank<=3?'gold':''}">${medal}</td>
+        <td class="td-rank ${isOfficial && ratedRank<=3?'gold':''}">${medal}</td>
         <td>
           <div style="display:flex;align-items:center;gap:11px;">
             ${avatarHtml(p, 'avatar-sm')}
@@ -5196,10 +5211,15 @@ function renderLeaderboard() {
         <td>
           ${isUnrated
             ? `<span style="font-size:12px;color:var(--text-muted);font-style:italic;">Unrated</span>`
-            : `<div style="display:flex;align-items:center;gap:8px;">
-                 <span class="td-rating">${fmt(p.rating)}</span>
-                 <span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>
-               </div>`}
+            : isProvisional
+              ? `<div style="display:flex;align-items:center;gap:8px;">
+                   <span class="td-rating" style="color:var(--text-muted);">${fmt(p.rating)}<span style="font-size:10px;color:var(--text-muted);margin-left:2px;" title="Provisional — play ${RATED_THRESHOLD - p.gamesPlayed} more games for an official rating">*</span></span>
+                   <span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;font-size:10px;">⏳ ${p.gamesPlayed}/${RATED_THRESHOLD}</span>
+                 </div>`
+              : `<div style="display:flex;align-items:center;gap:8px;">
+                   <span class="td-rating">${fmt(p.rating)}</span>
+                   <span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>
+                 </div>`}
         </td>
         <td class="td-win lb-col-games">${isUnrated ? '—' : p.wins}</td>
         <td class="td-loss lb-col-games">${isUnrated ? '—' : p.losses}</td>
@@ -7272,9 +7292,9 @@ function showProfile(id) {
   const p = byId(id);
   if (!p) return;
 
-  const t = tier(p.rating);
-  const ratedList = sorted().filter(x => x.rating != null);
-  const rank = p.rating != null ? ratedList.findIndex(x=>x.id===id) + 1 : null;
+  const t = tier(p.rating, p.gamesPlayed);
+  const ratedList = sorted().filter(x => isRated(x));
+  const rank = isRated(p) ? ratedList.findIndex(x=>x.id===id) + 1 : null;
   const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
 
   const games = [...S.games]
@@ -7300,9 +7320,11 @@ function showProfile(id) {
       ${avatarHtml}
       <div style="flex:1;">
         <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;">${p.name}</h2>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};line-height:1;margin-top:${p.rating == null ? '6px' : '0'};">${ratingDisplay(p.rating)}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;margin-top:${p.rating == null ? '6px' : '0'};">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
         <div style="display:flex;gap:7px;align-items:center;margin-top:5px;flex-wrap:wrap;">
-          <span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>
+          ${t.provisional
+            ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;">⏳ Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
+            : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`}
           <span style="font-size:12px;color:var(--text-muted);">${p.riderType === 'boarder' ? '🏂 Snowboarder' : '⛷️ Skier'}</span>
           ${p.homeResort ? `<span style="font-size:12px;color:var(--text-muted);">🏔 ${p.homeResort}</span>` : p.location ? `<span style="font-size:12px;color:var(--text-muted);">📍 ${p.location}</span>` : ''}
           ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;">📸 @${p.instagram}</a>` : ''}
@@ -9543,16 +9565,17 @@ function renderMyProfile() {
   const p = S.players.find(x => x.id === currentUser.id);
   if (!p) return;
 
-  const t    = tier(p.rating);
-  const profileRatedList = sorted().filter(x => x.rating != null);
-  const rank = p.rating != null ? profileRatedList.findIndex(x => x.id === p.id) + 1 : null;
+  const t    = tier(p.rating, p.gamesPlayed);
+  const profileRatedList = sorted().filter(x => x.rating != null && x.gamesPlayed >= RATED_THRESHOLD);
+  const rank = isRated(p) ? profileRatedList.findIndex(x => x.id === p.id) + 1 : null;
   const wpct = p.gamesPlayed ? Math.round(p.wins / p.gamesPlayed * 100) : 0;
 
   // ── Hero banner ──
   document.getElementById('prof-hero-name').textContent   = p.name;
-  document.getElementById('prof-hero-rating').textContent = ratingDisplay(p.rating);
-  document.getElementById('prof-hero-tier').innerHTML     =
-    `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`;
+  document.getElementById('prof-hero-rating').textContent = ratingDisplay(p.rating, p.gamesPlayed);
+  document.getElementById('prof-hero-tier').innerHTML = t.provisional
+    ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;">⏳ Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games</span>`
+    : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`;
   document.getElementById('prof-hero-rank').textContent   = rank ? `#${rank} Overall` : (p.rating == null ? 'Unrated — play a game to get ranked!' : '');
   document.getElementById('prof-hero-resort').innerHTML   = p.homeResort
     ? `🏔 ${p.homeResort}`
