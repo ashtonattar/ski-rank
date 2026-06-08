@@ -4620,7 +4620,13 @@ function scoreMultiplier(scoreStr) {
   return 1.0; // "SK" or anything else
 }
 
-function calcRatings(winner, loser, score='') {
+// handicap: { higherId, hcap } from S.live.handicap — the higherId player starts with letters
+// If the lower-rated (advantaged) player wins → dampen ELO changes (0.6×)
+// If the higher-rated (disadvantaged) player wins → boost ELO changes (1.4×)
+const HANDICAP_DAMPEN = 0.6;
+const HANDICAP_BOOST  = 1.4;
+
+function calcRatings(winner, loser, score='', handicap=null) {
   // Unrated players are treated as START_RATING for Elo math;
   // their first game result becomes their actual rating.
   const wR = winner.rating ?? START_RATING;
@@ -4632,12 +4638,19 @@ function calcRatings(winner, loser, score='') {
   const el = expected(lR, wR); // loser's win probability
   const m  = scoreMultiplier(score);
 
+  // Handicap modifier: dampen if advantaged player won, boost if disadvantaged player won
+  let hm = 1.0;
+  if (handicap && handicap.hcap > 0) {
+    const disadvantagedWon = winner.id === handicap.higherId;
+    hm = disadvantagedWon ? HANDICAP_BOOST : HANDICAP_DAMPEN;
+  }
+
   // Winner gains more if they were the underdog (standard Elo)
-  const dw = Math.round(Kw * (1 - ew) * m);
+  const dw = Math.round(Kw * (1 - ew) * m * hm);
 
   // Loser's K is scaled by how expected their loss was
   const loserScale = el * 2;
-  const dl = Math.round(Kl * (0 - el) * loserScale * m);
+  const dl = Math.round(Kl * (0 - el) * loserScale * m * hm);
 
   return {
     winnerNew: Math.max(100, Math.min(1600, wR + dw)),
@@ -4645,6 +4658,7 @@ function calcRatings(winner, loser, score='') {
     winnerDelta: dw,
     loserDelta:  dl,
     scoreMultiplier: m,
+    handicapMultiplier: hm,
     winnerStartRating: wR,
     loserStartRating:  lR
   };
@@ -5478,7 +5492,7 @@ function refreshRatingPreview() {
   // Build live score string from current letter state for preview
   const liveLetters = getWinnerLetters();
   const liveScore   = liveLetters ? `${liveLetters} — SKI` : '0 — SKI';
-  const c = calcRatings(winner, loser, liveScore);
+  const c = calcRatings(winner, loser, liveScore, null); // no handicap in log-game preview
 
   // Determine if this is an upset (use START_RATING for unrated players)
   const winnerExpected = expected(winner.rating ?? START_RATING, loser.rating ?? START_RATING);
@@ -5617,9 +5631,9 @@ function submitLog() {
 // ═══════════════════════════════════════════════════════
 //  COMMIT GAME (shared by log + live)
 // ═══════════════════════════════════════════════════════
-function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score='', clipUrl='', resort='') {
+function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score='', clipUrl='', resort='', handicap=null) {
   const winner = byId(winnerId), loser = byId(loserId);
-  const c = calcRatings(winner, loser, score);
+  const c = calcRatings(winner, loser, score, handicap);
 
   const game = {
     id: uid(),
@@ -5628,6 +5642,7 @@ function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score=''
     player1StartRating: c.winnerStartRating, player2StartRating: c.loserStartRating,
     player1EndRating:   c.winnerNew,         player2EndRating:   c.loserNew,
     winnerDelta: c.winnerDelta,        loserDelta:  c.loserDelta,
+    handicap: handicap || null,
     tricks: tricks.split(',').map(t=>t.trim()).filter(Boolean),
     liveLog, notes, score, clipUrl, resort,
     date: Date.now()
@@ -6232,7 +6247,7 @@ function finishLive(winnerId, loserId) {
     }
   });
   addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
-  const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '');
+  const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '', g.handicap || null);
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
   // Auto-record result in tournament bracket if this was a tournament match
   if (g.tournamentId != null && g.tournamentRoundIdx != null && g.tournamentMatchIdx != null) {
