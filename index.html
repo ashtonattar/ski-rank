@@ -5279,6 +5279,7 @@ const BADGE_DEFS = [
   { id:'tier_elite',        icon:'🔥', label:'Elite',      desc:'Reach Elite tier' },
   { id:'with_clip',     icon:'🎬', label:'Filmmaker',      desc:'Log a game with a video clip' },
   { id:'resort_rat',    icon:'🏔', label:'Resort Rat',     desc:'Log a game at a named resort' },
+  { id:'tourney_champ', icon:'🥇', label:'Tournament Champion', desc:'Win a tournament' },
 ];
 
 function checkBadges(playerId, game) {
@@ -7985,11 +7986,28 @@ function showTourneyWin(tourneyName) {
   const el  = document.getElementById('tourney-win-overlay');
   const inn = document.getElementById('tourney-win-inner');
   if (!el || !inn) return;
+
+  // Award the Tournament Champion badge if not already earned
+  if (currentUser) {
+    const me = byId(currentUser.id);
+    if (me) {
+      if (!Array.isArray(me.badges)) me.badges = [];
+      if (!me.badges.includes('tourney_champ')) {
+        me.badges.push('tourney_champ');
+        save();
+        setTimeout(() => toast('🥇 Badge unlocked: Tournament Champion!', 'ok'), 1200);
+      }
+    }
+  }
   inn.innerHTML = `
     <div style="font-size:72px;line-height:1;margin-bottom:12px;">🏆</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:4px;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
     <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:99px;padding:6px 16px;margin-bottom:24px;">
+      <span style="font-size:16px;">🥇</span>
+      <span style="font-size:12px;font-weight:700;color:#ffd700;letter-spacing:.5px;">TOURNAMENT CHAMPION</span>
+    </div>
     <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
       <button class="btn btn-primary" style="width:200px;justify-content:center;font-size:15px;padding:13px 0;"
         onclick="document.getElementById('tourney-win-overlay').style.pointerEvents='none';document.getElementById('tourney-win-overlay').style.opacity='0';setTimeout(()=>{document.getElementById('tourney-win-overlay').style.display='none';},400);">
