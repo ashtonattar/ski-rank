@@ -4646,11 +4646,12 @@ function calcRatings(winner, loser, score='', handicap=null) {
   }
 
   // Winner gains more if they were the underdog (standard Elo)
+  // Handicap multiplier only applied to winner's gain — loser always loses standard amount
   const dw = Math.round(Kw * (1 - ew) * m * hm);
 
-  // Loser's K is scaled by how expected their loss was
+  // Loser's K is scaled by how expected their loss was — no handicap modifier here
   const loserScale = el * 2;
-  const dl = Math.round(Kl * (0 - el) * loserScale * m * hm);
+  const dl = Math.round(Kl * (0 - el) * loserScale * m);
 
   return {
     winnerNew: Math.max(100, Math.min(1600, wR + dw)),
