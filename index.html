@@ -3243,7 +3243,8 @@ let   _firestoreUnsub = null; // unsubscribe handle for onSnapshot
 let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
-let   _clearLiveOnFirstSync = false; // abandon any live game found on first sync after login/refresh
+let   _clearLiveOnFirstSync   = false; // abandon any live game found on first sync after login/refresh
+let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapshot so old wins don't re-trigger
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
 
@@ -3501,14 +3502,25 @@ function startFirestoreSync() {
         // Always refresh tournaments list and open modal — status changes must be instant for all players
         renderTournaments();
         if (_openTourneyId) openTourneyDetail(_openTourneyId);
-        // Show victory screen if a tournament just completed and current user won
+        // Show victory screen if a tournament just completed and current user won.
+        // On the very first snapshot after login, silently seed all already-complete wins
+        // so we only fire for tournaments that finish during this session.
         if (currentUser) {
-          (S.tournaments || []).forEach(t => {
-            if (t.status === 'complete' && t.winnerId === currentUser.id && !_seenTourneyWins.has(t.id)) {
-              _seenTourneyWins.add(t.id);
-              setTimeout(() => showTourneyWin(t.name), 400);
-            }
-          });
+          if (!_tourneyWinSeedDone) {
+            _tourneyWinSeedDone = true;
+            (S.tournaments || []).forEach(t => {
+              if (t.status === 'complete' && t.winnerId === currentUser.id) {
+                _seenTourneyWins.add(t.id); // mark as seen without showing screen
+              }
+            });
+          } else {
+            (S.tournaments || []).forEach(t => {
+              if (t.status === 'complete' && t.winnerId === currentUser.id && !_seenTourneyWins.has(t.id)) {
+                _seenTourneyWins.add(t.id);
+                setTimeout(() => showTourneyWin(t.name), 400);
+              }
+            });
+          }
         }
         const listEl = document.getElementById('friends-list-items');
         if (listEl) renderFriendsView();
@@ -4508,7 +4520,8 @@ function launchApp() {
   updateSidebarAvatar();
   checkNotifications();
   startPolling();
-  _clearLiveOnFirstSync = true; // abandon any stale live game found on first snapshot
+  _clearLiveOnFirstSync = true;  // abandon any stale live game found on first snapshot
+  _tourneyWinSeedDone   = false; // re-seed on first snapshot so old wins don't re-trigger
   _healPlayerDone = false;      // allow heal to run once on this new session
   startFirestoreSync(); // Firestore snapshot will populate S and re-render
   if (S.live) nav('live-game');
