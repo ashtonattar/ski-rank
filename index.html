@@ -3090,7 +3090,14 @@
     </div>
     <div class="form-group">
       <label class="form-label">🏔 Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
-      <input type="text" class="form-input" id="tourney-resort" placeholder="e.g. Whistler…" maxlength="80" autocomplete="off">
+      <div class="resort-wrap">
+        <input type="text" class="form-input" id="tourney-resort" placeholder="e.g. Whistler…" maxlength="80" autocomplete="off"
+          oninput="resortInput(this,'tourney-resort-dropdown')"
+          onkeydown="resortKeydown(event,'tourney-resort-dropdown')"
+          onfocus="resortInput(this,'tourney-resort-dropdown')"
+          onblur="setTimeout(()=>closeDropdown('tourney-resort-dropdown'),180)">
+        <div class="resort-dropdown" id="tourney-resort-dropdown"></div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Invite Participants</label>
@@ -7655,8 +7662,11 @@ function openCreateTournamentModal() {
 }
 
 function _inviteCandidates() {
-  const myFriends = currentUser?.friends || [];
-  const others = sortedSameSport().filter(p => p.id !== currentUser?.id);
+  // Get friends from S.players (source of truth) not currentUser snapshot
+  const me = S.players.find(p => p.id === currentUser?.id);
+  const myFriends = me?.friends || [];
+  // Tournaments include all riders regardless of sport (skiers vs boarders can compete)
+  const others = sorted().filter(p => p.id !== currentUser?.id);
   if (_inviteTab === 'friends') {
     return others.filter(p => myFriends.includes(p.id));
   }
