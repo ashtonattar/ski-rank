@@ -2873,6 +2873,7 @@
             <span id="prof-hero-rank" style="font-size:13px;color:var(--text-muted);"></span>
           </div>
           <div id="prof-hero-resort" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;"></div>
+          <div id="prof-hero-instagram" style="margin-bottom:4px;"></div>
           <div class="profile-hero-bio-preview" id="prof-hero-bio"></div>
         </div>
       </div>
@@ -2909,6 +2910,18 @@
                 onfocus="resortInput(this)"
                 onblur="setTimeout(()=>closeResortDropdown(),180)">
               <div class="resort-dropdown" id="resort-dropdown"></div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">📸 Instagram</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">@</span>
+              <input type="text" class="form-input" id="prof-instagram"
+                placeholder="yourhandle"
+                autocomplete="off"
+                style="padding-left:28px;"
+                oninput="this.value=this.value.replace(/[@\s]/g,'')">
             </div>
           </div>
 
@@ -9531,6 +9544,11 @@ function renderMyProfile() {
     ? `🏔 ${p.homeResort}`
     : '<span style="color:var(--text-muted);">No home mountain set</span>';
   document.getElementById('prof-hero-bio').textContent    = p.bio || '';
+  const igEl = document.getElementById('prof-hero-instagram');
+  if (igEl) igEl.innerHTML = p.instagram
+    ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener"
+        style="color:var(--ice);text-decoration:none;font-size:12.5px;">📸 @${p.instagram}</a>`
+    : '';
 
   // ── Avatar display ──
   const wrap = document.getElementById('prof-avatar-display');
@@ -9543,8 +9561,9 @@ function renderMyProfile() {
   }
 
   // ── Edit fields ──
-  document.getElementById('prof-bio').value    = p.bio        || '';
-  document.getElementById('prof-resort').value = p.homeResort || '';
+  document.getElementById('prof-bio').value       = p.bio       || '';
+  document.getElementById('prof-resort').value    = p.homeResort || '';
+  document.getElementById('prof-instagram').value = p.instagram  || '';
 
   // ── Rating history chart ──
   renderRatingHistory(p.id);
@@ -9624,6 +9643,7 @@ function saveProfileData() {
   p.bio        = document.getElementById('prof-bio').value.trim();
   p.homeResort = document.getElementById('prof-resort').value.trim();
   p.location   = p.homeResort; // keep location in sync (shown in leaderboard)
+  p.instagram  = document.getElementById('prof-instagram').value.trim().replace(/^@/, '');
   save();
   toast('Profile saved! 🎿', 'ok');
   renderMyProfile();
