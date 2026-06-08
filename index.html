@@ -3435,6 +3435,9 @@ function startFirestoreSync() {
           : null;
         Object.assign(S, fresh);
 
+        // Guests should never see another player's live game — clear it immediately.
+        if (!currentUser) S.live = null;
+
         // On first sync after login/refresh: abandon any live game the current user was in.
         // Prevents players from being silently dropped back into a stale game on reload.
         if (_clearLiveOnFirstSync) {
