@@ -2607,7 +2607,7 @@
         <div class="card">
           <div class="card-hdr">
             <span class="card-title">Round Log</span>
-            <button class="btn btn-danger btn-sm" onclick="abandonGame()">Abandon Game</button>
+            <button class="btn btn-danger btn-sm" id="abandon-btn" onclick="abandonGame()">Abandon Game</button>
           </div>
           <div class="game-log" id="live-log"></div>
         </div>
@@ -6239,8 +6239,11 @@ function showGameOver(winnerId, loserId, game) {
       </div>`
     : `<div style="margin-top:12px;font-size:11.5px;color:var(--text-muted);text-align:center;">Play more games to unlock ratings</div>`;
   document.getElementById('live-over-section').style.display='block';
+  const abandonBtn = document.getElementById('abandon-btn');
+  if (abandonBtn) abandonBtn.style.display = 'none';
   document.getElementById('live-over-section').innerHTML = `
-    <div class="game-over-banner">
+    <div class="game-over-banner" style="position:relative;">
+      <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
       <h2>🏆 GAME OVER!</h2>
       <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${winner.name} wins!</p>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${loser.name} spells S·K·I</p>
@@ -6263,7 +6266,6 @@ function showGameOver(winnerId, loserId, game) {
           <div id="lv-clip-preview" style="display:none;margin-top:12px;"></div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:12px;display:block;margin-left:auto;margin-right:auto;opacity:.6;" onclick="dismissLiveGameOver()">Dismiss</button>
     </div>`;
 }
 
@@ -6283,6 +6285,8 @@ function _resetLiveUI() {
   document.getElementById('live-active').style.display      = 'none';
   document.getElementById('live-setup').style.display       = 'block';
   document.getElementById('live-over-section').style.display= 'none';
+  const abandonBtn = document.getElementById('abandon-btn');
+  if (abandonBtn) abandonBtn.style.display = '';
   document.getElementById('live-log').innerHTML             = '';
   // Always return to the invite form — never leave the waiting screen showing
   document.getElementById('live-invite-form').style.display    = 'block';
