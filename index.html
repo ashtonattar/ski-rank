@@ -3255,11 +3255,12 @@ async function compressAvatar(dataUrl) {
 }
 
 // Write state + dirty avatars to Firestore
-async function _saveToFirestore() {
+async function _saveToFirestore(pendingCopy) {
   if (!db) return;
   try {
-    // Strip avatarUrls — they live in the 'avatars' collection
-    const copy = JSON.parse(JSON.stringify(S));
+    // Use the pre-captured copy from save() so onSnapshots that arrive during
+    // the debounce window can't overwrite our pending local changes.
+    const copy = pendingCopy || JSON.parse(JSON.stringify(S));
     copy.players.forEach(p => { delete p.avatarUrl; });
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
@@ -3275,7 +3276,37 @@ async function _saveToFirestore() {
         toast('⚠️ Sync conflict detected — save blocked to protect data', 'err');
         return;
       }
+
+      // ── Tournament status guard: never downgrade a tournament's status ──
+      // If Firestore already has a tournament as 'active' or 'complete', preserve
+      // that status and its bracket data — prevents a stale client save from
+      // reverting a started tournament back to 'setup'.
+      const statusRank = { setup: 0, active: 1, complete: 2 };
+      (remote.tournaments || []).forEach(remoteTourney => {
+        const localTourney = (copy.tournaments || []).find(t => t.id === remoteTourney.id);
+        if (!localTourney) return;
+        const remoteRank = statusRank[remoteTourney.status] ?? 0;
+        const localRank  = statusRank[localTourney.status]  ?? 0;
+        if (remoteRank > localRank) {
+          // Remote is ahead — keep the remote's status and bracket data
+          localTourney.status  = remoteTourney.status;
+          localTourney.rounds  = remoteTourney.rounds;
+          localTourney.matches = remoteTourney.matches;
+          localTourney.winnerId   = remoteTourney.winnerId;
+          localTourney.winnerName = remoteTourney.winnerName;
+          localTourney.invitees   = remoteTourney.invitees;
+        }
+      });
     }
+
+    // ── Serialize bracket data — Firestore doesn't support nested arrays ──
+    // rounds is array<array<Match>>, so stringify it before writing and
+    // parse it back in the onSnapshot handler.
+    copy.tournaments = (copy.tournaments || []).map(t => ({
+      ...t,
+      rounds:  JSON.stringify(t.rounds  || []),
+      matches: JSON.stringify(t.matches || [])
+    }));
 
     const batch = db.batch();
     batch.set(db.collection('state').doc('global'), copy);
@@ -3354,6 +3385,12 @@ function startFirestoreSync() {
         // Ensure all arrays exist
         ['pending','liveInvites','friendRequests','messages','challenges','tournaments'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
+        });
+
+        // Deserialize bracket data — rounds/matches were stringified before saving
+        fresh.tournaments.forEach(t => {
+          if (typeof t.rounds  === 'string') try { t.rounds  = JSON.parse(t.rounds);  } catch(_) { t.rounds  = []; }
+          if (typeof t.matches === 'string') try { t.matches = JSON.parse(t.matches); } catch(_) { t.matches = []; }
         });
         fresh.players.forEach(p => {
           if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null;
@@ -3445,6 +3482,9 @@ function startFirestoreSync() {
         checkNotifications();
         updateMessagesBadge();
         if (_activeChatId) openChat(_activeChatId, true);
+        // Always refresh tournaments list and open modal — status changes must be instant for all players
+        renderTournaments();
+        if (_openTourneyId) openTourneyDetail(_openTourneyId);
         const listEl = document.getElementById('friends-list-items');
         if (listEl) renderFriendsView();
         const safe = ['leaderboard','players','explore','friends','confirmations','tournaments'];
@@ -4500,10 +4540,12 @@ function load() {
 function save() {
   // Always write to localStorage immediately (offline backup + fast reads)
   try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(e) {}
-  // Debounced write to Firestore (500 ms batches rapid consecutive calls)
+  // Debounced write to Firestore — capture S NOW so an incoming onSnapshot
+  // can't overwrite our local changes before the timer fires.
   if (db) {
     clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(_saveToFirestore, 500);
+    const _pendingCopy = JSON.parse(JSON.stringify(S));
+    _saveTimer = setTimeout(() => _saveToFirestore(_pendingCopy), 500);
   }
 }
 
@@ -4680,7 +4722,10 @@ function toast(msg, type='') {
 }
 
 function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+  if (id === 'tourney-detail-modal') _openTourneyId = null;
+}
 
 function confirm_(title, msg, fn) {
   document.getElementById('confirm-title').textContent = title;
@@ -6513,7 +6558,8 @@ function unfriend(otherId) {
 // ═══════════════════════════════════════════════════════
 //  FRIENDS CHAT
 // ═══════════════════════════════════════════════════════
-let _activeChatId = null; // currently open friend's id
+let _activeChatId   = null; // currently open friend's id
+let _openTourneyId  = null; // currently open tournament detail modal
 
 function getConvo(friendId) {
   // All messages between me and this friend, oldest first
@@ -7537,7 +7583,8 @@ function getTourney(id) { return (S.tournaments || []).find(t => t.id === id); }
 function tourneyInvolvesMe(t) {
   if (!currentUser) return false;
   return t.creatorId === currentUser.id ||
-    (t.invitees || []).some(i => i.id === currentUser.id);
+    (t.invitees || []).some(i => i.id === currentUser.id) ||
+    (t.participants || []).some(p => p.id === currentUser.id);
 }
 
 function tourneyStatus(t) {
@@ -7888,6 +7935,9 @@ function startTournament(tourneyId) {
   if (t.participants.length < 3) { toast('Need at least 3 participants to start.', 'err'); return; }
   if (t.participants.length > 32) { toast('Maximum 32 participants allowed.', 'err'); return; }
 
+  // Drop anyone who didn't accept — remove pending invites entirely
+  t.invitees = (t.invitees || []).filter(i => i.status !== 'pending');
+
   const seeded = seedParticipants(t.participants);
   if (t.format === 'single-elim') {
     t.rounds = buildSingleElimBracket(seeded);
@@ -7896,6 +7946,7 @@ function startTournament(tourneyId) {
     t.matches = buildRoundRobinMatches(seeded);
   }
   t.status = 'active';
+
   save();
   renderTournaments();
   openTourneyDetail(tourneyId);
@@ -7996,7 +8047,12 @@ function renderTournaments() {
   const empty = document.getElementById('tourney-empty');
   if (!list) return;
 
-  const myTourneys = mine.filter(t => !(t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending'));
+  // Show in "my tournaments" list if: tournament is active/complete (show regardless of invite status),
+  // OR invite is not pending (i.e. accepted or not in invitees)
+  const myTourneys = mine.filter(t =>
+    t.status !== 'setup' ||
+    !(t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending')
+  );
   if (!myTourneys.length) {
     list.innerHTML = '';
     if (empty) empty.style.display = '';
@@ -8028,6 +8084,7 @@ function renderTournaments() {
 function openTourneyDetail(tourneyId) {
   const t = getTourney(tourneyId);
   if (!t) return;
+  _openTourneyId = tourneyId;
   document.getElementById('tourney-detail-title').textContent = '🏆 ' + t.name;
   const body = document.getElementById('tourney-detail-body');
   const isCreator = t.creatorId === currentUser?.id;
@@ -8481,7 +8538,7 @@ function checkNotifications() {
   const tourneyCount    = (S.tournaments || []).filter(t =>
     (t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending')
   ).length;
-  const total = gameCount + inviteCount + friendCount + challengeCount + tourneyCount;
+  const total = gameCount + inviteCount + friendCount + challengeCount; // tourneyCount excluded — tournaments tab has its own badge
   // Update tournaments badge
   const tb = document.getElementById('tournaments-badge');
   if (tb) { if (tourneyCount > 0) { tb.textContent = tourneyCount; tb.style.display='inline-flex'; } else { tb.style.display='none'; } }
