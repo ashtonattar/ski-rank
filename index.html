@@ -3110,7 +3110,7 @@
         <input type="text" id="tinv-search" class="form-input" placeholder="Search name…"
           style="flex:1;min-width:110px;padding:7px 12px;font-size:13px;"
           oninput="filterInvitePicker(this.value)" autocomplete="off">
-        <span id="tinv-counter" style="font-size:11.5px;color:var(--text-muted);white-space:nowrap;">0 / 31</span>
+        <span id="tinv-counter" style="font-size:11.5px;color:var(--text-muted);white-space:nowrap;">1 / 32</span>
       </div>
       <div id="tourney-invite-picker" style="max-height:210px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
     </div>
@@ -7655,7 +7655,7 @@ function openCreateTournamentModal() {
   const searchEl = document.getElementById('tinv-search');
   if (searchEl) searchEl.value = '';
   const counter = document.getElementById('tinv-counter');
-  if (counter) { counter.textContent = '0 / 31'; counter.style.color = 'var(--text-muted)'; }
+  if (counter) { counter.textContent = '1 / 32'; counter.style.color = 'var(--text-muted)'; }
   _inviteTab = 'all';
   setInviteTab('all', true);
   openModal('create-tourney-modal');
@@ -7710,7 +7710,20 @@ function renderInvitePicker(query) {
   }
 
   const atCap = checked.size >= 31; // creator is always slot 1, so 31 invitees = 32 total
-  list.innerHTML = candidates.map(p => {
+
+  // Pin "You" at the top — creator is always in the tournament
+  const me = currentUser ? byId(currentUser.id) : null;
+  const youRow = me ? `
+    <div class="invite-pick-item" style="opacity:.7;cursor:default;border-bottom:1px solid var(--border);">
+      ${avatarHtml(me, 'avatar-sm')}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${me.name} <span style="font-size:10px;color:var(--ice);">★ You</span></div>
+        <div style="font-size:11px;color:var(--text-muted);">Creator — already in</div>
+      </div>
+      <span style="font-size:16px;color:var(--success);">✓</span>
+    </div>` : '';
+
+  list.innerHTML = youRow + candidates.map(p => {
     const isFriend  = (currentUser?.friends || []).includes(p.id);
     const isChecked = checked.has(p.id);
     const disabled  = atCap && !isChecked; // can't check more once at cap
@@ -7783,9 +7796,10 @@ function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
 
 function updateInvitePickerCap() {
   const count   = document.querySelectorAll('#tourney-invite-picker input[type=checkbox]:checked').length;
+  const total   = count + 1; // +1 for creator
   const counter = document.getElementById('tinv-counter');
   if (counter) {
-    counter.textContent = count + ' / 31';
+    counter.textContent = total + ' / 32';
     counter.style.color = count >= 31 ? 'var(--warning)' : 'var(--text-muted)';
   }
   // Re-render to update disabled states
