@@ -7665,8 +7665,8 @@ function _inviteCandidates() {
   // Get friends from S.players (source of truth) not currentUser snapshot
   const me = S.players.find(p => p.id === currentUser?.id);
   const myFriends = me?.friends || [];
-  // Tournaments include all riders regardless of sport (skiers vs boarders can compete)
-  const others = sorted().filter(p => p.id !== currentUser?.id);
+  // Tournaments are single-sport — only show riders matching the creator's sport
+  const others = sortedSameSport().filter(p => p.id !== currentUser?.id);
   if (_inviteTab === 'friends') {
     return others.filter(p => myFriends.includes(p.id));
   }
