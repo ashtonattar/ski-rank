@@ -8412,9 +8412,7 @@ function renderBracketHTML(t) {
     </div>`;
 
   const hint = isActive
-    ? (isCreator
-        ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">🔶 Tap a match to record the winner &nbsp;|&nbsp; 🔷 Tap to start your live game</div>`
-        : `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Tap your highlighted match to start a live game against your opponent.</div>`)
+    ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">🔷 Tap your highlighted match to start a live game against your opponent.</div>`
     : '';
 
   return `
