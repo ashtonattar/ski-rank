@@ -8251,18 +8251,15 @@ function renderBracketHTML(t) {
     // Round locking: can only play if previous round is fully done
     const prevDone = ri === 0 || isRoundComplete(t, ri - 1);
     const canPlay  = isActive && !isPlayed && !isBye && p1 && p2 && iAmIn && prevDone;
-    const isCreatorRecord = isCreator && !isPlayed && !isBye && p1 && p2 && isActive;
 
-    const borderCol  = canPlay ? C_ICE : isCreatorRecord ? C_ORANGE : C_LINE;
+    const borderCol  = canPlay ? C_ICE : C_LINE;
     const bgFill     = canPlay ? C_PLAY : 'rgba(3,12,28,0.45)';
-    const bw         = canPlay || isCreatorRecord ? 1.5 : 1;
+    const bw         = canPlay ? 1.5 : 1;
 
-    // Match background rect
+    // Match background rect — only clickable if you're in the match
     const clickFn = canPlay
       ? `startTournamentMatch('${t.id}',${ri},${mi_global})`
-      : isCreatorRecord
-        ? `pickMatchWinner('${t.id}',${ri},${mi_global})`
-        : '';
+      : '';
     const cursor = clickFn ? 'pointer' : 'default';
 
     boxes += `<rect x="${x}" y="${y}" width="${MW}" height="${MH}"
@@ -8295,10 +8292,8 @@ function renderBracketHTML(t) {
         font-family="Inter,sans-serif" font-weight="700" text-anchor="middle"
         style="cursor:pointer;" onclick="${clickFn}">▶ PLAY</text>`;
     }
-    if (isCreatorRecord && !canPlay) {
-      boxes += `<text x="${x+MW-5}" y="${y+SH-1}" fill="${C_ORANGE}" font-size="8"
-        font-family="Inter,sans-serif" text-anchor="end" style="cursor:pointer;"
-        onclick="${clickFn}">record</text>`;
+    if (canPlay) {
+      // "▶ PLAY" badge already drawn above; no extra label needed
     }
   }
 
@@ -8492,7 +8487,8 @@ function renderRRHTML(t) {
   html += '<div style="display:flex;flex-direction:column;gap:8px;">';
   t.matches.forEach(m => {
     const done = m.status === 'played';
-    const canRecord = isCreator && !done && t.status === 'active';
+    const iAmInMatch = currentUser && (m.p1.id === currentUser.id || m.p2.id === currentUser.id);
+    const canRecord = iAmInMatch && !done && t.status === 'active';
     html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-card);border:1px solid ${done?'var(--border)':'var(--border-light)'};border-radius:var(--radius-sm);">
       <span style="flex:1;font-size:13px;font-weight:${m.winnerId===m.p1.id?'700':'400'};color:${m.winnerId===m.p1.id?'var(--success)':m.winnerId===m.p2.id?'var(--text-muted)':'inherit'};">${m.p1.name}</span>
       <span style="font-size:11px;color:var(--text-muted);font-weight:600;">vs</span>
