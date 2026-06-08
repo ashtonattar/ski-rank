@@ -3488,6 +3488,15 @@ function startFirestoreSync() {
         // Always refresh tournaments list and open modal — status changes must be instant for all players
         renderTournaments();
         if (_openTourneyId) openTourneyDetail(_openTourneyId);
+        // Show victory screen if a tournament just completed and current user won
+        if (currentUser) {
+          (S.tournaments || []).forEach(t => {
+            if (t.status === 'complete' && t.winnerId === currentUser.id && !_seenTourneyWins.has(t.id)) {
+              _seenTourneyWins.add(t.id);
+              setTimeout(() => showTourneyWin(t.name), 400);
+            }
+          });
+        }
         const listEl = document.getElementById('friends-list-items');
         if (listEl) renderFriendsView();
         const safe = ['leaderboard','players','explore','friends','confirmations','tournaments'];
@@ -6567,6 +6576,7 @@ function unfriend(otherId) {
 // ═══════════════════════════════════════════════════════
 let _activeChatId   = null; // currently open friend's id
 let _openTourneyId  = null; // currently open tournament detail modal
+const _seenTourneyWins = new Set(); // tournament ids we've already shown the win screen for
 
 function getConvo(friendId) {
   // All messages between me and this friend, oldest first
@@ -7970,6 +7980,35 @@ function deleteTournament(tourneyId) {
   toast('Tournament deleted.', 'ok');
 }
 
+// ── Tournament victory screen ────────────────────────────
+function showTourneyWin(tourneyName) {
+  const el  = document.getElementById('tourney-win-overlay');
+  const inn = document.getElementById('tourney-win-inner');
+  if (!el || !inn) return;
+  inn.innerHTML = `
+    <div style="font-size:72px;line-height:1;margin-bottom:12px;">🏆</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:4px;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+      <button class="btn btn-primary" style="width:200px;justify-content:center;font-size:15px;padding:13px 0;"
+        onclick="document.getElementById('tourney-win-overlay').style.pointerEvents='none';document.getElementById('tourney-win-overlay').style.opacity='0';setTimeout(()=>{document.getElementById('tourney-win-overlay').style.display='none';},400);">
+        🎿 Let's Go
+      </button>
+    </div>
+    <div style="margin-top:20px;font-size:11px;color:rgba(255,255,255,0.25);">Tap anywhere to dismiss</div>
+  `;
+  el.style.display = 'flex';
+  el.style.pointerEvents = 'auto';
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+  // Tap-anywhere dismiss
+  el.onclick = () => {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 400);
+  };
+}
+
 // ── Record match winner (single-elim) ────────────────────
 function recordMatchWinner(tourneyId, roundIdx, matchIdx, winnerId) {
   const t = getTourney(tourneyId);
@@ -7984,6 +8023,7 @@ function recordMatchWinner(tourneyId, roundIdx, matchIdx, winnerId) {
     t.status = 'complete';
     t.winnerId = finalRound[0].winnerId;
     t.winnerName = finalRound[0].p1?.id === finalRound[0].winnerId ? finalRound[0].p1?.name : finalRound[0].p2?.name;
+    if (t.winnerId === currentUser?.id) setTimeout(() => showTourneyWin(t.name), 400);
   }
   save();
   openTourneyDetail(tourneyId); // refresh
@@ -8007,6 +8047,7 @@ function recordRRWinner(tourneyId, matchId, winnerId) {
     const top = Object.entries(wins).sort((a,b) => b[1]-a[1])[0];
     t.winnerId   = top?.[0];
     t.winnerName = t.participants.find(p => p.id === t.winnerId)?.name;
+    if (t.winnerId === currentUser?.id) setTimeout(() => showTourneyWin(t.name), 400);
   }
   save();
   openTourneyDetail(tourneyId); // refresh
@@ -10093,6 +10134,9 @@ async function adminWipeEverything() {
 </script>
 
 <div id="rating-anim-overlay" onclick=""></div>
+<div id="tourney-win-overlay" onclick="document.getElementById('tourney-win-overlay').classList.remove('visible')" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;opacity:0;transition:opacity .4s;pointer-events:none;">
+  <div id="tourney-win-inner" style="text-align:center;padding:32px 28px;max-width:340px;width:100%;"></div>
+</div>
 
 <!-- Tier info modal -->
 <div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
