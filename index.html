@@ -2653,6 +2653,9 @@
 
     <!-- ─── EXPLORE ─── -->
     <div id="view-explore" class="view">
+      <!-- Post Clip FAB -->
+      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));right:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">＋ Post Clip</button>
+
       <div id="explore-feed" class="explore-feed"></div>
       <div id="explore-empty" style="display:none;text-align:center;padding:72px 24px 80px;color:var(--text-muted);">
         <svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:20px;opacity:.85;">
@@ -2684,8 +2687,11 @@
           <polygon points="70,47.5 78,51.5 70,55.5" fill="white" opacity=".35"/>
         </svg>
         <h2 style="font-size:19px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">No clips yet</h2>
-        <p style="font-size:13.5px;max-width:240px;margin:0 auto 20px;">Upload a video when logging a game and it'll show up here for everyone to see.</p>
-        <button class="btn btn-primary" onclick="nav('log-game')">Log a Game</button>
+        <p style="font-size:13.5px;max-width:240px;margin:0 auto 20px;">Post a ski clip or upload a video when logging a game and it'll show up here for everyone to see.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="openPostClip()">Post a Clip</button>
+          <button class="btn btn-outline" onclick="nav('log-game')">Log a Game</button>
+        </div>
       </div>
     </div>
 
@@ -4552,7 +4558,7 @@ function _animateAuthOut(cb) {
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
+let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[], clips:[] };
 
 function load() {
   try {
@@ -6702,10 +6708,14 @@ function renderExplore() {
   const feed  = document.getElementById('explore-feed');
   const empty = document.getElementById('explore-empty');
 
-  // Gather all games with a clip URL — skip stale blob: refs (expired after reload)
-  const clipped = S.games.filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:'));
+  // Show FAB for logged-in users
+  const fab = document.getElementById('post-clip-fab');
+  if (fab) fab.style.display = currentUser ? 'block' : 'none';
 
-  if (!clipped.length) {
+  // Merge game clips + standalone clips
+  const ranked = buildExploreFeed();
+
+  if (!ranked.length) {
     feed.style.display  = 'none';
     empty.style.display = 'block';
     return;
@@ -6713,75 +6723,110 @@ function renderExplore() {
   empty.style.display = 'none';
   feed.style.display  = 'block';
 
-  // Sort by algorithm score
-  const ranked = [...clipped].sort((a, b) => clipScore(b) - clipScore(a));
-
-  feed.innerHTML = ranked.map((game, i) => {
-    const winner = byId(game.winnerId);
-    const loser  = byId(game.loserId);
-    if (!winner || !loser) return '';
-
-    const isYt   = /youtube\.com|youtu\.be/.test(game.clipUrl);
-    const isVimeo= /vimeo\.com/.test(game.clipUrl);
-    const tricks = game.tricks?.length ? game.tricks.join(' · ') : '';
+  feed.innerHTML = ranked.map((item, i) => {
+    const isYt    = /youtube\.com|youtu\.be/.test(item.clipUrl);
+    const isVimeo = /vimeo\.com/.test(item.clipUrl);
 
     const mediaHtml = isYt || isVimeo
       ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;flex-direction:column;gap:12px;color:rgba(255,255,255,0.6);font-size:13px;">
            <div style="font-size:52px;">▶</div>
            <div>Tap to open clip</div>
-           <a href="${game.clipUrl}" target="_blank" rel="noopener" class="btn btn-outline" style="margin-top:4px;">Watch on ${isYt?'YouTube':'Vimeo'} ↗</a>
+           <a href="${item.clipUrl}" target="_blank" rel="noopener" class="btn btn-outline" style="margin-top:4px;">Watch on ${isYt?'YouTube':'Vimeo'} ↗</a>
          </div>`
       : `<video class="reel-video" id="reel-vid-${i}"
-           src="${game.clipUrl.startsWith('idb:') ? '' : game.clipUrl}"
+           src="${item.clipUrl.startsWith('idb:') ? '' : item.clipUrl}"
            playsinline autoplay loop muted
            style="object-fit:cover;"
            onclick="toggleReelPlay(this)"></video>`;
 
-    return `
-      <div class="reel-card" data-index="${i}" id="reel-${i}">
-        ${mediaHtml}
-        <div class="reel-overlay-top"></div>
-        <div class="reel-overlay"></div>
-
-        <!-- Top controls (mute + share) -->
-        <div class="reel-controls">
-          ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '🔇' : '🔊'}</div>` : ''}
-        </div>
-
-        <!-- Bottom info -->
+    // Build bottom info depending on type
+    let infoHtml;
+    if (item._type === 'clip') {
+      // Standalone clip post
+      const poster = byId(item.posterId);
+      if (!poster) return '';
+      const canDelete = currentUser && currentUser.id === item.posterId;
+      infoHtml = `
         <div class="reel-info">
           <div class="reel-players">
-            ${pLink(winner.id, winner.name, 'color:var(--ice);')}
-            <span style="color:rgba(255,255,255,0.5);font-size:14px;"> defeated </span>
-            ${pLink(loser.id, loser.name, 'color:rgba(255,255,255,0.85);')}
+            ${pLink(poster.id, poster.name, 'color:var(--ice);')}
           </div>
           <div class="reel-meta">
-            <span class="reel-chip win">+${game.winnerDelta} pts</span>
-            ${game.score ? `<span class="reel-chip ice">⛷ ${game.score}</span>` : ''}
-            ${tricks     ? `<span class="reel-chip">🎿 ${tricks}</span>` : ''}
-            ${game.resort ? `<span class="reel-chip">🏔 ${game.resort}</span>` : (winner.homeResort ? `<span class="reel-chip">🏔 ${winner.homeResort}</span>` : '')}
-            <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(game.date)}</span>
+            ${item.resort ? `<span class="reel-chip">🏔 ${item.resort}</span>` : ''}
+            <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
+            ${canDelete ? `<span class="reel-chip" onclick="deleteClip('${item.id}')" style="cursor:pointer;color:var(--danger);border-color:var(--danger);">✕ Delete</span>` : ''}
           </div>
-          ${game.notes ? `<div style="font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:8px;font-style:italic;">"${game.notes}"</div>` : ''}
-        </div>
-
-        <!-- Right actions -->
+          ${item.caption ? `<div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:600;">${item.caption}</div>` : ''}
+        </div>`;
+      const actionsHtml = `
         <div class="reel-actions">
-          <div class="reel-action-btn" onclick="showProfile('${winner.id}')">
+          <div class="reel-action-btn" onclick="showProfile('${poster.id}')">
             <div class="reel-action-icon">
-              ${winner.avatarUrl ? `<img src="${winner.avatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;background:${avatarGrad(winner.id)};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">${initials(winner.name)}</div>`}
+              ${poster.avatarUrl ? `<img src="${poster.avatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;background:${avatarGrad(poster.id)};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">${initials(poster.name)}</div>`}
             </div>
-            <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
+            <div class="reel-action-label">${poster.name.split(' ')[0]}</div>
           </div>
           <div class="reel-action-btn" onclick="shareReel(${i})">
             <div class="reel-action-icon">🔗</div>
             <div class="reel-action-label">Share</div>
           </div>
-        </div>
-
-        <!-- Scroll hint on first card -->
-        ${i === 0 ? `<div class="reel-scroll-hint">↑ scroll for more</div>` : ''}
-      </div>`;
+        </div>`;
+      return `
+        <div class="reel-card" data-index="${i}" id="reel-${i}">
+          ${mediaHtml}
+          <div class="reel-overlay-top"></div>
+          <div class="reel-overlay"></div>
+          <div class="reel-controls">
+            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '🔇' : '🔊'}</div>` : ''}
+          </div>
+          ${infoHtml}
+          ${actionsHtml}
+          ${i === 0 ? `<div class="reel-scroll-hint">↑ scroll for more</div>` : ''}
+        </div>`;
+    } else {
+      // Game clip
+      const winner = byId(item.winnerId);
+      const loser  = byId(item.loserId);
+      if (!winner || !loser) return '';
+      const tricks = item.tricks?.length ? item.tricks.join(' · ') : '';
+      return `
+        <div class="reel-card" data-index="${i}" id="reel-${i}">
+          ${mediaHtml}
+          <div class="reel-overlay-top"></div>
+          <div class="reel-overlay"></div>
+          <div class="reel-controls">
+            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '🔇' : '🔊'}</div>` : ''}
+          </div>
+          <div class="reel-info">
+            <div class="reel-players">
+              ${pLink(winner.id, winner.name, 'color:var(--ice);')}
+              <span style="color:rgba(255,255,255,0.5);font-size:14px;"> defeated </span>
+              ${pLink(loser.id, loser.name, 'color:rgba(255,255,255,0.85);')}
+            </div>
+            <div class="reel-meta">
+              <span class="reel-chip win">+${item.winnerDelta} pts</span>
+              ${item.score ? `<span class="reel-chip ice">⛷ ${item.score}</span>` : ''}
+              ${tricks     ? `<span class="reel-chip">🎿 ${tricks}</span>` : ''}
+              ${item.resort ? `<span class="reel-chip">🏔 ${item.resort}</span>` : (winner.homeResort ? `<span class="reel-chip">🏔 ${winner.homeResort}</span>` : '')}
+              <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
+            </div>
+            ${item.notes ? `<div style="font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:8px;font-style:italic;">"${item.notes}"</div>` : ''}
+          </div>
+          <div class="reel-actions">
+            <div class="reel-action-btn" onclick="showProfile('${winner.id}')">
+              <div class="reel-action-icon">
+                ${winner.avatarUrl ? `<img src="${winner.avatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;background:${avatarGrad(winner.id)};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">${initials(winner.name)}</div>`}
+              </div>
+              <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
+            </div>
+            <div class="reel-action-btn" onclick="shareReel(${i})">
+              <div class="reel-action-icon">🔗</div>
+              <div class="reel-action-label">Share</div>
+            </div>
+          </div>
+          ${i === 0 ? `<div class="reel-scroll-hint">↑ scroll for more</div>` : ''}
+        </div>`;
+    }
   }).join('');
 
   // Auto-play first video when view loads, respect mute state
@@ -6789,10 +6834,10 @@ function renderExplore() {
 
   // Async: resolve idb: references into live blob URLs, set video src, and
   // auto-play if the card is already in view (observer fired before src was ready).
-  ranked.forEach((game, i) => {
-    if (!game.clipUrl || game.clipUrl.startsWith('blob:')) return;
-    if (/youtube\.com|youtu\.be|vimeo\.com/.test(game.clipUrl)) return;
-    loadClipUrl(game.clipUrl).then(url => {
+  ranked.forEach((item, i) => {
+    if (!item.clipUrl || item.clipUrl.startsWith('blob:')) return;
+    if (/youtube\.com|youtu\.be|vimeo\.com/.test(item.clipUrl)) return;
+    loadClipUrl(item.clipUrl).then(url => {
       if (!url) return;
       const vid  = document.getElementById(`reel-vid-${i}`);
       const card = document.getElementById(`reel-${i}`);
@@ -6847,15 +6892,80 @@ function updateMuteIcons() {
 }
 
 function shareReel(index) {
-  const game = [...S.games.filter(g => g.clipUrl)].sort((a,b) => clipScore(b) - clipScore(a))[index];
-  if (!game) return;
-  const winner = byId(game.winnerId), loser = byId(game.loserId);
-  const text = `${winner?.name} beat ${loser?.name} in SKI (${game.score || ''}) — check out the clip!`;
+  const allItems = buildExploreFeed();
+  const item = allItems[index];
+  if (!item) return;
+  let text, url;
+  if (item._type === 'clip') {
+    text = `${item.caption || 'Check out this ski clip'} — SKI Rank`;
+    url  = item.clipUrl;
+  } else {
+    const winner = byId(item.winnerId), loser = byId(item.loserId);
+    text = `${winner?.name} beat ${loser?.name} in SKI (${item.score || ''}) — check out the clip!`;
+    url  = item.clipUrl;
+  }
   if (navigator.share) {
-    navigator.share({ title:'SKI Rank Clip', text, url: game.clipUrl }).catch(()=>{});
+    navigator.share({ title:'SKI Rank Clip', text, url }).catch(()=>{});
   } else {
     navigator.clipboard?.writeText(text).then(() => toast('Copied to clipboard!', 'ok'));
   }
+}
+
+// ── Standalone clip posts ──────────────────────────────
+
+function openPostClip() {
+  if (!currentUser) { toast('Sign in to post a clip', 'err'); return; }
+  const m = document.getElementById('post-clip-modal');
+  document.getElementById('pc-caption').value = '';
+  document.getElementById('pc-url').value = '';
+  document.getElementById('pc-resort').value = '';
+  m.style.display = 'flex';
+}
+
+function closePostClip() {
+  document.getElementById('post-clip-modal').style.display = 'none';
+}
+
+function submitPostClip() {
+  const url     = document.getElementById('pc-url').value.trim();
+  const caption = document.getElementById('pc-caption').value.trim();
+  const resort  = document.getElementById('pc-resort').value.trim();
+  if (!url) { toast('Please enter a video URL', 'err'); return; }
+  if (!currentUser) { toast('Sign in to post', 'err'); return; }
+
+  const clip = {
+    id:       'clip_' + Date.now(),
+    _type:    'clip',
+    posterId: currentUser.id,
+    clipUrl:  url,
+    caption,
+    resort,
+    date:     Date.now(),
+  };
+  if (!S.clips) S.clips = [];
+  S.clips.push(clip);
+  save();
+  closePostClip();
+  toast('Clip posted! 🎿', 'ok');
+  renderExplore();
+}
+
+function deleteClip(clipId) {
+  S.clips = (S.clips || []).filter(c => c.id !== clipId);
+  save();
+  renderExplore();
+}
+
+// Merge game clips + standalone clips into one ranked feed
+function buildExploreFeed() {
+  const gameClips = S.games
+    .filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:'))
+    .map(g => ({ ...g, _type: 'game' }));
+  const standaloneClips = (S.clips || [])
+    .filter(c => c.clipUrl && !c.clipUrl.startsWith('blob:'))
+    .map(c => ({ ...c, _type: 'clip' }));
+  const all = [...gameClips, ...standaloneClips];
+  return [...all].sort((a, b) => clipScore(b) - clipScore(a));
 }
 
 function renderFriendsView() {
@@ -10227,6 +10337,31 @@ async function adminWipeEverything() {
 </script>
 
 <div id="rating-anim-overlay" onclick=""></div>
+
+<!-- ─── POST CLIP MODAL ─── -->
+<div id="post-clip-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closePostClip()">
+  <div style="background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:520px;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(0,0,0,0.55);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:800;color:var(--text-primary);margin:0;">📹 Post a Clip</h3>
+      <button onclick="closePostClip()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Caption</label>
+        <input id="pc-caption" type="text" class="form-input" placeholder="What went down?" maxlength="120">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Video URL <span style="color:var(--text-muted);font-size:10px;font-weight:400;">(YouTube, Vimeo, or direct .mp4)</span></label>
+        <input id="pc-url" type="url" class="form-input" placeholder="https://...">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Resort / Location <span style="color:var(--text-muted);font-size:10px;font-weight:400;">(optional)</span></label>
+        <input id="pc-resort" type="text" class="form-input" placeholder="e.g. Whistler">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="submitPostClip()">Post to Explore</button>
+    </div>
+  </div>
+</div>
 <div id="tourney-win-overlay" onclick="document.getElementById('tourney-win-overlay').classList.remove('visible')" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;opacity:0;transition:opacity .4s;pointer-events:none;">
   <div id="tourney-win-inner" style="text-align:center;padding:32px 28px;max-width:340px;width:100%;"></div>
 </div>
