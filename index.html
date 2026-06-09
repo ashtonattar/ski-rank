@@ -7093,15 +7093,30 @@ function shareReel(itemId) {
 // ── Standalone clip posts ──────────────────────────────
 
 let _pcFile = null; // file selected in Post Clip modal
+let _pcTab  = 'url'; // 'url' | 'file'
+
+function pcSwitchTab(tab) {
+  _pcTab = tab;
+  document.getElementById('pc-panel-url').style.display  = tab === 'url'  ? 'block' : 'none';
+  document.getElementById('pc-panel-file').style.display = tab === 'file' ? 'block' : 'none';
+  const urlBtn  = document.getElementById('pc-tab-url');
+  const fileBtn = document.getElementById('pc-tab-file');
+  urlBtn.style.background  = tab === 'url'  ? 'var(--ice)' : 'transparent';
+  urlBtn.style.color       = tab === 'url'  ? '#030c1c'    : 'var(--text-muted)';
+  fileBtn.style.background = tab === 'file' ? 'var(--ice)' : 'transparent';
+  fileBtn.style.color      = tab === 'file' ? '#030c1c'    : 'var(--text-muted)';
+}
 
 function openPostClip() {
   if (!currentUser) { toast('Sign in to post a clip', 'err'); return; }
   _pcFile = null;
   document.getElementById('pc-caption').value = '';
   document.getElementById('pc-resort').value  = '';
+  document.getElementById('pc-url').value     = '';
   document.getElementById('pc-file-input').value = '';
   document.getElementById('pc-drop-label').style.display   = 'block';
   document.getElementById('pc-drop-preview').style.display = 'none';
+  pcSwitchTab('url'); // always open on URL tab
   document.getElementById('post-clip-modal').style.display = 'flex';
 }
 
@@ -7130,7 +7145,6 @@ function pcHandleDrop(e) {
 async function submitPostClip() {
   const caption = document.getElementById('pc-caption').value.trim();
   const resort  = document.getElementById('pc-resort').value.trim();
-  if (!_pcFile) { toast('Please choose a video first', 'err'); return; }
   if (!currentUser) { toast('Sign in to post', 'err'); return; }
 
   const btn = document.querySelector('#post-clip-modal .btn-primary');
@@ -7138,15 +7152,24 @@ async function submitPostClip() {
 
   try {
     let clipUrl;
-    if (_storage) {
-      // Upload to Firebase Storage so all players can view it
-      clipUrl = await uploadClipToStorage(_pcFile, pct => {
-        btn.textContent = `Uploading… ${pct}%`;
-      });
+
+    if (_pcTab === 'url') {
+      // URL mode — just validate and use directly
+      clipUrl = document.getElementById('pc-url').value.trim();
+      if (!clipUrl) { btn.disabled = false; toast('Please paste a video link', 'err'); return; }
+      // Normalise: make sure it starts with http
+      if (!/^https?:\/\//i.test(clipUrl)) clipUrl = 'https://' + clipUrl;
     } else {
-      // Fallback: local IDB (only visible on this device)
-      btn.textContent = 'Saving…';
-      clipUrl = await saveClipFile(_pcFile);
+      // File mode — upload to Firebase Storage
+      if (!_pcFile) { btn.disabled = false; toast('Please choose a video file', 'err'); return; }
+      if (_storage) {
+        clipUrl = await uploadClipToStorage(_pcFile, pct => {
+          btn.textContent = `Uploading… ${pct}%`;
+        });
+      } else {
+        btn.textContent = 'Saving…';
+        clipUrl = await saveClipFile(_pcFile);
+      }
     }
 
     const clip = {
@@ -10653,21 +10676,38 @@ async function adminWipeEverything() {
       <button onclick="closePostClip()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
-      <!-- Drop zone -->
-      <div id="pc-dropzone"
-           onclick="document.getElementById('pc-file-input').click()"
-           ondragover="event.preventDefault();this.classList.add('pc-drag-over')"
-           ondragleave="this.classList.remove('pc-drag-over')"
-           ondrop="pcHandleDrop(event)"
-           style="border:2px dashed rgba(0,212,255,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(0,212,255,0.04);">
-        <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
-        <div id="pc-drop-label">
-          <div style="font-size:32px;margin-bottom:8px;">🎬</div>
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Tap to choose a video</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">or drag &amp; drop here</div>
-        </div>
-        <div id="pc-drop-preview" style="display:none;font-size:12px;color:var(--ice);font-weight:700;"></div>
+      <!-- Tab switcher: URL vs File -->
+      <div style="display:flex;background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);padding:3px;gap:3px;">
+        <button id="pc-tab-url"  onclick="pcSwitchTab('url')"  style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--ice);color:#030c1c;">🔗 Paste Link</button>
+        <button id="pc-tab-file" onclick="pcSwitchTab('file')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--text-muted);">📁 Upload File</button>
       </div>
+
+      <!-- URL panel -->
+      <div id="pc-panel-url">
+        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Video Link</label>
+        <input id="pc-url" type="url" class="form-input" placeholder="YouTube, Vimeo, Google Drive, iCloud…">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Tip: on iPhone, share a video from Photos → Copy Link</div>
+      </div>
+
+      <!-- File drop panel -->
+      <div id="pc-panel-file" style="display:none;">
+        <div id="pc-dropzone"
+             onclick="document.getElementById('pc-file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('pc-drag-over')"
+             ondragleave="this.classList.remove('pc-drag-over')"
+             ondrop="pcHandleDrop(event)"
+             style="border:2px dashed rgba(0,212,255,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(0,212,255,0.04);">
+          <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
+          <div id="pc-drop-label">
+            <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Tap to choose a video</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">or drag &amp; drop here</div>
+          </div>
+          <div id="pc-drop-preview" style="display:none;font-size:12px;color:var(--ice);font-weight:700;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">Requires Firebase Storage (Blaze plan)</div>
+      </div>
+
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Caption</label>
         <input id="pc-caption" type="text" class="form-input" placeholder="What went down?" maxlength="120">
