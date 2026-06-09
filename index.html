@@ -3277,8 +3277,8 @@ try {
   db       = firebase.firestore();
   _storage = firebase.storage();
   _fbAuth  = firebase.auth();
-  // Keep Firebase Auth session in memory only — app manages its own session
-  _fbAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
+  // Use LOCAL persistence so Firebase Auth token survives page reloads
+  _fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
 } catch(e) { console.warn('Firebase init failed:', e); }
 
 // Upload a video File to Firebase Storage and return its public download URL.
@@ -3656,15 +3656,31 @@ async function hashPw(pw) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── Auth is now 100% Firestore-backed ──────────────────────────────────────
-// Credentials live in db.collection('users'). localStorage only holds the
-// lightweight session token (id/name/email/riderType — no password hash).
-// This means admin deletes, password changes, etc. propagate to every device
-// instantly with no stale localStorage to patch around.
+// ── Session: Firebase Auth token (primary) + localStorage (legacy fallback) ──
+// Firebase Auth tokens are signed JWTs that expire and auto-refresh.
+// localStorage is kept as a fallback for legacy users not yet on Firebase Auth,
+// and is cleared as soon as the user migrates.
 
 function getSession()   { try { return JSON.parse(localStorage.getItem('skirank_session')||'null'); } catch(e){ return null; } }
 function setSession(u)  { localStorage.setItem('skirank_session', JSON.stringify(u)); currentUser = u; }
 function clearSession() { localStorage.removeItem('skirank_session'); currentUser = null; }
+
+// Look up the app's player record from a Firebase Auth user object.
+// Returns null if not found.
+async function _playerFromFirebaseUser(fbUser) {
+  if (!fbUser || !db) return null;
+  // New accounts: Firestore doc ID == Firebase Auth UID
+  try {
+    const direct = await db.collection('users').doc(fbUser.uid).get();
+    if (direct.exists) return direct.data();
+  } catch(_) {}
+  // Legacy accounts: look up by email
+  try {
+    const snap = await db.collection('users').where('email','==', fbUser.email).limit(1).get();
+    if (!snap.empty) return snap.docs[0].data();
+  } catch(_) {}
+  return null;
+}
 
 // Kept as no-ops so any remaining call sites don't throw
 function getUsers()  { return []; }
@@ -3746,7 +3762,8 @@ async function doSignup() {
   const newUser = {
     id: playerId,
     name, email,
-    passwordHash: await hashPw(password), // kept for legacy fallback
+    // Only store passwordHash for accounts created WITHOUT Firebase Auth (rare fallback)
+    ...(firebaseUid ? {} : { passwordHash: await hashPw(password) }),
     riderType: _selectedRiderType, homeResort,
     createdAt: Date.now(),
     ...(firebaseUid ? { firebaseUid } : {})
@@ -3759,6 +3776,7 @@ async function doSignup() {
     return showErr('Failed to create account. Please try again.');
   }
 
+  // Pre-seed session so legacy code paths work; onAuthStateChanged also fires
   setSession({ id: newUser.id, name: newUser.name, email: newUser.email, riderType: newUser.riderType });
 
   // Pre-seed the player record so myMissingRecord logic writes it to Firestore on first sync.
@@ -3841,17 +3859,27 @@ async function doLogin() {
     if (_fbAuth) {
       _fbAuth.createUserWithEmailAndPassword(email, password)
         .then(async cred => {
-          // Store the Firebase UID on the Firestore user record
-          await db.collection('users').doc(user.id).update({ firebaseUid: cred.user.uid });
-          await _fbAuth.signOut();
+          // Link Firebase UID to Firestore record and delete the legacy hash
+          await db.collection('users').doc(user.id).update({
+            firebaseUid:  cred.user.uid,
+            passwordHash: firebase.firestore.FieldValue.delete()
+          });
           toast('Account upgraded to secure sign-in 🔒', 'ok');
+          // onAuthStateChanged will fire and call launchApp()
         })
-        .catch(e => console.warn('Silent migration failed:', e.code));
+        .catch(e => {
+          console.warn('Silent migration failed:', e.code);
+          // Migration failed — fall back to localStorage session
+          setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
+          launchApp();
+        });
+      return; // wait for onAuthStateChanged or the catch above
     }
   }
 
+  // Firebase Auth sign-in succeeded — onAuthStateChanged will call launchApp().
+  // Also keep localStorage in sync as fallback for legacy code paths.
   setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
-  launchApp();
 }
 
 function logout() {
@@ -10155,12 +10183,40 @@ function closeBadgeModal() {
 async function init() {
   document.getElementById('trick-input').addEventListener('keydown', e => { if (e.key==='Enter') setterSubmitTrick(); });
 
-  const session = getSession();
-  if (session) {
-    currentUser = session;
-    launchApp();
+  if (_fbAuth) {
+    // ── Primary: Firebase Auth token ──────────────────────────────────
+    // onAuthStateChanged fires once immediately on load with the persisted
+    // token (if any), so this replaces the old localStorage session check.
+    _fbAuth.onAuthStateChanged(async fbUser => {
+      if (fbUser) {
+        // Token is valid — look up the player record
+        const player = await _playerFromFirebaseUser(fbUser);
+        if (player) {
+          currentUser = { id: player.id, name: player.name, email: player.email, riderType: player.riderType || 'skier' };
+          // Sync the lightweight localStorage entry so legacy code paths work
+          setSession(currentUser);
+          if (!document.getElementById('app') || document.getElementById('app').style.display === 'none') {
+            launchApp();
+          }
+          return;
+        }
+        // Firebase Auth user exists but no player record — sign out
+        await _fbAuth.signOut();
+      }
+      // ── Fallback: legacy localStorage session (pre-Firebase-Auth users) ──
+      const session = getSession();
+      if (session) {
+        currentUser = session;
+        launchApp();
+      } else {
+        launchPreview();
+      }
+    });
   } else {
-    launchPreview(); // show the app in guest/preview mode
+    // Firebase Auth unavailable — use localStorage only
+    const session = getSession();
+    if (session) { currentUser = session; launchApp(); }
+    else launchPreview();
   }
 }
 
