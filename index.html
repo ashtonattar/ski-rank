@@ -1983,6 +1983,7 @@
   </style>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
@@ -3268,12 +3269,16 @@ const _fbConfig = {
   messagingSenderId: "451261217092",
   appId:             "1:451261217092:web:3489206a6b11033b133f11"
 };
-let db = null;
+let db       = null;
 let _storage = null;
+let _fbAuth  = null;
 try {
   firebase.initializeApp(_fbConfig);
-  db = firebase.firestore();
+  db       = firebase.firestore();
   _storage = firebase.storage();
+  _fbAuth  = firebase.auth();
+  // Keep Firebase Auth session in memory only — app manages its own session
+  _fbAuth.setPersistence(firebase.auth.Auth.Persistence.NONE);
 } catch(e) { console.warn('Firebase init failed:', e); }
 
 // Upload a video File to Firebase Storage and return its public download URL.
@@ -3715,20 +3720,39 @@ async function doSignup() {
   // Disable button immediately to prevent duplicate submissions
   if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
 
-  // Check Firestore for existing email (single source of truth)
   if (!db) return showErr('Unable to connect. Please try again.');
-  try {
-    const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-    if (!snap.empty) return showErr('An account with that email already exists.');
-  } catch(e) { console.warn('Email check failed:', e); }
 
   // Also check S.players in case Firestore users collection is ahead of snapshot
   if (S.players.some(p => p.email === email)) return showErr('An account with that email already exists.');
 
   const homeResort = document.getElementById('su-resort')?.value.trim() || '';
-  const newUser = { id: uid(), name, email, passwordHash: await hashPw(password), riderType: _selectedRiderType, homeResort, createdAt: Date.now() };
 
-  // Write credentials to Firestore — this is the only auth store now
+  // ── Create Firebase Auth account ──────────────────────────────────────
+  let firebaseUid = null;
+  if (_fbAuth) {
+    try {
+      const cred = await _fbAuth.createUserWithEmailAndPassword(email, password);
+      firebaseUid = cred.user.uid;
+      await _fbAuth.signOut(); // session managed by app, not Firebase
+    } catch(fbErr) {
+      if (fbErr.code === 'auth/email-already-in-use') return showErr('An account with that email already exists.');
+      if (fbErr.code === 'auth/weak-password')        return showErr('Password must be at least 6 characters.');
+      console.warn('Firebase Auth signup failed, falling back:', fbErr);
+    }
+  }
+
+  // Use Firebase Auth UID for new accounts, fallback to custom uid()
+  const playerId = firebaseUid || uid();
+  const newUser = {
+    id: playerId,
+    name, email,
+    passwordHash: await hashPw(password), // kept for legacy fallback
+    riderType: _selectedRiderType, homeResort,
+    createdAt: Date.now(),
+    ...(firebaseUid ? { firebaseUid } : {})
+  };
+
+  // Write to Firestore users collection
   try {
     await db.collection('users').doc(newUser.id).set(newUser);
   } catch(e) {
@@ -3775,7 +3799,32 @@ async function doLogin() {
 
   if (!db) { resetBtn(); return showErr('Unable to connect. Please try again.'); }
 
-  let user;
+  let user = null;
+  let migratedViaLegacy = false;
+
+  // ── Step 1: Try Firebase Auth ─────────────────────────────────────────
+  if (_fbAuth) {
+    try {
+      await _fbAuth.signInWithEmailAndPassword(email, password);
+      await _fbAuth.signOut(); // session managed by app
+    } catch(fbErr) {
+      const notFound = ['auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email'];
+      if (fbErr.code === 'auth/wrong-password') {
+        // Firebase Auth knows this user but password is wrong
+        resetBtn(); return showErr('Incorrect password.');
+      }
+      if (!notFound.includes(fbErr.code)) {
+        // Unknown error — fall through to legacy silently
+        console.warn('Firebase Auth error, trying legacy:', fbErr.code);
+      }
+      // User not in Firebase Auth yet — fall through to legacy
+      migratedViaLegacy = true;
+    }
+  } else {
+    migratedViaLegacy = true; // no Firebase Auth available
+  }
+
+  // ── Step 2: Look up player record in Firestore ────────────────────────
   try {
     const snap = await db.collection('users').where('email', '==', email).limit(1).get();
     if (!snap.empty) user = snap.docs[0].data();
@@ -3783,8 +3832,23 @@ async function doLogin() {
 
   if (!user) { resetBtn(); return showErr('No account found with that email.'); }
 
-  const hash = await hashPw(password);
-  if (hash !== user.passwordHash) { resetBtn(); return showErr('Incorrect password.'); }
+  // ── Step 3: Legacy password check (only if Firebase Auth didn't verify) ─
+  if (migratedViaLegacy) {
+    const hash = await hashPw(password);
+    if (hash !== user.passwordHash) { resetBtn(); return showErr('Incorrect password.'); }
+
+    // Password matched — silently migrate this account to Firebase Auth
+    if (_fbAuth) {
+      _fbAuth.createUserWithEmailAndPassword(email, password)
+        .then(async cred => {
+          // Store the Firebase UID on the Firestore user record
+          await db.collection('users').doc(user.id).update({ firebaseUid: cred.user.uid });
+          await _fbAuth.signOut();
+          toast('Account upgraded to secure sign-in 🔒', 'ok');
+        })
+        .catch(e => console.warn('Silent migration failed:', e.code));
+    }
+  }
 
   setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
   launchApp();
@@ -3795,6 +3859,7 @@ function logout() {
     stopPolling();
     stopFirestoreSync();
     clearSession();
+    if (_fbAuth) _fbAuth.signOut().catch(()=>{});
     S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
     load(); // reload public data so preview is still populated
     document.getElementById('sb-user-footer').style.display  = 'none';
@@ -3826,10 +3891,13 @@ function deleteAccount() {
       save();
       // Remove from Firestore auth store
       if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
+      // Remove from Firebase Auth
+      if (_fbAuth?.currentUser) _fbAuth.currentUser.delete().catch(()=>{});
       // Sign out
       stopPolling();
       stopFirestoreSync();
       clearSession();
+      if (_fbAuth) _fbAuth.signOut().catch(()=>{});
       S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
       load();
       document.getElementById('sb-user-footer').style.display  = 'none';
