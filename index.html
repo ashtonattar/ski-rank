@@ -1984,6 +1984,7 @@
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -3268,10 +3269,29 @@ const _fbConfig = {
   appId:             "1:451261217092:web:3489206a6b11033b133f11"
 };
 let db = null;
+let _storage = null;
 try {
   firebase.initializeApp(_fbConfig);
   db = firebase.firestore();
+  _storage = firebase.storage();
 } catch(e) { console.warn('Firebase init failed:', e); }
+
+// Upload a video File to Firebase Storage and return its public download URL.
+// Shows upload progress via the Post Clip button text.
+function uploadClipToStorage(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (!_storage) { reject(new Error('Storage not available')); return; }
+    const ext = file.name.split('.').pop() || 'mp4';
+    const path = `clips/${Date.now()}_${uid()}.${ext}`;
+    const ref  = _storage.ref(path);
+    const task = ref.put(file);
+    task.on('state_changed',
+      snap => { if (onProgress) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
+      err  => reject(err),
+      ()   => task.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
+    );
+  });
+}
 
 // avatarUrls are stored in a separate Firestore collection ('avatars/{playerId}')
 // to keep the main state doc well under the 1 MB limit.
@@ -7003,11 +7023,21 @@ async function submitPostClip() {
   if (!currentUser) { toast('Sign in to post', 'err'); return; }
 
   const btn = document.querySelector('#post-clip-modal .btn-primary');
-  btn.textContent = 'Uploading…';
   btn.disabled = true;
 
   try {
-    const clipUrl = await saveClipFile(_pcFile);
+    let clipUrl;
+    if (_storage) {
+      // Upload to Firebase Storage so all players can view it
+      clipUrl = await uploadClipToStorage(_pcFile, pct => {
+        btn.textContent = `Uploading… ${pct}%`;
+      });
+    } else {
+      // Fallback: local IDB (only visible on this device)
+      btn.textContent = 'Saving…';
+      clipUrl = await saveClipFile(_pcFile);
+    }
+
     const clip = {
       id:       'clip_' + Date.now(),
       _type:    'clip',
@@ -7024,6 +7054,7 @@ async function submitPostClip() {
     toast('Clip posted! 🎿', 'ok');
     renderExplore();
   } catch(err) {
+    console.error('Clip upload failed:', err);
     toast('Upload failed — try again', 'err');
   } finally {
     btn.textContent = 'Post to Explore';
