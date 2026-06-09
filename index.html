@@ -3286,14 +3286,29 @@ try {
 function uploadClipToStorage(file, onProgress) {
   return new Promise((resolve, reject) => {
     if (!_storage) { reject(new Error('Storage not available')); return; }
-    const ext = file.name.split('.').pop() || 'mp4';
+    const ext  = (file.name.split('.').pop() || 'mp4').toLowerCase();
     const path = `clips/${Date.now()}_${uid()}.${ext}`;
     const ref  = _storage.ref(path);
-    const task = ref.put(file);
+    const meta = { contentType: file.type || 'video/mp4' };
+    const task = ref.put(file, meta);
     task.on('state_changed',
-      snap => { if (onProgress) onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)); },
-      err  => reject(err),
-      ()   => task.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
+      snap => {
+        if (snap.totalBytes > 0 && onProgress) {
+          onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100));
+        }
+      },
+      err => {
+        console.error('[Storage upload error]', err.code, err.message);
+        // Surface a friendly message based on error code
+        if (err.code === 'storage/unauthorized') {
+          reject(new Error('Upload blocked — check Firebase Storage rules (clips folder needs allow write)'));
+        } else if (err.code === 'storage/canceled') {
+          reject(new Error('Upload cancelled'));
+        } else {
+          reject(new Error(`Upload failed: ${err.code}`));
+        }
+      },
+      () => task.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
     );
   });
 }
@@ -7151,7 +7166,8 @@ async function submitPostClip() {
     renderExplore();
   } catch(err) {
     console.error('Clip upload failed:', err);
-    toast('Upload failed — try again', 'err');
+    const msg = err.message?.includes('Storage rules') ? err.message : 'Upload failed — check your connection and try again';
+    toast(msg, 'err');
   } finally {
     btn.textContent = 'Post to Explore';
     btn.disabled = false;
