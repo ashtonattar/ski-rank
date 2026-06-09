@@ -6803,7 +6803,7 @@ function renderExplore() {
             </div>
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
           </div>
-          <div class="reel-action-btn" onclick="shareReel(${i})">
+          <div class="reel-action-btn" onclick="shareReel('${item.id}')">
             <div class="reel-action-icon">🔗</div>
             <div class="reel-action-label">Share</div>
           </div>
@@ -6862,7 +6862,7 @@ function renderExplore() {
               </div>
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
             </div>
-            <div class="reel-action-btn" onclick="shareReel(${i})">
+            <div class="reel-action-btn" onclick="shareReel('${item.id}')">
               <div class="reel-action-icon">🔗</div>
               <div class="reel-action-label">Share</div>
             </div>
@@ -6934,12 +6934,12 @@ function updateMuteIcons() {
   });
 }
 
-function shareReel(index) {
-  const allItems = buildExploreFeed();
-  const item = allItems[index];
+function shareReel(itemId) {
+  // Find by ID across both games and standalone clips
+  let item = S.games.find(g => g.id === itemId) || (S.clips || []).find(c => c.id === itemId);
   if (!item) return;
   let text, url;
-  if (item._type === 'clip') {
+  if (item._type === 'clip' || (S.clips || []).find(c => c.id === itemId)) {
     text = `${item.caption || 'Check out this ski clip'} — SKI Rank`;
     url  = item.clipUrl;
   } else {
@@ -6947,10 +6947,15 @@ function shareReel(index) {
     text = `${winner?.name} beat ${loser?.name} in SKI (${item.score || ''}) — check out the clip!`;
     url  = item.clipUrl;
   }
+  // For idb: references we can't share a blob URL externally — copy caption instead
+  if (!url || url.startsWith('idb:')) {
+    navigator.clipboard?.writeText(text).then(() => toast('Link copied!', 'ok'));
+    return;
+  }
   if (navigator.share) {
     navigator.share({ title:'SKI Rank Clip', text, url }).catch(()=>{});
   } else {
-    navigator.clipboard?.writeText(text).then(() => toast('Copied to clipboard!', 'ok'));
+    navigator.clipboard?.writeText(text + ' ' + url).then(() => toast('Link copied!', 'ok'));
   }
 }
 
