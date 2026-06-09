@@ -1495,6 +1495,31 @@
       0%,100% { transform: translateX(-50%) translateY(0); }
       50%      { transform: translateX(-50%) translateY(-5px); }
     }
+    @keyframes likePop {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.55); }
+      55%  { transform: scale(0.88); }
+      75%  { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    @keyframes likeRipple {
+      0%   { opacity: .7; transform: scale(0.6); }
+      100% { opacity: 0; transform: scale(2.4); }
+    }
+    .reel-like-wrap {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .reel-like-wrap .ripple {
+      position: absolute;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: rgba(255,51,85,0.45);
+      pointer-events: none;
+      animation: likeRipple .5s ease-out forwards;
+    }
+    .like-icon-inner { display:inline-block; line-height:1; }
+    .like-icon-inner.pop { animation: likePop .45s cubic-bezier(.36,.07,.19,.97) forwards; }
 
     /* ── Friends chat layout ── */
     .friends-layout {
@@ -6768,8 +6793,10 @@ function renderExplore() {
             </div>
             <div class="reel-action-label">${poster.name.split(' ')[0]}</div>
           </div>
-          <div class="reel-action-btn" onclick="toggleLike('${item.id}')">
-            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">${likedC ? '❤️' : '🤍'}</div>
+          <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
+            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">
+              <div class="reel-like-wrap"><span class="like-icon-inner">${likedC ? '❤️' : '🤍'}</span></div>
+            </div>
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
           </div>
           <div class="reel-action-btn" onclick="shareReel(${i})">
@@ -6825,8 +6852,10 @@ function renderExplore() {
               </div>
               <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
             </div>
-            <div class="reel-action-btn" onclick="toggleLike('${item.id}')">
-              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">${iLiked(item.id) ? '❤️' : '🤍'}</div>
+            <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
+              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">
+                <div class="reel-like-wrap"><span class="like-icon-inner">${iLiked(item.id) ? '❤️' : '🤍'}</span></div>
+              </div>
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
             </div>
             <div class="reel-action-btn" onclick="shareReel(${i})">
@@ -6993,16 +7022,45 @@ async function submitPostClip() {
   }
 }
 
-function toggleLike(itemId) {
+function toggleLike(itemId, el) {
   if (!currentUser) { toast('Sign in to like clips', 'err'); return; }
   if (!S.likes) S.likes = {};
   if (!S.likes[itemId]) S.likes[itemId] = [];
-  const arr = S.likes[itemId];
-  const idx = arr.indexOf(currentUser.id);
-  if (idx === -1) arr.push(currentUser.id);
+  const arr  = S.likes[itemId];
+  const idx  = arr.indexOf(currentUser.id);
+  const liking = idx === -1;
+  if (liking) arr.push(currentUser.id);
   else arr.splice(idx, 1);
   save();
-  renderExplore();
+
+  // Animate the tapped button immediately without full re-render
+  const btn = el ? el.closest('.reel-action-btn') : null;
+  if (btn) {
+    const icon  = btn.querySelector('.like-icon-inner');
+    const wrap  = btn.querySelector('.reel-like-wrap');
+    const label = btn.querySelector('.reel-action-label');
+    if (icon) {
+      icon.textContent = liking ? '❤️' : '🤍';
+      icon.classList.remove('pop');
+      // Force reflow so animation re-triggers
+      void icon.offsetWidth;
+      if (liking) icon.classList.add('pop');
+      // Update icon container colour
+      const iconBox = btn.querySelector('.reel-action-icon');
+      if (iconBox) iconBox.style.cssText += liking
+        ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);'
+        : 'background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);';
+    }
+    if (wrap && liking) {
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      wrap.appendChild(ripple);
+      ripple.addEventListener('animationend', () => ripple.remove());
+    }
+    if (label) label.textContent = getLikeCount(itemId) || '';
+  } else {
+    renderExplore();
+  }
 }
 
 function getLikeCount(itemId) {
