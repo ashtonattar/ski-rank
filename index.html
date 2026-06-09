@@ -1422,7 +1422,7 @@
     .reel-info {
       position: absolute;
       bottom: 0; left: 0; right: 80px;
-      padding: 24px 20px 32px;
+      padding: 24px 20px calc(32px + 120px);
     }
     .reel-players {
       font-size: 17px; font-weight: 800;
@@ -1448,7 +1448,7 @@
     /* Right action sidebar */
     .reel-actions {
       position: absolute;
-      bottom: 60px; right: 16px;
+      bottom: calc(60px + 120px); right: 16px;
       display: flex; flex-direction: column; align-items: center; gap: 22px;
     }
     .reel-action-btn {
@@ -2655,7 +2655,7 @@
     <!-- ─── EXPLORE ─── -->
     <div id="view-explore" class="view">
       <!-- Post Clip FAB -->
-      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;bottom:calc(132px + env(safe-area-inset-bottom));right:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">＋ Post Clip</button>
+      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;bottom:calc(132px + env(safe-area-inset-bottom));left:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">＋ Post Clip</button>
 
       <div id="explore-feed" class="explore-feed"></div>
       <div id="explore-empty" style="display:none;text-align:center;padding:72px 24px 80px;color:var(--text-muted);">
@@ -4559,7 +4559,7 @@ function _animateAuthOut(cb) {
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[], clips:[] };
+let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[], clips:[], likes:{} };
 
 function load() {
   try {
@@ -6759,6 +6759,7 @@ function renderExplore() {
           </div>
           ${item.caption ? `<div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:600;">${item.caption}</div>` : ''}
         </div>`;
+      const likedC = iLiked(item.id);
       const actionsHtml = `
         <div class="reel-actions">
           <div class="reel-action-btn" onclick="showProfile('${poster.id}')">
@@ -6766,6 +6767,10 @@ function renderExplore() {
               ${poster.avatarUrl ? `<img src="${poster.avatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;background:${avatarGrad(poster.id)};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">${initials(poster.name)}</div>`}
             </div>
             <div class="reel-action-label">${poster.name.split(' ')[0]}</div>
+          </div>
+          <div class="reel-action-btn" onclick="toggleLike('${item.id}')">
+            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">${likedC ? '❤️' : '🤍'}</div>
+            <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
           </div>
           <div class="reel-action-btn" onclick="shareReel(${i})">
             <div class="reel-action-icon">🔗</div>
@@ -6819,6 +6824,10 @@ function renderExplore() {
                 ${winner.avatarUrl ? `<img src="${winner.avatarUrl}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` : `<div class="avatar" style="width:36px;height:36px;font-size:13px;background:${avatarGrad(winner.id)};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">${initials(winner.name)}</div>`}
               </div>
               <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
+            </div>
+            <div class="reel-action-btn" onclick="toggleLike('${item.id}')">
+              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">${iLiked(item.id) ? '❤️' : '🤍'}</div>
+              <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
             </div>
             <div class="reel-action-btn" onclick="shareReel(${i})">
               <div class="reel-action-icon">🔗</div>
@@ -6982,6 +6991,26 @@ async function submitPostClip() {
     btn.textContent = 'Post to Explore';
     btn.disabled = false;
   }
+}
+
+function toggleLike(itemId) {
+  if (!currentUser) { toast('Sign in to like clips', 'err'); return; }
+  if (!S.likes) S.likes = {};
+  if (!S.likes[itemId]) S.likes[itemId] = [];
+  const arr = S.likes[itemId];
+  const idx = arr.indexOf(currentUser.id);
+  if (idx === -1) arr.push(currentUser.id);
+  else arr.splice(idx, 1);
+  save();
+  renderExplore();
+}
+
+function getLikeCount(itemId) {
+  return ((S.likes || {})[itemId] || []).length;
+}
+
+function iLiked(itemId) {
+  return currentUser && ((S.likes || {})[itemId] || []).includes(currentUser.id);
 }
 
 function deleteClip(clipId) {
