@@ -1216,6 +1216,7 @@
     .tourney-card:hover { border-color:var(--ice); box-shadow:0 0 18px var(--ice-glow); }
     .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
     .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
+    .pc-drag-over { border-color:var(--ice) !important; background:rgba(0,212,255,0.10) !important; }
     .tourney-badge { font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase; }
     .tourney-badge.setup   { background:rgba(255,196,0,.15);color:var(--warning); }
     .tourney-badge.active  { background:rgba(0,230,118,.15);color:var(--success); }
@@ -6913,41 +6914,74 @@ function shareReel(index) {
 
 // ── Standalone clip posts ──────────────────────────────
 
+let _pcFile = null; // file selected in Post Clip modal
+
 function openPostClip() {
   if (!currentUser) { toast('Sign in to post a clip', 'err'); return; }
-  const m = document.getElementById('post-clip-modal');
+  _pcFile = null;
   document.getElementById('pc-caption').value = '';
-  document.getElementById('pc-url').value = '';
-  document.getElementById('pc-resort').value = '';
-  m.style.display = 'flex';
+  document.getElementById('pc-resort').value  = '';
+  document.getElementById('pc-file-input').value = '';
+  document.getElementById('pc-drop-label').style.display   = 'block';
+  document.getElementById('pc-drop-preview').style.display = 'none';
+  document.getElementById('post-clip-modal').style.display = 'flex';
 }
 
 function closePostClip() {
   document.getElementById('post-clip-modal').style.display = 'none';
+  _pcFile = null;
 }
 
-function submitPostClip() {
-  const url     = document.getElementById('pc-url').value.trim();
+function pcHandleFile(file) {
+  if (!file) return;
+  _pcFile = file;
+  document.getElementById('pc-drop-label').style.display   = 'none';
+  document.getElementById('pc-drop-preview').style.display = 'block';
+  document.getElementById('pc-drop-preview').innerHTML =
+    `✅ <strong>${file.name}</strong><br><span style="color:var(--text-muted);font-weight:400;">${(file.size/1048576).toFixed(1)} MB — tap to change</span>`;
+}
+
+function pcHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('pc-dropzone').classList.remove('pc-drag-over');
+  const file = e.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith('video/')) pcHandleFile(file);
+  else toast('Please drop a video file', 'err');
+}
+
+async function submitPostClip() {
   const caption = document.getElementById('pc-caption').value.trim();
   const resort  = document.getElementById('pc-resort').value.trim();
-  if (!url) { toast('Please enter a video URL', 'err'); return; }
+  if (!_pcFile) { toast('Please choose a video first', 'err'); return; }
   if (!currentUser) { toast('Sign in to post', 'err'); return; }
 
-  const clip = {
-    id:       'clip_' + Date.now(),
-    _type:    'clip',
-    posterId: currentUser.id,
-    clipUrl:  url,
-    caption,
-    resort,
-    date:     Date.now(),
-  };
-  if (!S.clips) S.clips = [];
-  S.clips.push(clip);
-  save();
-  closePostClip();
-  toast('Clip posted! 🎿', 'ok');
-  renderExplore();
+  const btn = document.querySelector('#post-clip-modal .btn-primary');
+  btn.textContent = 'Uploading…';
+  btn.disabled = true;
+
+  try {
+    const clipUrl = await saveClipFile(_pcFile);
+    const clip = {
+      id:       'clip_' + Date.now(),
+      _type:    'clip',
+      posterId: currentUser.id,
+      clipUrl,
+      caption,
+      resort,
+      date: Date.now(),
+    };
+    if (!S.clips) S.clips = [];
+    S.clips.push(clip);
+    save();
+    closePostClip();
+    toast('Clip posted! 🎿', 'ok');
+    renderExplore();
+  } catch(err) {
+    toast('Upload failed — try again', 'err');
+  } finally {
+    btn.textContent = 'Post to Explore';
+    btn.disabled = false;
+  }
 }
 
 function deleteClip(clipId) {
@@ -10346,13 +10380,24 @@ async function adminWipeEverything() {
       <button onclick="closePostClip()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
+      <!-- Drop zone -->
+      <div id="pc-dropzone"
+           onclick="document.getElementById('pc-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('pc-drag-over')"
+           ondragleave="this.classList.remove('pc-drag-over')"
+           ondrop="pcHandleDrop(event)"
+           style="border:2px dashed rgba(0,212,255,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(0,212,255,0.04);">
+        <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
+        <div id="pc-drop-label">
+          <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Tap to choose a video</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">or drag &amp; drop here</div>
+        </div>
+        <div id="pc-drop-preview" style="display:none;font-size:12px;color:var(--ice);font-weight:700;"></div>
+      </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Caption</label>
         <input id="pc-caption" type="text" class="form-input" placeholder="What went down?" maxlength="120">
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Video URL <span style="color:var(--text-muted);font-size:10px;font-weight:400;">(YouTube, Vimeo, or direct .mp4)</span></label>
-        <input id="pc-url" type="url" class="form-input" placeholder="https://...">
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Resort / Location <span style="color:var(--text-muted);font-size:10px;font-weight:400;">(optional)</span></label>
