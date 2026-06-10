@@ -3283,33 +3283,43 @@ try {
 
 // Upload a video File to Firebase Storage and return its public download URL.
 // Shows upload progress via the Post Clip button text.
-function uploadClipToStorage(file, onProgress) {
+// ── Cloudinary unsigned upload ────────────────────────────────────────────
+// Free tier: 25 GB storage + 25 GB bandwidth/month. No credit card needed.
+// If the free tier is exceeded uploads simply fail — no surprise bills.
+const _CLOUDINARY_CLOUD  = 'dlswxctw9';
+const _CLOUDINARY_PRESET = 'skirank-clips';
+const _CLOUDINARY_MAX_MB = 100; // client-side guard
+
+function uploadClipToCloudinary(file, onProgress) {
   return new Promise((resolve, reject) => {
-    if (!_storage) { reject(new Error('Storage not available')); return; }
-    const ext  = (file.name.split('.').pop() || 'mp4').toLowerCase();
-    const path = `clips/${Date.now()}_${uid()}.${ext}`;
-    const ref  = _storage.ref(path);
-    const meta = { contentType: file.type || 'video/mp4' };
-    const task = ref.put(file, meta);
-    task.on('state_changed',
-      snap => {
-        if (snap.totalBytes > 0 && onProgress) {
-          onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100));
-        }
-      },
-      err => {
-        console.error('[Storage upload error]', err.code, err.message);
-        // Surface a friendly message based on error code
-        if (err.code === 'storage/unauthorized') {
-          reject(new Error('Upload blocked — check Firebase Storage rules (clips folder needs allow write)'));
-        } else if (err.code === 'storage/canceled') {
-          reject(new Error('Upload cancelled'));
-        } else {
-          reject(new Error(`Upload failed: ${err.code}`));
-        }
-      },
-      () => task.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
-    );
+    if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
+      reject(new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`)); return;
+    }
+    const fd = new FormData();
+    fd.append('file',           file);
+    fd.append('upload_preset',  _CLOUDINARY_PRESET);
+    fd.append('resource_type',  'video');
+    fd.append('folder',         'skirank');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${_CLOUDINARY_CLOUD}/video/upload`);
+
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round(e.loaded / e.total * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const res = JSON.parse(xhr.responseText);
+        resolve(res.secure_url);
+      } else {
+        const err = (() => { try { return JSON.parse(xhr.responseText); } catch(_) { return {}; } })();
+        reject(new Error(err.error?.message || `Upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(fd);
   });
 }
 
@@ -7162,14 +7172,9 @@ async function submitPostClip() {
     } else {
       // File mode — upload to Firebase Storage
       if (!_pcFile) { btn.disabled = false; toast('Please choose a video file', 'err'); return; }
-      if (_storage) {
-        clipUrl = await uploadClipToStorage(_pcFile, pct => {
-          btn.textContent = `Uploading… ${pct}%`;
-        });
-      } else {
-        btn.textContent = 'Saving…';
-        clipUrl = await saveClipFile(_pcFile);
-      }
+      clipUrl = await uploadClipToCloudinary(_pcFile, pct => {
+        btn.textContent = `Uploading… ${pct}%`;
+      });
     }
 
     const clip = {
@@ -10705,7 +10710,7 @@ async function adminWipeEverything() {
           </div>
           <div id="pc-drop-preview" style="display:none;font-size:12px;color:var(--ice);font-weight:700;"></div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">Requires Firebase Storage (Blaze plan)</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">Max 100 MB · mp4, mov, webm</div>
       </div>
 
       <div>
