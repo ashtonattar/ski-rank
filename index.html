@@ -7743,6 +7743,13 @@ function showProfile(id) {
   const h2hW = h2h.filter(g=>g.winnerId===currentUser?.id).length;
   const h2hL = h2h.filter(g=>g.loserId===currentUser?.id).length;
 
+  // Mutual friends
+  const myFriendSet    = new Set((byId(currentUser?.id)?.friends || []));
+  const theirFriendSet = new Set((p.friends || []));
+  const mutuals = id !== currentUser?.id
+    ? [...myFriendSet].filter(fid => theirFriendSet.has(fid)).map(fid => byId(fid)).filter(Boolean)
+    : [];
+
   // Streaks
   const streaks = calcStreaks(id);
 
@@ -7771,6 +7778,23 @@ function showProfile(id) {
         <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--accent);">${rank ? '#' + rank : '—'}</div>
       </div>
     </div>
+
+    <!-- ── Mutual friends ── -->
+    ${mutuals.length ? `
+    <div style="margin-bottom:14px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;">
+        ${mutuals.slice(0,4).map((f,i) => f.avatarUrl
+          ? `<img src="${f.avatarUrl}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--bg-elevated);margin-left:${i?'-8px':'0'};" alt="">`
+          : `<div style="width:26px;height:26px;border-radius:50%;background:${avatarGrad(f.id)};border:2px solid var(--bg-elevated);margin-left:${i?'-8px':'0'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;">${initials(f.name)}</div>`
+        ).join('')}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.4;">
+          <span style="font-weight:700;color:var(--text-primary);">${mutuals.length} mutual friend${mutuals.length !== 1 ? 's' : ''}</span>
+          <span style="color:var(--text-muted);"> · ${mutuals.slice(0,2).map(f=>f.name.split(' ')[0]).join(', ')}${mutuals.length > 2 ? ` +${mutuals.length - 2} more` : ''}</span>
+        </div>
+      </div>
+    </div>` : ''}
 
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
       ${[['Wins',p.wins,'var(--success)'],['Losses',p.losses,'var(--danger)'],['Win %',wpct+'%','var(--primary)'],['Games',p.gamesPlayed,'var(--text-primary)']].map(([l,v,c])=>`
