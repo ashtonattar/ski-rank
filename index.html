@@ -1692,96 +1692,172 @@
       /* ── Prevent horizontal scroll ── */
       html, body { overflow-x:hidden; max-width:100vw; }
 
-      /* ── Sidebar → bottom tab bar (pill card style) ── */
+      /* Smooth momentum scrolling everywhere */
+      .main, .modal-body, .sidebar-nav, .friends-messages, .tbl-wrap {
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Snappier tap response — remove 300ms delay */
+      * { touch-action: manipulation; }
+
+      /* ── Sidebar → bottom tab bar ── */
       .sidebar {
-        width:calc(100% - 24px) !important; left:12px; right:12px; height:auto !important;
+        width:calc(100% - 20px) !important; left:10px; right:10px; height:auto !important;
         position:fixed; bottom:0; top:auto;
         flex-direction:row; border-right:none;
-        border:1px solid rgba(0,212,255,0.18);
-        border-top-left-radius:var(--radius-lg);
-        border-top-right-radius:var(--radius-lg);
+        border:1px solid rgba(0,212,255,0.15);
+        border-top-left-radius:22px;
+        border-top-right-radius:22px;
         border-bottom-left-radius:0;
         border-bottom-right-radius:0;
-        background:rgba(3,12,28,0.95);
-        backdrop-filter:blur(24px);
-        -webkit-backdrop-filter:blur(24px);
-        box-shadow:0 -4px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+        background:rgba(3,10,24,0.97);
+        backdrop-filter:blur(32px);
+        -webkit-backdrop-filter:blur(32px);
+        box-shadow:0 -2px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
         padding-bottom:env(safe-area-inset-bottom);
       }
       .sidebar::after { display:none; }
       .sidebar-logo { display:none; }
-      .sidebar-nav { flex-direction:row; padding:4px 2px; overflow-x:auto; justify-content:flex-start; gap:0; width:100%; scrollbar-width:none; }
+      .sidebar-nav {
+        flex-direction:row; padding:6px 4px 2px; overflow-x:auto;
+        justify-content:space-around; gap:0; width:100%;
+        scrollbar-width:none;
+      }
       .sidebar-nav::-webkit-scrollbar { display:none; }
-      /* Nav buttons: pill active state */
-      .nav-btn { flex-direction:column; gap:1px; padding:5px 6px; font-size:9px; width:auto; min-width:44px; flex:0 0 auto; text-align:center; border-radius:var(--radius-sm); position:relative; }
-      .nav-btn .nav-icon { font-size:17px; }
-      .nav-btn::before { display:none; }
-      /* Badge floats over icon — doesn't affect button height */
-      .nav-btn .nav-badge { position:absolute; top:2px; right:4px; margin-left:0; }
-      .nav-btn.active { background:rgba(0,212,255,0.12); color:var(--ice); font-weight:700; }
-      .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(0,212,255,0.20),rgba(0,212,255,0.08)); }
 
-      /* Profile footer: pill card above tab bar */
+      /* Nav buttons */
+      .nav-btn {
+        flex-direction:column; gap:2px; padding:6px 8px;
+        font-size:9.5px; font-weight:600; letter-spacing:.2px;
+        width:auto; min-width:48px; flex:1;
+        text-align:center; border-radius:12px; position:relative;
+        transition:background .15s, color .15s, transform .1s;
+        -webkit-tap-highlight-color:transparent;
+      }
+      .nav-btn:active { transform:scale(0.92); }
+      .nav-btn .nav-icon { font-size:18px; line-height:1; }
+      .nav-btn::before { display:none; }
+      .nav-btn .nav-badge { position:absolute; top:2px; right:6px; margin-left:0; }
+      .nav-btn.active {
+        background:rgba(0,212,255,0.13);
+        color:var(--ice);
+        font-weight:800;
+      }
+      .nav-btn.active .nav-icon { filter:drop-shadow(0 0 6px rgba(0,212,255,0.5)); }
+      .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.07)); }
+
+      /* Profile island above tab bar */
       .sidebar-user {
         display:flex;
         position:fixed;
-        bottom:calc(62px + env(safe-area-inset-bottom));
-        left:12px; right:12px;
-        padding:8px 14px;
-        border:1px solid rgba(0,212,255,0.18);
-        border-radius:var(--radius-lg);
-        background:rgba(3,12,28,0.95);
-        backdrop-filter:blur(24px);
-        -webkit-backdrop-filter:blur(24px);
-        box-shadow:0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+        bottom:calc(64px + env(safe-area-inset-bottom));
+        left:10px; right:10px;
+        padding:9px 14px;
+        border:1px solid rgba(0,212,255,0.15);
+        border-radius:18px;
+        background:rgba(3,10,24,0.97);
+        backdrop-filter:blur(32px);
+        -webkit-backdrop-filter:blur(32px);
+        box-shadow:0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
         z-index:99;
+        transition:transform .2s, opacity .2s;
       }
-
 
       /* ── Main content ── */
       .main {
         margin-left:0 !important; max-width:100% !important;
-        margin-bottom:0; padding:12px; width:100%;
+        margin-bottom:0; padding:14px 12px; width:100%;
         box-sizing:border-box; min-width:0;
-        padding-bottom:calc(128px + env(safe-area-inset-bottom)) !important;
+        padding-bottom:calc(140px + env(safe-area-inset-bottom)) !important;
       }
-      /* Fix flex overflow: table wrappers must be width-constrained */
+      /* Fix flex overflow */
       .tbl-wrap { width:100%; max-width:100%; }
-      .card { min-width:0; }
+
+      /* Cards — cleaner, more breathing room */
+      .card {
+        min-width:0;
+        padding:16px;
+        border-radius:18px;
+        border:1px solid rgba(255,255,255,0.06);
+        background:rgba(6,18,38,0.72);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+      }
+
+      /* Buttons — bigger tap targets */
+      .btn { min-height:44px; border-radius:12px; }
+      .btn-sm { min-height:36px; }
+
+      /* Form inputs — larger tap target */
+      .form-input {
+        min-height:46px;
+        border-radius:12px;
+        font-size:16px; /* prevents iOS zoom on focus */
+      }
 
       /* ── Hero section ── */
-      .hero { padding:20px 18px 24px; overflow:hidden; }
-      .hero h1 { font-size:36px; letter-spacing:3px; }
+      .hero { padding:20px 16px 22px; overflow:hidden; border-radius:18px; }
+      .hero h1 { font-size:34px; letter-spacing:2.5px; }
       .hero-eyebrow { letter-spacing:2px; font-size:10px; white-space:nowrap; overflow:hidden; }
-      .action-strip { grid-template-columns:1fr 1fr; }
-      .action-shot { height:80px; }
+      .action-strip { grid-template-columns:1fr 1fr; gap:8px; }
+      .action-shot { height:78px; border-radius:14px; }
 
       /* ── Stats grid ── */
       .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
-      .stat-card { padding:12px; }
+      .stat-card { padding:14px 12px; border-radius:14px; }
       .stat-val { font-size:22px; }
 
       /* ── Leaderboard table ── */
-      /* Let .tbl-wrap scroll; table keeps its natural display:table */
       .td-loc, .lb-col-games, .lb-col-change { display:none; }
 
       /* ── Forms ── */
       .form-row { grid-template-columns:1fr; }
-      .card { padding:14px; }
 
       /* ── Live game ── */
       .live-board { grid-template-columns:1fr 1fr; gap:8px; }
       .vs-text { display:none; }
-      .player-panel { padding:12px 8px; }
+      .player-panel { padding:12px 8px; border-radius:14px; }
       .pp-name { font-size:13px; }
       .pp-rating { font-size:10px; }
       .ski-letter { width:28px; height:28px; font-size:12px; }
 
       /* ── Auth card ── */
-      .auth-card { padding:24px 16px; margin:0; max-width:100%; }
-      .auth-logo .logo-big { font-size:36px; letter-spacing:3px; }
+      .auth-card {
+        padding:28px 20px; margin:0; max-width:100%;
+        border-radius:24px;
+        border:1px solid rgba(255,255,255,0.07);
+        background:rgba(4,14,30,0.88);
+        backdrop-filter:blur(24px);
+        -webkit-backdrop-filter:blur(24px);
+      }
+      .auth-logo .logo-big { font-size:34px; letter-spacing:3px; }
       .auth-logo .logo-tag { font-size:8px; letter-spacing:1.5px; overflow:hidden; white-space:nowrap; }
       .auth-screen { padding:12px; }
+
+      /* ── Modals — slide up from bottom ── */
+      .modal {
+        align-items:flex-end !important;
+      }
+      .modal-card {
+        border-radius:24px 24px 0 0 !important;
+        max-height:92vh;
+        border-bottom:none !important;
+      }
+
+      /* ── Section headers ── */
+      .view-header h2 { font-size:22px; }
+
+      /* ── Touch feedback on tappable rows ── */
+      tr[onclick]:active, [onclick]:not(button):not(a):active {
+        opacity:0.7;
+      }
+
+      /* ── Smoother view transitions ── */
+      .view { animation:viewFadeIn .18s ease; }
+      @keyframes viewFadeIn {
+        from { opacity:0; transform:translateY(6px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
 
       /* ── View header ── */
       .view-header h2 { font-size:26px; }
