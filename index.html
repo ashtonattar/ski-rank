@@ -3417,6 +3417,7 @@ let   _clearLiveOnFirstSync   = false; // abandon any live game found on first s
 let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapshot so old wins don't re-trigger
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
+let   _disputeResolved = false; // prevent double-resolution when both players' snapshots fire simultaneously
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -3716,6 +3717,28 @@ function startFirestoreSync() {
             if (liveActive && liveActive.style.display !== 'none') {
               restoreLog();
               drawBoard();
+              // Resolve dispute once BOTH votes are confirmed in Firestore.
+              // Runs on both devices but _disputeResolved guards against double-apply.
+              if (S.live.phase === 'dispute' && !_disputeResolved) {
+                const dv = S.live.disputeVotes || {};
+                const v1 = dv[S.live.p1];
+                const v2 = dv[S.live.p2];
+                if (v1 && v2) {
+                  _disputeResolved = true;
+                  if (v1 === v2) {
+                    const upheld = v1 === 'confirm';
+                    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
+                    applyPendingCall(!upheld);
+                  } else {
+                    S.live.strikes = S.live.strikes || {};
+                    S.live.strikes[S.live.p1] = (S.live.strikes[S.live.p1] || 0) + 1;
+                    S.live.strikes[S.live.p2] = (S.live.strikes[S.live.p2] || 0) + 1;
+                    const s1 = S.live.strikes[S.live.p1], s2 = S.live.strikes[S.live.p2];
+                    addLog('⚡', `Disagreement! Both players get a strike. ${byId(S.live.p1).name}: ${s1}/3 · ${byId(S.live.p2).name}: ${s2}/3. Call stands.`);
+                    applyPendingCall(false);
+                  }
+                }
+              }
             }
           } else if (S.live && S.live.over) {
             if (!_gameOverDismissed) {
@@ -6395,6 +6418,7 @@ function enterDisputePhase(callType) {
   g.pendingCall  = { type: callType, prevPhase: g.phase };
   g.disputeVotes = {};
   g.phase        = 'dispute';
+  _disputeResolved = false; // reset so the new dispute can be resolved
   const callerName = callType.startsWith('setter') || callType === 'revengeLanded' || callType === 'revengeMissed'
     ? byId(g.setterId).name
     : byId(g.setterId).name; // setter always makes the call
@@ -6406,34 +6430,29 @@ function enterDisputePhase(callType) {
 function submitDisputeVote(vote) {
   const g = S.live;
   if (!g || g.phase !== 'dispute' || !currentUser) return;
-  if (g.disputeVotes[currentUser.id]) return; // already voted
-  g.disputeVotes[currentUser.id] = vote;
-  save(); drawBoard();
+  if ((g.disputeVotes || {})[currentUser.id]) return; // already voted
 
-  // Check if both players have voted
-  const v1 = g.disputeVotes[g.p1];
-  const v2 = g.disputeVotes[g.p2];
-  if (!v1 || !v2) return; // still waiting for the other player
-
-  if (v1 === v2) {
-    // Agreement
-    const upheld = v1 === 'confirm';
-    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
-    applyPendingCall(!upheld); // reversed=false means apply original; reversed=true means flip it
-  } else {
-    // Disagreement — both get a strike, call stands
-    g.strikes = g.strikes || {};
-    g.strikes[g.p1] = (g.strikes[g.p1] || 0) + 1;
-    g.strikes[g.p2] = (g.strikes[g.p2] || 0) + 1;
-    const s1 = g.strikes[g.p1], s2 = g.strikes[g.p2];
-    addLog('⚡', `Disagreement! Both players get a strike. ${byId(g.p1).name}: ${s1}/3 · ${byId(g.p2).name}: ${s2}/3. Call stands.`);
-    applyPendingCall(false); // call stands as originally made
+  // Write ONLY this player's vote using a targeted field update.
+  // A full save() would overwrite the opponent's vote since each device
+  // only has its own vote locally — targeted update is additive.
+  if (db) {
+    db.collection('state').doc('global').update({
+      [`live.disputeVotes.${currentUser.id}`]: vote
+    }).catch(e => console.warn('Dispute vote write failed:', e));
   }
+
+  // Optimistically update local state and redraw so UI responds immediately
+  if (!g.disputeVotes) g.disputeVotes = {};
+  g.disputeVotes[currentUser.id] = vote;
+  drawBoard();
+  // Resolution is handled in the Firestore snapshot handler once both votes
+  // are confirmed server-side — avoids race conditions between devices.
 }
 
 // Apply the pending call — reversed=true flips the outcome
 function applyPendingCall(reversed) {
   const g = S.live;
+  if (!g || !g.pendingCall) return; // guard against double-call
   const type    = reversed ? flipCall(g.pendingCall.type) : g.pendingCall.type;
   g.pendingCall = null;
   g.disputeVotes = {};
