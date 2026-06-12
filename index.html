@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#020c18">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SKI Rank">
-  <meta name="application-name" content="SKI Rank">
+  <meta name="apple-mobile-web-app-title" content="Slope Battles">
+  <meta name="application-name" content="Slope Battles">
   <meta name="description" content="Freestyle skiing trick duels & rating system">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="icon.svg">
-  <title>SKI Rank — Freestyle Trick Duels</title>
+  <title>Slope Battles — Freestyle Trick Duels</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -3699,15 +3699,6 @@ function startFirestoreSync() {
         if (_activeSection === 'profile') renderMyProfile();
         updateSidebarAvatar();
 
-        // Show onboarding for brand-new signups (once Firestore has their player record)
-        if (_isNewSignup) {
-          _isNewSignup = false;
-          const me = S.players.find(p => p.id === currentUser?.id);
-          if (me && !me.onboarded) {
-            setTimeout(() => showOnboarding(), 600);
-          }
-        }
-
         // Live game — update the board in real time without a full nav re-render
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
@@ -4791,6 +4782,13 @@ function launchApp() {
   const appEl = document.getElementById('app');
   appEl.classList.add('animating-in');
   setTimeout(() => appEl.classList.remove('animating-in'), 500);
+
+  // Show onboarding immediately for brand-new signups — no need to wait for Firestore
+  // since we already pre-seeded S.players with the new account before calling launchApp()
+  if (_isNewSignup) {
+    _isNewSignup = false;
+    setTimeout(() => showOnboarding(), 520); // just after the app-in animation finishes
+  }
   }); // end _animateAuthOut callback
 }
 
