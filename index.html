@@ -3401,6 +3401,8 @@ let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapsho
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
 let   _disputeResolved = false; // prevent double-resolution when both players' snapshots fire simultaneously
+let   _abandonHandled  = false; // prevent survivor from calling finishLive twice for the same abandon
+let   _abandonTimer    = null;  // visibilitychange timer — forfeit if hidden > 30s during active game
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -3686,7 +3688,24 @@ function startFirestoreSync() {
         // Live game — update the board in real time without a full nav re-render
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
-          if (S.live && !S.live.over) {
+          // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
+          if (S.live && S.live.abandonedBy && !S.live.over && !_abandonHandled) {
+            const abId = S.live.abandonedBy;
+            const amOtherPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2) && currentUser.id !== abId;
+            if (amOtherPlayer) {
+              _abandonHandled = true;
+              // Clear the flag so we don't re-trigger on next snapshot
+              if (db) db.collection('state').doc('global').update({ 'live.abandonedBy': null })
+                .catch(e => console.warn('abandon flag clear failed', e));
+              S.live.abandonedBy = null;
+              const winnerId = currentUser.id;
+              const loserId  = abId;
+              const loserName = byId(loserId)?.name || 'Opponent';
+              S.live.letters[loserId] = 3; // full SKI = forfeit
+              addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
+              finishLive(winnerId, loserId);
+            }
+          } else if (S.live && !S.live.over) {
             const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
             const liveActive = document.getElementById('live-active');
             const liveSetup  = document.getElementById('live-setup');
@@ -6042,6 +6061,7 @@ function startLive() {
   const _hcap   = _hcapOn ? calcHandicap(p1, p2) : null;
   const _startLetters = _hcap?.hcap > 0 ? _hcap.letters : { [p1]:0, [p2]:0 };
 
+  _abandonHandled = false;
   S.live = {
     p1, p2,
     judgeId: judge,
@@ -6639,6 +6659,8 @@ function _resetLiveUI() {
 function resetLive() {
   // Clears the game for everyone (called after Save & New Game or abandon)
   _gameOverDismissed = false;
+  _abandonHandled    = false;
+  if (_abandonTimer) { clearTimeout(_abandonTimer); _abandonTimer = null; }
   // Clear ALL invites tied to this game (host, opponent and judge)
   if (S.live) {
     const p1 = S.live.p1, p2 = S.live.p2;
@@ -9613,6 +9635,7 @@ function acceptLiveInvite(inviteId) {
   // any votes or state the host has already set (e.g. pick-setter votes).
   // Only create it as a fallback if it doesn't exist yet.
   if (!S.live || S.live.p1 !== inv.p1Id || S.live.p2 !== inv.p2Id) {
+    _abandonHandled = false;
     const _initLetters = inv.handicapLetters || { [inv.p1Id]: 0, [inv.p2Id]: 0 };
     S.live = {
       p1: inv.p1Id, p2: inv.p2Id,
@@ -10521,6 +10544,40 @@ let _adminTab = 'users';
 // Check for #admin in URL on load
 window.addEventListener('hashchange', () => { if (location.hash === '#admin') openAdmin(); });
 if (location.hash === '#admin') setTimeout(openAdmin, 500);
+
+// ── App-close forfeit ──────────────────────────────────────────
+// If a player closes the tab / navigates away during an active game,
+// write an abandonedBy signal to Firestore so the opponent's snapshot
+// handler can call finishLive and properly record the forfeit.
+function _signalAbandon() {
+  if (!S.live || S.live.over || !currentUser) return;
+  const g = S.live;
+  const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2;
+  if (!amPlayer) return;
+  // Use targeted update — avoids full save() which is async and may not complete
+  if (db) {
+    db.collection('state').doc('global').update({
+      'live.abandonedBy': currentUser.id,
+      'live.abandonedAt': Date.now()
+    }).catch(() => {});
+  }
+}
+
+window.addEventListener('beforeunload', _signalAbandon);
+window.addEventListener('pagehide', (e) => { if (!e.persisted) _signalAbandon(); });
+
+// Mobile: if app is hidden for >30 seconds during an active game, forfeit
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (S.live && !S.live.over && currentUser &&
+        (currentUser.id === S.live.p1 || currentUser.id === S.live.p2)) {
+      _abandonTimer = setTimeout(_signalAbandon, 30000);
+    }
+  } else {
+    // App came back — cancel the timer
+    if (_abandonTimer) { clearTimeout(_abandonTimer); _abandonTimer = null; }
+  }
+});
 
 function openAdmin() {
   document.getElementById('admin-screen').style.display = 'block';
