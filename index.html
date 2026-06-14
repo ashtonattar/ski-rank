@@ -10113,8 +10113,9 @@ function renderRatingHistory(playerId, container, countEl) {
   points.forEach((p, i) => {
     const x = xOf(i), y = yOf(p.rating);
     const col = p.isWin ? '#00e676' : '#ff3355';
-    dots += `<circle class="rh-dot" cx="${x}" cy="${y}" r="5" fill="${col}" stroke="var(--bg-card,#030c1c)" stroke-width="2"
-      data-idx="${i}" style="cursor:pointer;" />`;
+    dots += `<circle class="rh-dot" cx="${x}" cy="${y}" r="6" fill="${col}" stroke="var(--bg-card,#030c1c)" stroke-width="2"
+      data-idx="${i}" style="cursor:pointer;transition:r .15s;" />
+    <circle cx="${x}" cy="${y}" r="14" fill="transparent" data-idx="${i}" style="cursor:pointer;" class="rh-dot-tap"/>`;
   });
 
   // Gradient def id (unique to avoid conflicts)
@@ -10143,31 +10144,70 @@ function renderRatingHistory(playerId, container, countEl) {
       ${dots}
     </svg>`;
 
-  // Tooltip interaction
+  // Tooltip interaction — hover on desktop, click/tap to pin on mobile
   const tooltip = document.getElementById('rh-tooltip');
+  let _pinnedDot = null;
+
+  const positionTooltip = (pt, anchorEl) => {
+    const d = new Date(pt.date);
+    const dateStr = `${d.toLocaleString('default',{month:'short'})} ${d.getDate()}, ${d.getFullYear()}`;
+    const sign = pt.delta >= 0 ? '+' : '';
+    tooltip.innerHTML = `
+      <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${fmt(pt.rating)}</div>
+      <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '✓ Win' : '✗ Loss'} vs ${pt.oppName}</div>
+      <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${pt.delta} pts · ${dateStr}</div>`;
+    // Position relative to the dot element so it works on mobile without needing clientX/Y
+    const rect = anchorEl.getBoundingClientRect();
+    const ttW = 170;
+    let left = rect.left + rect.width / 2 - ttW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - ttW - 8));
+    const top = rect.top - 72 + window.scrollY;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = Math.max(8, top) + 'px';
+    tooltip.classList.add('visible');
+  };
+
   container.querySelectorAll('.rh-dot').forEach(dot => {
     const idx = parseInt(dot.dataset.idx);
     const pt  = points[idx];
-    const show = (e) => {
-      const d = new Date(pt.date);
-      const dateStr = `${d.toLocaleString('default',{month:'short'})} ${d.getDate()}, ${d.getFullYear()}`;
-      const sign = pt.delta >= 0 ? '+' : '';
-      tooltip.innerHTML = `
-        <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${fmt(pt.rating)}</div>
-        <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '✓ Win' : '✗ Loss'} vs ${pt.oppName}</div>
-        <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${sign === '+' ? pt.delta : pt.delta} pts · ${dateStr}</div>`;
-      const x = e.clientX + 14, y = e.clientY - 48;
-      tooltip.style.left = Math.min(x, window.innerWidth - 180) + 'px';
-      tooltip.style.top  = Math.max(y, 8) + 'px';
-      tooltip.classList.add('visible');
-    };
-    const hide = () => tooltip.classList.remove('visible');
-    dot.addEventListener('mouseenter', show);
-    dot.addEventListener('mousemove',  show);
-    dot.addEventListener('mouseleave', hide);
-    dot.addEventListener('touchstart', (e) => { e.preventDefault(); show(e.touches[0]); }, { passive:false });
-    dot.addEventListener('touchend',   hide);
+
+    // Hover (desktop)
+    dot.addEventListener('mouseenter', () => { if (!_pinnedDot) positionTooltip(pt, dot); });
+    dot.addEventListener('mouseleave', () => { if (!_pinnedDot) tooltip.classList.remove('visible'); });
+
+    // Click/tap: pin or unpin
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (_pinnedDot === dot) {
+        // Unpin
+        _pinnedDot = null;
+        tooltip.classList.remove('visible');
+        dot.setAttribute('r', '6');
+      } else {
+        if (_pinnedDot) _pinnedDot.setAttribute('r', '6');
+        _pinnedDot = dot;
+        dot.setAttribute('r', '8'); // enlarge selected dot
+        positionTooltip(pt, dot);
+      }
+    });
   });
+
+  // Wire transparent tap targets to trigger the corresponding dot's click
+  container.querySelectorAll('.rh-dot-tap').forEach(tap => {
+    const idx = parseInt(tap.dataset.idx);
+    tap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.querySelectorAll(`.rh-dot[data-idx="${idx}"]`)[0]?.dispatchEvent(new MouseEvent('click', { bubbles: false }));
+    });
+  });
+
+  // Tap outside to unpin
+  const unpinHandler = () => {
+    if (_pinnedDot) { _pinnedDot.setAttribute('r', '6'); _pinnedDot = null; }
+    tooltip.classList.remove('visible');
+  };
+  container.querySelector('svg')?.addEventListener('click', unpinHandler);
+  container._unpinHandler = unpinHandler;
 }
 
 function renderMyProfile() {
