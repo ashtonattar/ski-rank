@@ -6696,6 +6696,21 @@ function _resetLiveUI() {
   document.getElementById('live-invite-form').style.display    = 'block';
   document.getElementById('live-invite-waiting').style.display = 'none';
   fillSelects(['lv-p1','lv-p2','lv-judge']);
+  // Reset player/judge pickers to blank placeholder
+  resetPicker('pp-lv-p1');
+  resetPicker('pp-lv-p2');
+  // Reset judge picker to its specific placeholder
+  const judgeHidden = document.getElementById('lv-judge');
+  const judgeLabel  = document.getElementById('pp-lv-judge-label');
+  if (judgeHidden) judgeHidden.value = '';
+  if (judgeLabel)  { judgeLabel.textContent = 'No judge — players call each other'; judgeLabel.style.color = 'var(--text-muted)'; }
+  // Clear resort field and handicap toggle
+  const resortEl = document.getElementById('lv-resort');
+  if (resortEl) resortEl.value = '';
+  const hcapToggle = document.getElementById('lv-handicap-toggle');
+  if (hcapToggle) { hcapToggle.checked = false; }
+  const hcapPreview = document.getElementById('lv-handicap-preview');
+  if (hcapPreview) hcapPreview.style.display = 'none';
   // Restore hero + action strip when returning to setup
   document.getElementById('play-hero-box').style.display     = '';
   document.getElementById('play-action-strip').style.display = '';
