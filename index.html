@@ -6571,7 +6571,7 @@ function finishLive(winnerId, loserId) {
 }
 
 function shareGameResult(winnerName, loserName) {
-  const text = `🎿 ${winnerName} just beat ${loserName} in a trick duel on Slope Battles! Challenge them at slopebattles.app`;
+  const text = `🎿 ${winnerName} just beat ${loserName} in a game of S-K-I on Slope Battles! Challenge them at slopebattles.app`;
   if (navigator.share) {
     navigator.share({ title: 'Slope Battles Result', text }).catch(() => {});
   } else {
