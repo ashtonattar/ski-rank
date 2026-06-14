@@ -6565,7 +6565,9 @@ function finishLive(winnerId, loserId) {
     !(i.p1Id === g.p1 && i.p2Id === g.p2)
   );
   save();
-  showRatingAnim(byId(winnerId), byId(loserId), game);
+  // Only show rating animation to the two players, not the judge
+  const _amPlayer = currentUser && (currentUser.id === winnerId || currentUser.id === loserId);
+  if (_amPlayer) showRatingAnim(byId(winnerId), byId(loserId), game);
   showGameOver(winnerId, loserId, game);
   drawBoard();
 }
