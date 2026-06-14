@@ -2015,14 +2015,7 @@
     .builder-preview-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
     .builder-preview-trick { font-size:17px; font-weight:800; color:var(--text-primary); line-height:1.3; min-height:24px; }
     .builder-preview-empty { font-size:14px; color:var(--text-muted); font-style:italic; }
-    /* Tricks view standalone tabs */
-    .tricks-view-mode-tab {
-      flex:1; padding:8px 10px; border-radius:10px; border:1px solid var(--border);
-      background:transparent; color:var(--text-secondary); font-size:12px; font-weight:600;
-      cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent;
-    }
-    .tricks-view-mode-tab.active { background:rgba(0,212,255,0.12); border-color:rgba(0,212,255,0.45); color:var(--ice); }
-    #tricks-view-cats::-webkit-scrollbar { display:none; }
+
 
     /* ── Onboarding ── */
     #onboard-overlay {
@@ -2267,9 +2260,7 @@
       <button class="nav-btn" data-view="log-game" onclick="nav('log-game')">
         <span class="nav-icon">✏️</span><span>Log Game</span>
       </button>
-      <button class="nav-btn" data-view="tricks" onclick="nav('tricks')">
-        <span class="nav-icon">📖</span><span>Tricks</span>
-      </button>
+
       <button class="nav-btn" data-view="tournaments" onclick="nav('tournaments')" id="nav-tournaments">
         <span class="nav-icon">🏆</span><span style="flex:1;">Tournaments</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
       </button>
@@ -2985,46 +2976,6 @@
     </div>
 
     <!-- ─── MY PROFILE ─── -->
-    <!-- ─── TRICKS ─── -->
-    <div id="view-tricks" class="view">
-      <div class="view-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div>
-          <h2 id="tricks-view-title">Trick Book</h2>
-          <p id="tricks-view-sub">Browse and build tricks for your session</p>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button id="tricks-view-toggle-list" class="btn btn-ghost btn-sm" onclick="tricksViewSetMode('list')" style="display:none;">🔍 Browse</button>
-          <button id="tricks-view-toggle-build" class="btn btn-ghost btn-sm" onclick="tricksViewSetMode('build')">🔧 Builder</button>
-        </div>
-      </div>
-
-      <!-- List / search mode -->
-      <div id="tricks-view-list-pane">
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <input id="tricks-view-search" type="text" class="form-input" placeholder="Search tricks…" oninput="tricksViewRenderList()" autocomplete="off" autocorrect="off" spellcheck="false" style="flex:1;min-height:42px;">
-        </div>
-        <div id="tricks-view-cats" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:8px;"></div>
-        <div id="tricks-view-list-content"></div>
-      </div>
-
-      <!-- Builder mode -->
-      <div id="tricks-view-build-pane" style="display:none;">
-        <div class="builder-mode-tabs" style="margin-bottom:12px;">
-          <button class="tricks-view-mode-tab active" onclick="tricksViewBuilderMode('jump')">🏔 Jumps</button>
-          <button class="tricks-view-mode-tab" onclick="tricksViewBuilderMode('rail')">🛤 Rails</button>
-          <button class="tricks-view-mode-tab" onclick="tricksViewBuilderMode('unique')">⚡ Unique</button>
-        </div>
-        <div id="tricks-view-builder-content" style="padding-bottom:100px;"></div>
-        <div style="position:sticky;bottom:80px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-top:8px;">
-          <div class="builder-preview">
-            <div class="builder-preview-label">Your Trick</div>
-            <div id="tricks-view-preview-name" class="builder-preview-trick"><span class="builder-preview-empty">Pick components below</span></div>
-          </div>
-          <button id="tricks-view-copy-btn" class="btn btn-primary" style="width:100%;margin-top:10px;padding:13px;font-weight:700;border-radius:13px;" onclick="tricksViewCopyTrick()" disabled>Copy Trick Name</button>
-        </div>
-      </div>
-    </div>
-
     <div id="view-profile" class="view">
       <div class="view-header">
         <h2>My Profile</h2>
@@ -4736,183 +4687,6 @@ function selectTrick(name) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  STANDALONE TRICKS VIEW
-// ═══════════════════════════════════════════════════════
-let _tvMode = 'list';   // 'list' | 'build'
-let _tvBuilderMode = 'jump';
-let _tvCat = 'All';
-let _tvB = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
-             railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
-
-function initTricksView() {
-  const sport = _trickSport();
-  const isBoard = sport === 'snowboard';
-  document.getElementById('tricks-view-title').textContent = isBoard ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
-  document.getElementById('tricks-view-sub').textContent = isBoard
-    ? 'Browse and build snowboard tricks'
-    : 'Browse and build ski tricks';
-  _tvMode = 'list';
-  _tvCat  = 'All';
-  _tvB    = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
-              railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
-  _tvBuilderMode = 'jump';
-  tricksViewSetMode('list');
-  tricksViewRenderList();
-}
-
-function tricksViewSetMode(mode) {
-  _tvMode = mode;
-  const listPane  = document.getElementById('tricks-view-list-pane');
-  const buildPane = document.getElementById('tricks-view-build-pane');
-  const listBtn   = document.getElementById('tricks-view-toggle-list');
-  const buildBtn  = document.getElementById('tricks-view-toggle-build');
-  if (mode === 'list') {
-    listPane.style.display  = '';
-    buildPane.style.display = 'none';
-    listBtn.style.display   = 'none';
-    buildBtn.style.display  = '';
-    tricksViewRenderList();
-  } else {
-    listPane.style.display  = 'none';
-    buildPane.style.display = '';
-    listBtn.style.display   = '';
-    buildBtn.style.display  = 'none';
-    tricksViewRenderBuilder();
-  }
-}
-
-function _tvFilteredLibrary() {
-  const sport = _trickSport();
-  return TRICK_LIBRARY.filter(t => t.sport === sport || t.sport === 'both');
-}
-
-function tricksViewRenderList() {
-  const q = (document.getElementById('tricks-view-search')?.value || '').toLowerCase().trim();
-  const cats = ['All', ...new Set(_tvFilteredLibrary().map(t => t.cat))];
-  document.getElementById('tricks-view-cats').innerHTML = cats.map(c =>
-    `<button class="tcat-btn ${c === _tvCat ? 'active' : ''}" onclick="_tvSetCat('${c}')">${c}</button>`
-  ).join('');
-  let tricks = _tvFilteredLibrary();
-  if (_tvCat !== 'All') tricks = tricks.filter(t => t.cat === _tvCat);
-  if (q) tricks = tricks.filter(t => t.name.toLowerCase().includes(q));
-  const el = document.getElementById('tricks-view-list-content');
-  if (!tricks.length) {
-    el.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q?` for "${q}"`:''}.</div>`;
-    return;
-  }
-  const grouped = {};
-  if (_tvCat === 'All' && !q) tricks.forEach(t => { (grouped[t.cat]=grouped[t.cat]||[]).push(t); });
-  else grouped[''] = tricks;
-  el.innerHTML = Object.entries(grouped).map(([cat, list]) =>
-    `${cat ? `<div class="trick-cat-heading">${cat}</div>` : ''}
-    ${list.map(t => `<div class="trick-item">
-      <span class="trick-item-name">${t.name}</span>
-      <span class="trick-item-diff diff-${t.diff}">${DIFF_LABELS[t.diff]}</span>
-    </div>`).join('')}`
-  ).join('');
-}
-
-function _tvSetCat(cat) { _tvCat = cat; tricksViewRenderList(); }
-
-function tricksViewBuilderMode(mode) {
-  _tvBuilderMode = mode;
-  _tvB = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
-           railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
-  document.querySelectorAll('.tricks-view-mode-tab').forEach((btn, i) =>
-    btn.classList.toggle('active', ['jump','rail','unique'][i] === mode)
-  );
-  tricksViewRenderBuilder();
-}
-
-function _tvPill(label, key, val) {
-  const sel = _tvB[key] === val;
-  return `<button class="builder-pill${sel?' selected':''}" onclick="_tvPick('${key}','${val.replace(/'/g,"\\'")}')">
-    ${label}</button>`;
-}
-
-function _tvPick(key, val) {
-  _tvB[key] = _tvB[key] === val ? null : val;
-  tricksViewRenderBuilder();
-}
-
-function tricksViewRenderBuilder() {
-  const el    = document.getElementById('tricks-view-builder-content');
-  const sport = _trickSport();
-  const opt   = `<span style="color:rgba(255,255,255,0.25);font-size:9px;">(optional)</span>`;
-  const mode  = _tvBuilderMode;
-
-  if (sport === 'snowboard') {
-    if (mode === 'jump') {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Direction</div><div class="builder-pills">${SNOWBOARD.directions.map(v=>_tvPill(v,'direction',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Off-Axis ${opt}</div><div class="builder-pills">${SNOWBOARD.offAxis.map(v=>_tvPill(v,'offAxis',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin</div><div class="builder-pills">${SNOWBOARD.spins.map(v=>_tvPill(v,'spin',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Grab ${opt}</div><div class="builder-pills">${SNOWBOARD.grabs.map(v=>_tvPill(v,'grab',v)).join('')}</div></div>`;
-    } else if (mode === 'rail') {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Takeoff ${opt}</div><div class="builder-pills">${SNOWBOARD.railTakeoffs.map(v=>_tvPill(v,'railTakeoff',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin On ${opt}</div><div class="builder-pills">${SNOWBOARD.spinsOn.map(v=>_tvPill(v,'spinOn',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">On Rail ${opt}</div><div class="builder-pills">${SNOWBOARD.onRails.map(v=>_tvPill(v,'onRail',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin Off ${opt}</div><div class="builder-pills">${SNOWBOARD.spinsOff.map(v=>_tvPill(v,'spinOff',v)).join('')}</div></div>`;
-    } else {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Trick</div><div class="builder-pills">${SNOWBOARD.unique.map(v=>_tvPill(v,'unique',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Grab ${opt}</div><div class="builder-pills">${SNOWBOARD.grabs.map(v=>_tvPill(v,'grab',v)).join('')}</div></div>`;
-    }
-  } else {
-    if (mode === 'jump') {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Takeoff ${opt}</div><div class="builder-pills">${SKI.jumpTakeoffs.map(v=>_tvPill(v,'takeoff',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Axis ${opt}</div><div class="builder-pills">${SKI.axes.map(v=>_tvPill(v,'axis',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin</div><div class="builder-pills">${SKI.spins.map(v=>_tvPill(v,'spin',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Grab ${opt}</div><div class="builder-pills">${SKI.grabs.map(v=>_tvPill(v,'grab',v)).join('')}</div></div>`;
-    } else if (mode === 'rail') {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Takeoff ${opt}</div><div class="builder-pills">${SKI.railTakeoffs.map(v=>_tvPill(v,'railTakeoff',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin On ${opt}</div><div class="builder-pills">${SKI.spinsOn.map(v=>_tvPill(v,'spinOn',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">On Rail ${opt}</div><div class="builder-pills">${SKI.onRails.map(v=>_tvPill(v,'onRail',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Spin Off ${opt}</div><div class="builder-pills">${SKI.spinsOff.map(v=>_tvPill(v,'spinOff',v)).join('')}</div></div>`;
-    } else {
-      el.innerHTML = `<div class="builder-section"><div class="builder-section-label">Trick</div><div class="builder-pills">${SKI.unique.map(v=>_tvPill(v,'unique',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Grab ${opt}</div><div class="builder-pills">${SKI.grabs.map(v=>_tvPill(v,'grab',v)).join('')}</div></div>
-        <div class="builder-section"><div class="builder-section-label">Takeoff ${opt}</div><div class="builder-pills">${SKI.jumpTakeoffs.map(v=>_tvPill(v,'takeoff',v)).join('')}</div></div>`;
-    }
-  }
-  tricksViewUpdatePreview();
-}
-
-function tricksViewUpdatePreview() {
-  // Re-use _assembleTrick logic with _tvB state
-  const savedB = _b;
-  _b = _tvB;
-  const savedMode = _builderMode;
-  _builderMode = _tvBuilderMode;
-  const name = _assembleTrick();
-  _b = savedB;
-  _builderMode = savedMode;
-
-  const nameEl = document.getElementById('tricks-view-preview-name');
-  const btn    = document.getElementById('tricks-view-copy-btn');
-  if (name) {
-    const diff = _trickDifficulty(name);
-    nameEl.innerHTML = `${name} <span class="trick-item-diff diff-${diff}" style="font-size:12px;margin-left:6px;">${DIFF_LABELS[diff]}</span>`;
-    btn.disabled = false;
-    btn.dataset.trick = name;
-  } else {
-    nameEl.innerHTML = `<span class="builder-preview-empty">Pick components below</span>`;
-    btn.disabled = true;
-  }
-}
-
-function tricksViewCopyTrick() {
-  const name = document.getElementById('tricks-view-copy-btn').dataset.trick;
-  if (!name) return;
-  navigator.clipboard.writeText(name).then(() => toast(`Copied: ${name}`, 'ok')).catch(() => {
-    // Fallback for older browsers
-    const ta = document.createElement('textarea');
-    ta.value = name; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); toast(`Copied: ${name}`, 'ok'); } catch(_) {}
-    document.body.removeChild(ta);
-  });
-}
-
-// ═══════════════════════════════════════════════════════
 //  ONBOARDING
 // ═══════════════════════════════════════════════════════
 const ONBOARDING_STEPS = [
@@ -5314,7 +5088,7 @@ function confirm_(title, msg, fn) {
 // ═══════════════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════════════
-const AUTH_REQUIRED_VIEWS = ['log-game','friends','profile','confirmations','tournaments','tricks'];
+const AUTH_REQUIRED_VIEWS = ['log-game','friends','profile','confirmations','tournaments'];
 const AUTH_HINTS = {
   'log-game':      '⛷️ Sign in to log a game and track your rating.',
   'live-game':     '⛷️ Sign in to challenge someone to a live game.',
@@ -5349,7 +5123,6 @@ function nav(view) {
     'profile':         renderMyProfile,
     'confirmations':   renderConfirmations,
     'tournaments':     renderTournaments,
-    'tricks':          initTricksView,
   })[view]?.();
 }
 
