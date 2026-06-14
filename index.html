@@ -6025,7 +6025,7 @@ function renderLiveSetup() {
   document.getElementById('play-hero-box').style.display    = inGame ? 'none' : '';
   document.getElementById('play-action-strip').style.display = inGame ? 'none' : '';
 
-  if (inGame) {
+  if (inGame && !(S.live.over && _gameOverDismissed)) {
     document.getElementById('live-setup').style.display='none';
     document.getElementById('live-active').style.display='block';
     restoreLog();
