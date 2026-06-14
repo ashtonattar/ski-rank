@@ -2273,7 +2273,6 @@
         <div id="sb-display-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
         <div id="sb-username" style="font-size:10.5px;color:var(--text-muted);">—</div>
       </div>
-      <button class="btn-logout" id="theme-toggle-btn" onclick="event.stopPropagation();toggleTheme()" title="Toggle light/dark mode" style="margin-right:4px;">🌙</button>
       <button class="btn-logout" onclick="event.stopPropagation();logout()" title="Sign out">⏻</button>
     </div>
     <!-- Guest footer (shown when browsing without an account) -->
@@ -3321,27 +3320,8 @@
 // ═══════════════════════════════════════════════════════
 function _setFabVisible(visible) { /* FAB removed */ }
 
-function _applyTheme(theme) {
-  document.body.classList.toggle('light', theme === 'light');
-  const isLight = theme === 'light';
-  const icon    = isLight ? '🌙' : '☀️';
-  const label   = isLight ? '🌙 Dark mode' : '☀️ Light mode';
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) { btn.textContent = icon; btn.title = label; }
-}
-
-function toggleTheme() {
-  const isLight = document.body.classList.contains('light');
-  const next = isLight ? 'dark' : 'light';
-  localStorage.setItem('skirank_theme', next);
-  _applyTheme(next);
-}
-
-// Apply saved theme immediately on load
-(function() {
-  const saved = localStorage.getItem('skirank_theme') || 'dark';
-  _applyTheme(saved);
-})();
+// Always dark mode
+(function() { document.body.classList.remove('light'); })();
 
 // ═══════════════════════════════════════════════════════
 //  FIREBASE / FIRESTORE  (real-time shared storage)
