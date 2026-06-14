@@ -10165,10 +10165,16 @@ function renderRatingHistory(playerId, container, countEl) {
       <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${pt.delta} pts · ${dateStr}</div>`;
     // Position relative to the dot element so it works on mobile without needing clientX/Y
     const rect = anchorEl.getBoundingClientRect();
-    const ttW = 170;
+    // Measure tooltip size after setting content so we can position above the dot
+    tooltip.style.opacity = '0';
+    tooltip.style.left = '0px';
+    tooltip.style.top  = '0px';
+    const ttW = tooltip.offsetWidth || 160;
+    const ttH = tooltip.offsetHeight || 60;
     let left = rect.left + rect.width / 2 - ttW / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - ttW - 8));
-    const top = rect.top - 72 + window.scrollY;
+    // position:fixed so viewport coords only — no scrollY needed
+    const top = rect.top - ttH - 10;
     tooltip.style.left = left + 'px';
     tooltip.style.top  = Math.max(8, top) + 'px';
     tooltip.style.opacity = '1';
