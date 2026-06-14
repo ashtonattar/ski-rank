@@ -3717,6 +3717,24 @@ function startFirestoreSync() {
               liveActive.style.display = 'block';
               document.getElementById('live-over-section').style.display = 'none';
               document.getElementById('live-log').innerHTML = '';
+              // Also hide the top hero boxes (normally done in renderLiveSetup when inGame)
+              const heroBox    = document.getElementById('play-hero-box');
+              const actionStrip = document.getElementById('play-action-strip');
+              if (heroBox)     heroBox.style.display     = 'none';
+              if (actionStrip) actionStrip.style.display = 'none';
+            }
+            // Auto-advance phase if judge's invite is now 'accepted' but phase is still waiting-for-judge.
+            // Handles the race where a player accepted before the judge's status propagated to Firestore.
+            if (S.live.phase === 'waiting-for-judge' && S.live.judgeId && isPlayer) {
+              const judgeNowAccepted = (S.liveInvites || []).some(
+                i => i.role === 'judge' && i.toId === S.live.judgeId && i.status === 'accepted'
+              );
+              if (judgeNowAccepted) {
+                S.live.phase = 'judge-pick-setter';
+                if (db) db.collection('state').doc('global')
+                  .update({ 'live.phase': 'judge-pick-setter' })
+                  .catch(e => console.warn('Phase advance failed:', e));
+              }
             }
             if (liveActive && liveActive.style.display !== 'none') {
               restoreLog();
