@@ -6696,8 +6696,9 @@ function _resetLiveUI() {
   document.getElementById('live-invite-form').style.display    = 'block';
   document.getElementById('live-invite-waiting').style.display = 'none';
   fillSelects(['lv-p1','lv-p2','lv-judge']);
-  // Reset player/judge pickers to blank placeholder
-  resetPicker('pp-lv-p1');
+  // Reset player pickers — P1 always stays as the current user
+  if (currentUser) setPickerValue('pp-lv-p1', currentUser.id);
+  else resetPicker('pp-lv-p1');
   resetPicker('pp-lv-p2');
   // Reset judge picker to its specific placeholder
   const judgeHidden = document.getElementById('lv-judge');
