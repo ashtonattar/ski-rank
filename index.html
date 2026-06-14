@@ -3709,8 +3709,10 @@ function startFirestoreSync() {
             const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
             const liveActive = document.getElementById('live-active');
             const liveSetup  = document.getElementById('live-setup');
-            // Only flip setup→active for the two players (not the judge — they join via inbox)
-            if (isPlayer && liveActive && liveActive.style.display === 'none') {
+            // Flip setup→active for players and for a judge who accepted before S.live existed
+            const isJudgeWaiting = currentUser && currentUser.id === S.live.judgeId &&
+              (S.liveInvites || []).some(i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted');
+            if ((isPlayer || isJudgeWaiting) && liveActive && liveActive.style.display === 'none') {
               if (liveSetup)  liveSetup.style.display  = 'none';
               liveActive.style.display = 'block';
               document.getElementById('live-over-section').style.display = 'none';
@@ -6035,13 +6037,36 @@ function renderLiveSetup() {
     document.getElementById('live-setup').style.display='block';
     document.getElementById('live-active').style.display='none';
 
+    // If the current user accepted a judge invite but the players haven't started S.live yet,
+    // show a "waiting for players" holding message instead of the setup form
+    const acceptedJudgeInvite = currentUser && (S.liveInvites || []).find(
+      i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted'
+    );
+    if (acceptedJudgeInvite && (!S.live || (S.live.p1 !== acceptedJudgeInvite.p1Id || S.live.p2 !== acceptedJudgeInvite.p2Id))) {
+      const p1Name = byId(acceptedJudgeInvite.p1Id)?.name || 'Player 1';
+      const p2Name = byId(acceptedJudgeInvite.p2Id)?.name || 'Player 2';
+      document.getElementById('live-invite-form').style.display    = 'none';
+      document.getElementById('live-invite-waiting').style.display = 'block';
+      document.getElementById('live-invite-waiting').innerHTML = `
+        <p style="font-size:15px;font-weight:700;margin-bottom:6px;">⚖️ You're the judge!</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">
+          Waiting for <strong>${p1Name}</strong> &amp; <strong>${p2Name}</strong> to accept their invites…
+        </p>
+        <button class="btn btn-ghost btn-sm" onclick="
+          const ji = (S.liveInvites||[]).find(i=>i.role==='judge'&&i.toId===currentUser?.id&&i.status==='accepted');
+          if(ji){ji.status='pending';save();}
+          document.getElementById('live-invite-form').style.display='block';
+          document.getElementById('live-invite-waiting').style.display='none';
+        ">Leave</button>`;
     // Restore waiting UI if there's already a pending invite from the current user
-    const pendingInvite = S.liveInvites.find(i => i.fromId === currentUser?.id && i.status === 'pending');
-    if (pendingInvite) {
-      showInviteWaiting(pendingInvite);
     } else {
-      document.getElementById('live-invite-form').style.display    = 'block';
-      document.getElementById('live-invite-waiting').style.display = 'none';
+      const pendingInvite = S.liveInvites.find(i => i.fromId === currentUser?.id && i.status === 'pending');
+      if (pendingInvite) {
+        showInviteWaiting(pendingInvite);
+      } else {
+        document.getElementById('live-invite-form').style.display    = 'block';
+        document.getElementById('live-invite-waiting').style.display = 'none';
+      }
     }
   }
 }
@@ -9599,19 +9624,20 @@ function acceptLiveInvite(inviteId) {
   if (inv.role === 'judge') {
     inv.status = 'accepted';
 
-    if (db) {
-      // Advance to judge-pick-setter so judge chooses who goes first
-      db.collection('state').doc('global')
-        .update({ 'live.phase': 'judge-pick-setter' })
-        .catch(e => console.warn('Judge phase update failed:', e));
+    if (S.live && (S.live.p1 === inv.p1Id && S.live.p2 === inv.p2Id)) {
+      // Players already accepted — S.live exists, advance the phase now
+      if (db) {
+        db.collection('state').doc('global')
+          .update({ 'live.phase': 'judge-pick-setter' })
+          .catch(e => console.warn('Judge phase update failed:', e));
+      }
+      if (S.live.phase === 'waiting-for-judge') S.live.phase = 'judge-pick-setter';
+      addLog('⚖️', `${currentUser.name} has joined as judge — pick who sets first!`);
     }
+    // If S.live doesn't exist yet (judge accepted before players), the invite status
+    // is now 'accepted' — when a player accepts they'll read this and skip waiting-for-judge.
 
-    // Also update local state if we have it
-    if (S.live && S.live.phase === 'waiting-for-judge') {
-      S.live.phase = 'judge-pick-setter';
-    }
-    addLog('⚖️', `${currentUser.name} has joined as judge — pick who sets first!`);
-    // Only save liveInvites change, not the full S (avoids overwriting stale live data)
+    // Save the liveInvites status change so players can detect judge already accepted
     clearTimeout(_saveTimer);
     _saveToFirestore();
 
@@ -9639,6 +9665,12 @@ function acceptLiveInvite(inviteId) {
   if (!S.live || S.live.p1 !== inv.p1Id || S.live.p2 !== inv.p2Id) {
     _abandonHandled = false;
     const _initLetters = inv.handicapLetters || { [inv.p1Id]: 0, [inv.p2Id]: 0 };
+    // Check if the judge already accepted their invite before the players did
+    const judgeAlreadyAccepted = inv.judgeId &&
+      (S.liveInvites || []).some(i => i.role === 'judge' && i.p1Id === inv.p1Id && i.p2Id === inv.p2Id && i.status === 'accepted');
+    const initialPhase = inv.judgeId
+      ? (judgeAlreadyAccepted ? 'judge-pick-setter' : 'waiting-for-judge')
+      : 'pick-setter';
     S.live = {
       p1: inv.p1Id, p2: inv.p2Id,
       judgeId:     inv.judgeId || null,
@@ -9650,8 +9682,10 @@ function acceptLiveInvite(inviteId) {
       strikes:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
       pendingCall: null,
       disputeVotes: {},
-      phase:    inv.judgeId ? 'waiting-for-judge' : 'pick-setter',
-      log:      [],
+      phase:    initialPhase,
+      log:      judgeAlreadyAccepted
+        ? [{ icon: '⚖️', msg: `${byId(inv.judgeId)?.name || 'Judge'} has joined as judge — pick who sets first!` }]
+        : [],
       over:     false,
       resort:   inv.resort || '',
       winnerId: null, loserId: null, _game: null,
