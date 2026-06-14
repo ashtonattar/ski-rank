@@ -10145,7 +10145,14 @@ function renderRatingHistory(playerId, container, countEl) {
     </svg>`;
 
   // Tooltip interaction — hover on desktop, click/tap to pin on mobile
-  const tooltip = document.getElementById('rh-tooltip');
+  // Create a fresh tooltip element at high z-index so it works inside modals too
+  let tooltip = document.getElementById('rh-tooltip-dynamic');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'rh-tooltip-dynamic';
+    tooltip.style.cssText = 'position:fixed;z-index:20000;pointer-events:none;background:var(--bg-elevated,#0d2040);border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text-primary,#fff);box-shadow:0 8px 28px rgba(0,0,0,0.5);white-space:nowrap;opacity:0;transition:opacity .15s;';
+    document.body.appendChild(tooltip);
+  }
   let _pinnedDot = null;
 
   const positionTooltip = (pt, anchorEl) => {
@@ -10164,7 +10171,7 @@ function renderRatingHistory(playerId, container, countEl) {
     const top = rect.top - 72 + window.scrollY;
     tooltip.style.left = left + 'px';
     tooltip.style.top  = Math.max(8, top) + 'px';
-    tooltip.classList.add('visible');
+    tooltip.style.opacity = '1';
   };
 
   container.querySelectorAll('.rh-dot').forEach(dot => {
@@ -10173,7 +10180,7 @@ function renderRatingHistory(playerId, container, countEl) {
 
     // Hover (desktop)
     dot.addEventListener('mouseenter', () => { if (!_pinnedDot) positionTooltip(pt, dot); });
-    dot.addEventListener('mouseleave', () => { if (!_pinnedDot) tooltip.classList.remove('visible'); });
+    dot.addEventListener('mouseleave', () => { if (!_pinnedDot) tooltip.style.opacity = '0'; });
 
     // Click/tap: pin or unpin
     dot.addEventListener('click', (e) => {
@@ -10204,7 +10211,7 @@ function renderRatingHistory(playerId, container, countEl) {
   // Tap outside to unpin
   const unpinHandler = () => {
     if (_pinnedDot) { _pinnedDot.setAttribute('r', '6'); _pinnedDot = null; }
-    tooltip.classList.remove('visible');
+    tooltip.style.opacity = '0';
   };
   container.querySelector('svg')?.addEventListener('click', unpinHandler);
   container._unpinHandler = unpinHandler;
