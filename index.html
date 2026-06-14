@@ -10214,12 +10214,15 @@ function renderRatingHistory(playerId, container, countEl) {
     });
   });
 
-  // Tap outside to unpin
-  const unpinHandler = () => {
+  // Tap anywhere outside a dot to unpin — attach to document and clean up on next call
+  const unpinHandler = (e) => {
+    if (e.target.classList.contains('rh-dot') || e.target.classList.contains('rh-dot-tap')) return;
     if (_pinnedDot) { _pinnedDot.setAttribute('r', '6'); _pinnedDot = null; }
     tooltip.style.opacity = '0';
   };
-  container.querySelector('svg')?.addEventListener('click', unpinHandler);
+  // Remove any previous listener before adding a new one
+  if (container._unpinHandler) document.removeEventListener('click', container._unpinHandler, true);
+  document.addEventListener('click', unpinHandler, true);
   container._unpinHandler = unpinHandler;
 }
 
