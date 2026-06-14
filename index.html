@@ -3743,7 +3743,8 @@ function startFirestoreSync() {
               }
             }
           } else if (S.live && S.live.over) {
-            if (!_gameOverDismissed) {
+            const _wasPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
+            if (!_gameOverDismissed && _wasPlayer) {
               // Make sure live-active is visible so the game-over section inside it shows
               const liveActiveEl = document.getElementById('live-active');
               const liveSetupEl  = document.getElementById('live-setup');
@@ -3752,6 +3753,9 @@ function startFirestoreSync() {
               restoreLog();
               drawBoard();
               showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+            } else if (!_wasPlayer) {
+              // Not a participant — just show the setup screen
+              renderLiveSetup();
             }
           } else {
             // Game was cleared / abandoned by the other player
@@ -6015,7 +6019,9 @@ function renderLiveSetup() {
     }
   });
   refreshHandicapPreview();
-  const inGame = !!S.live;
+  const isParticipant = S.live && currentUser &&
+    (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
+  const inGame = isParticipant; // only show the game board to actual participants
   document.getElementById('play-hero-box').style.display    = inGame ? 'none' : '';
   document.getElementById('play-action-strip').style.display = inGame ? 'none' : '';
 
