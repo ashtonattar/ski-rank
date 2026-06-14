@@ -8037,7 +8037,7 @@ function showProfile(id) {
     ${(() => {
       // Gather clips: standalone posts by this player + game clips where they're the poster
       const playerClips = [
-        ...(S.clips || []).filter(c => c.userId === id && c.clipUrl),
+        ...(S.clips || []).filter(c => (c.posterId === id || c.userId === id) && c.clipUrl),
         ...S.games.filter(g => g.clipUrl && (g.winnerId === id || g.loserId === id)).map(g => ({
           id: g.id,
           clipUrl: g.clipUrl,
