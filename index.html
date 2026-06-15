@@ -1698,14 +1698,6 @@
       /* ── Prevent horizontal scroll ── */
       html, body { overflow-x:hidden; max-width:100vw; }
 
-      /* Dynamic Island — only shown on mobile */
-      #dynamic-island, #di-header-strip { display:block !important; }
-      .di-letter {
-        width:13px; height:13px; border-radius:3px;
-        font-size:7.5px; font-weight:800; line-height:13px; text-align:center;
-      }
-      .di-letter.earned { background:var(--ice,#00d4ff); color:#000; }
-      .di-letter.blank  { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.25); }
 
       /* Smooth momentum scrolling everywhere */
       .main, .modal-body, .sidebar-nav, .friends-messages, .tbl-wrap {
@@ -1784,7 +1776,7 @@
         margin-left:0 !important; max-width:100% !important;
         margin-bottom:0; padding:14px 12px; width:100%;
         box-sizing:border-box; min-width:0;
-        padding-top:max(56px, calc(env(safe-area-inset-top) + 8px)) !important;
+        padding-top:max(14px, env(safe-area-inset-top)) !important;
         padding-bottom:calc(140px + env(safe-area-inset-bottom)) !important;
       }
       /* Fix flex overflow */
@@ -2082,46 +2074,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
-
-<!-- ═══ Dynamic Island ═══ -->
-<!-- Header strip fills the safe-area zone so the pill has a proper home -->
-<div id="di-header-strip" style="display:none;position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg,#020814);z-index:99998;pointer-events:none;"></div>
-<div id="dynamic-island" onclick="diTap()" style="
-  display:none;
-  position:fixed;
-  top:10px;
-  left:50%; transform:translateX(-50%);
-  z-index:99999;
-  background:#000;
-  border-radius:99px;
-  cursor:pointer;
-  overflow:hidden;
-  transition: width .4s cubic-bezier(.4,0,.2,1), border-radius .4s cubic-bezier(.4,0,.2,1);
-  -webkit-tap-highlight-color: transparent;
-  user-select:none;
-  will-change: width;
-">
-  <!-- Compact / idle view — sized to match real Dynamic Island footprint -->
-  <div id="di-compact" style="display:flex;align-items:center;justify-content:center;width:120px;height:36px;gap:6px;white-space:nowrap;">
-    <span id="di-compact-content" style="font-size:15px;line-height:1;">⛷️</span>
-    <span id="di-compact-label" style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:.4px;">SLOPE</span>
-  </div>
-  <!-- Expanded game view — single compact row so it fits within the safe-area zone -->
-  <div id="di-expanded" style="display:none;height:36px;display:none;align-items:center;padding:0 14px;gap:8px;">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;">
-      <div style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;" id="di-p1-name"></div>
-      <div style="display:flex;gap:2px;" id="di-p1-letters"></div>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;">
-      <div style="font-size:7px;font-weight:800;color:rgba(255,255,255,0.25);letter-spacing:.5px;" id="di-phase-label">LIVE</div>
-      <div style="font-size:8px;font-weight:800;color:rgba(255,255,255,0.2);">VS</div>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;">
-      <div style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;" id="di-p2-name"></div>
-      <div style="display:flex;gap:2px;" id="di-p2-letters"></div>
-    </div>
-  </div>
-</div>
 
 <!-- ═══ Auth Screen ═══ -->
 <div id="auth-screen" class="auth-screen">
@@ -3702,7 +3654,6 @@ function startFirestoreSync() {
         try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
 
         // Refresh UI in non-destructive views
-        renderDynamicIsland();
         checkNotifications();
         updateMessagesBadge();
         if (_activeChatId) openChat(_activeChatId, true);
@@ -6185,7 +6136,6 @@ function startLive() {
 }
 
 function drawBoard() {
-  renderDynamicIsland();
   const g = S.live;
   const [p1, p2]  = [byId(g.p1), byId(g.p2)];
   const copierId  = g.setterId === g.p1 ? g.p2 : g.p1;
@@ -6738,7 +6688,6 @@ function submitLiveClipAndReset() {
 
 function _resetLiveUI() {
   // Shared UI reset used by both resetLive and dismissLiveGameOver
-  renderDynamicIsland();
   document.getElementById('live-active').style.display      = 'none';
   document.getElementById('live-setup').style.display       = 'block';
   document.getElementById('live-over-section').style.display= 'none';
@@ -10623,67 +10572,6 @@ async function init() {
 
 init();
 
-// ── Dynamic Island ───────────────────────────────────────────────────
-let _diExpanded = false;
-let _diExpandTimer = null;
-
-function renderDynamicIsland() {
-  const el     = document.getElementById('dynamic-island');
-  const strip  = document.getElementById('di-header-strip');
-  if (!el) return;
-
-  const g        = S.live;
-  const compact  = document.getElementById('di-compact');
-  const expanded = document.getElementById('di-expanded');
-
-  if (!g || g.over) {
-    // Idle — pill sized to match real Dynamic Island footprint (~120×36)
-    compact.style.display  = 'flex';
-    expanded.style.display = 'none';
-    el.style.width         = '';   // let content width drive it
-    el.style.borderRadius  = '99px';
-    return;
-  }
-
-  // Active game — expand to show scoreboard
-  const p1 = byId(g.p1), p2 = byId(g.p2);
-  if (!p1 || !p2) return;
-
-  const phaseLabels = {
-    'waiting-for-judge': '⚖️ Waiting for judge',
-    'judge-pick-setter': '⚖️ Judge picking setter',
-    'pick-setter':       '🎲 Picking who sets',
-    'setting':           `🎿 ${byId(g.setterId)?.name || ''} setting`,
-    'judging-setter':    `⚖️ Judging setter`,
-    'copying':           '🔄 Copying trick',
-    'judging-copier':    '⚖️ Judging copy',
-    'revenge':           '⚡ Revenge attempt',
-    'judging-revenge':   '⚖️ Judging revenge',
-    'dispute':           '🗳️ Dispute vote',
-  };
-  document.getElementById('di-phase-label').textContent = phaseLabels[g.phase] || '🎿 Live Game';
-
-  const lettersHtml = pid => {
-    const count = g.letters[pid] || 0;
-    return ['S','K','I'].map((l,i) =>
-      `<div class="di-letter ${i < count ? 'earned' : 'blank'}">${i < count ? l : '·'}</div>`
-    ).join('');
-  };
-
-  document.getElementById('di-p1-name').textContent  = p1.name.split(' ')[0];
-  document.getElementById('di-p1-letters').innerHTML = lettersHtml(g.p1);
-  document.getElementById('di-p2-name').textContent  = p2.name.split(' ')[0];
-  document.getElementById('di-p2-letters').innerHTML = lettersHtml(g.p2);
-
-  compact.style.display      = 'none';
-  expanded.style.display     = 'flex';
-  el.style.width             = '230px';
-  el.style.borderRadius      = '99px';
-}
-
-function diTap() {
-  if (S.live && !S.live.over) nav('live-game');
-}
 
 function showRatingAnim(winner, loser, game) {
   const el = document.getElementById('rating-anim-overlay');
