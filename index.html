@@ -7188,6 +7188,7 @@ function renderExplore() {
 
   // Auto-play first video when view loads, respect mute state
   setupReelObserver();
+  setupReelSwipe(feed, ranked.length);
 
   // Async: resolve idb: references into live blob URLs, set video src, and
   // auto-play if the card is already in view (observer fired before src was ready).
@@ -7210,6 +7211,44 @@ function renderExplore() {
       }
     });
   });
+}
+
+function setupReelSwipe(feed, cardCount) {
+  if (!feed) return;
+  let startY = 0, startX = 0, currentIdx = 0, locked = false;
+
+  // Prevent native scroll — we drive navigation ourselves
+  feed.style.overflow = 'hidden';
+
+  function goTo(idx) {
+    idx = Math.max(0, Math.min(cardCount - 1, idx));
+    currentIdx = idx;
+    const card = feed.children[idx];
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  feed.addEventListener('touchstart', e => {
+    if (locked) return;
+    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+
+  feed.addEventListener('touchend', e => {
+    if (locked) return;
+    const dy = startY - e.changedTouches[0].clientY;
+    const dx = Math.abs(startX - e.changedTouches[0].clientX);
+    // Only act on primarily vertical swipes of at least 40px
+    if (Math.abs(dy) < 40 || dx > Math.abs(dy)) return;
+    locked = true;
+    goTo(dy > 0 ? currentIdx + 1 : currentIdx - 1);
+    setTimeout(() => { locked = false; }, 500);
+  }, { passive: true });
+
+  // Keep currentIdx in sync if something else scrolls (e.g. openProfileClip)
+  feed.addEventListener('scroll', () => {
+    const h = feed.clientHeight || window.innerHeight;
+    if (h) currentIdx = Math.round(feed.scrollTop / h);
+  }, { passive: true });
 }
 
 function setupReelObserver() {
