@@ -1478,7 +1478,7 @@
     }
     /* Mute/pause button top-right */
     .reel-controls {
-      position: absolute; top: 16px; right: 16px;
+      position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
       display: flex; gap: 8px;
     }
     .reel-ctrl-btn {
