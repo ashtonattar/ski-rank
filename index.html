@@ -7093,13 +7093,14 @@ function updateMessagesBadge() {
 // ═══════════════════════════════════════════════════════
 
 // Score a clip for feed ranking — higher = shown sooner
+const _clipRandCache = {};
 function clipScore(game) {
   const recencyDays = (Date.now() - game.date) / 86400000;
   const recency     = Math.max(0, 1 - recencyDays / 30);       // fades over 30 days
   const excitement  = Math.abs(game.winnerDelta || 0) / 32;    // bigger swings = more exciting
   const upset       = (game.winnerDelta || 0) > 20 ? 1.5 : 1; // bonus for upsets
-  const rand        = 0.6 + Math.random() * 0.8;               // ±40% shuffle
-  return (recency * 0.5 + excitement * 0.3 + 0.2) * upset * rand;
+  if (!_clipRandCache[game.id]) _clipRandCache[game.id] = 0.6 + Math.random() * 0.8;
+  return (recency * 0.5 + excitement * 0.3 + 0.2) * upset * _clipRandCache[game.id];
 }
 
 let _reelMuted = true; // start muted (browser autoplay policy)
@@ -7534,10 +7535,10 @@ function deleteClip(clipId) {
 // Merge game clips + standalone clips into one ranked feed
 function buildExploreFeed() {
   const gameClips = S.games
-    .filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:'))
+    .filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:') && byId(g.winnerId) && byId(g.loserId))
     .map(g => ({ ...g, _type: 'game' }));
   const standaloneClips = (S.clips || [])
-    .filter(c => c.clipUrl && !c.clipUrl.startsWith('blob:'))
+    .filter(c => c.clipUrl && !c.clipUrl.startsWith('blob:') && byId(c.posterId))
     .map(c => ({ ...c, _type: 'clip' }));
   const all = [...gameClips, ...standaloneClips];
   return [...all].sort((a, b) => clipScore(b) - clipScore(a));
