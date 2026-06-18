@@ -5358,10 +5358,9 @@ function filterLeaderboard() {
 
   document.querySelectorAll('#lb-body tr:not(#lb-no-results)').forEach(row => {
     const name    = row.querySelector('.td-name')?.textContent.toLowerCase() || '';
-    const loc     = row.querySelector('.td-loc')?.textContent.toLowerCase()  || '';
     const rowMtn  = (row.dataset.mountain || '');
     const rowType = (row.dataset.ridertype || 'skier');
-    const textOk  = !q   || name.includes(q)   || loc.includes(q);
+    const textOk  = !q   || name.includes(q);
     const mtnOk   = !mtn || rowMtn === mtn;
     const typeOk  = _lbRiderFilter === 'all' || rowType === _lbRiderFilter;
     row.style.display = (textOk && mtnOk && typeOk) ? '' : 'none';
