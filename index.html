@@ -1476,6 +1476,35 @@
       font-size: 10.5px; color: rgba(255,255,255,0.8);
       font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.7);
     }
+    /* Comments drawer */
+    #comments-drawer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 70vh; max-height: 600px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      z-index: 9000;
+      display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.32,.72,0,1);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    #comments-drawer.open { transform: translateY(0); }
+    #comments-drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 8999; display: none;
+    }
+    #comments-drawer-backdrop.open { display: block; }
+    .comment-item {
+      display: flex; gap: 10px; padding: 10px 16px;
+    }
+    .comment-bubble {
+      background: var(--bg-elevated); border-radius: 14px;
+      padding: 8px 12px; flex: 1; min-width: 0;
+    }
+    .comment-author { font-size: 12px; font-weight: 700; color: var(--ice); margin-bottom: 3px; cursor: pointer; }
+    .comment-text   { font-size: 13px; color: var(--text-primary); word-break: break-word; }
+    .comment-time   { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
     /* Mute/pause button top-right */
     .reel-controls {
       position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
@@ -2773,6 +2802,21 @@
     <div id="view-explore" class="view">
       <!-- Post Clip FAB -->
       <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(16px + env(safe-area-inset-top));left:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">＋ Post Clip</button>
+
+      <div id="comments-drawer-backdrop" onclick="closeComments()"></div>
+      <div id="comments-drawer">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+          <div style="font-size:15px;font-weight:800;letter-spacing:.3px;">Comments <span id="comments-drawer-count" style="color:var(--text-muted);font-weight:500;font-size:13px;"></span></div>
+          <button onclick="closeComments()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div id="comments-list" style="flex:1;overflow-y:auto;padding:8px 0;"></div>
+        <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+          <input id="comment-input" type="text" placeholder="Add a comment…" maxlength="280"
+            style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:9px 16px;font-size:13px;color:var(--text-primary);outline:none;font-family:inherit;"
+            onkeydown="if(event.key==='Enter')postComment()">
+          <button onclick="postComment()" style="background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;">Post</button>
+        </div>
+      </div>
 
       <div id="explore-feed" class="explore-feed"></div>
       <div id="explore-empty" style="display:none;text-align:center;padding:72px 24px 80px;color:var(--text-muted);">
@@ -7174,6 +7218,10 @@ function renderExplore() {
             </div>
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
           </div>
+          <div class="reel-action-btn" onclick="openComments('${item.id}')">
+            <div class="reel-action-icon">💬</div>
+            <div class="reel-action-label" id="comment-count-${item.id}">${getCommentCount(item.id) || ''}</div>
+          </div>
           <div class="reel-action-btn" onclick="shareReel('${item.id}')">
             <div class="reel-action-icon">🔗</div>
             <div class="reel-action-label">Share</div>
@@ -7232,6 +7280,10 @@ function renderExplore() {
                 <div class="reel-like-wrap"><span class="like-icon-inner">${heartSvg(iLiked(item.id))}</span></div>
               </div>
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
+            </div>
+            <div class="reel-action-btn" onclick="openComments('${item.id}')">
+              <div class="reel-action-icon">💬</div>
+              <div class="reel-action-label" id="comment-count-${item.id}">${getCommentCount(item.id) || ''}</div>
             </div>
             <div class="reel-action-btn" onclick="shareReel('${item.id}')">
               <div class="reel-action-icon">🔗</div>
@@ -7342,6 +7394,88 @@ function updateMuteIcons() {
   document.querySelectorAll('[id^="mute-btn-"]').forEach(btn => {
     btn.textContent = _reelMuted ? '🔇' : '🔊';
   });
+}
+
+// ── Comments ──────────────────────────────────────────────
+let _commentsItemId = null;
+
+function getComments(itemId) {
+  return ((S.comments || {})[itemId] || []).sort((a, b) => a.date - b.date);
+}
+
+function getCommentCount(itemId) {
+  return ((S.comments || {})[itemId] || []).length;
+}
+
+function openComments(itemId) {
+  if (!currentUser) { toast('Sign in to view comments', 'err'); return; }
+  _commentsItemId = itemId;
+  renderCommentsList(itemId);
+  document.getElementById('comments-drawer').classList.add('open');
+  document.getElementById('comments-drawer-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('comment-input')?.focus(), 350);
+}
+
+function closeComments() {
+  document.getElementById('comments-drawer').classList.remove('open');
+  document.getElementById('comments-drawer-backdrop').classList.remove('open');
+  _commentsItemId = null;
+}
+
+function renderCommentsList(itemId) {
+  const comments = getComments(itemId);
+  const count = comments.length;
+  document.getElementById('comments-drawer-count').textContent = count ? `(${count})` : '';
+  const list = document.getElementById('comments-list');
+  if (!comments.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;">No comments yet. Be the first!</div>`;
+    return;
+  }
+  list.innerHTML = comments.map(c => {
+    const author = byId(c.userId);
+    const canDelete = currentUser && (c.userId === currentUser.id);
+    return `
+      <div class="comment-item">
+        ${avatarHtml(author || {id: c.userId, name: c.userName}, 'avatar-sm')}
+        <div class="comment-bubble">
+          <div class="comment-author" onclick="showProfile('${c.userId}')">${escHtml(c.userName)}</div>
+          <div class="comment-text">${escHtml(c.text)}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="comment-time">${timeFmt(c.date)}</div>
+            ${canDelete ? `<span onclick="deleteComment('${itemId}','${c.id}')" style="font-size:10.5px;color:var(--danger);cursor:pointer;">Delete</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+function postComment() {
+  if (!currentUser) { toast('Sign in to comment', 'err'); return; }
+  const input = document.getElementById('comment-input');
+  const text = input?.value.trim();
+  if (!text) return;
+  if (!S.comments) S.comments = {};
+  if (!S.comments[_commentsItemId]) S.comments[_commentsItemId] = [];
+  S.comments[_commentsItemId].push({
+    id: uid(), userId: currentUser.id, userName: currentUser.name,
+    text, date: Date.now()
+  });
+  input.value = '';
+  save();
+  renderCommentsList(_commentsItemId);
+  // Update count badge on the card
+  const countEl = document.getElementById(`comment-count-${_commentsItemId}`);
+  if (countEl) countEl.textContent = getCommentCount(_commentsItemId) || '';
+}
+
+function deleteComment(itemId, commentId) {
+  if (!S.comments?.[itemId]) return;
+  S.comments[itemId] = S.comments[itemId].filter(c => c.id !== commentId);
+  save();
+  renderCommentsList(itemId);
+  const countEl = document.getElementById(`comment-count-${itemId}`);
+  if (countEl) countEl.textContent = getCommentCount(itemId) || '';
 }
 
 function shareReel(itemId) {
