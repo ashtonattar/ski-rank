@@ -3693,8 +3693,21 @@ function startFirestoreSync() {
           // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
           if (S.live && S.live.abandonedBy && !S.live.over && !_abandonHandled) {
             const abId = S.live.abandonedBy;
+            const isJudgeLeaving = abId === S.live.judgeId;
             const amOtherPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2) && currentUser.id !== abId;
-            if (amOtherPlayer) {
+            if (isJudgeLeaving && amOtherPlayer) {
+              _abandonHandled = true;
+              if (db) db.collection('state').doc('global').update({ 'live.abandonedBy': null })
+                .catch(e => console.warn('abandon flag clear failed', e));
+              S.live.abandonedBy = null;
+              const judgeName = byId(abId)?.name || 'The judge';
+              addLog('🏳️', `${judgeName} left — game cancelled.`);
+              toast(`${judgeName} left the game. Match cancelled.`, 'err');
+              S.live.over = true;
+              S.live.cancelled = true;
+              save();
+              drawBoard();
+            } else if (amOtherPlayer) {
               _abandonHandled = true;
               // Clear the flag so we don't re-trigger on next snapshot
               if (db) db.collection('state').doc('global').update({ 'live.abandonedBy': null })
@@ -3704,6 +3717,7 @@ function startFirestoreSync() {
               const loserId  = abId;
               const loserName = byId(loserId)?.name || 'Opponent';
               S.live.letters[loserId] = 3; // full SKI = forfeit
+              S.live.forfeitBy = loserId;
               addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
               finishLive(winnerId, loserId);
             }
@@ -3774,7 +3788,13 @@ function startFirestoreSync() {
               if (liveActiveEl) liveActiveEl.style.display = 'block';
               restoreLog();
               drawBoard();
-              showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+              if (S.live.cancelled) {
+                _gameOverDismissed = true;
+                toast('Match was cancelled — judge left the game.', 'err');
+                setTimeout(() => renderLiveSetup(), 3000);
+              } else {
+                showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+              }
             } else if (!_wasPlayer) {
               // Not a participant — just show the setup screen
               renderLiveSetup();
@@ -4959,9 +4979,7 @@ function calcRatings(winner, loser, score='', handicap=null) {
   // Handicap multiplier only applied to winner's gain — loser always loses standard amount
   const dw = Math.round(Kw * (1 - ew) * m * hm);
 
-  // Loser's K is scaled by how expected their loss was — no handicap modifier here
-  const loserScale = el * 2;
-  const dl = Math.round(Kl * (0 - el) * loserScale * m);
+  const dl = Math.round(Kl * (0 - el) * m);
 
   return {
     winnerNew: Math.max(100, Math.min(1600, wR + dw)),
@@ -5353,6 +5371,35 @@ function filterLeaderboard() {
   const noRes   = document.getElementById('lb-no-results');
   if (noRes) noRes.style.display = visible.length === 0 ? '' : 'none';
 
+  // Re-number ranks within the filtered set
+  const isFiltered = q || mtn || _lbRiderFilter !== 'all';
+  let filteredRank = 0;
+  visible.forEach(row => {
+    const rankCell = row.querySelector('.td-rank');
+    if (!rankCell) return;
+    if (isFiltered) {
+      const isOfficial = row.dataset.official === 'true';
+      if (isOfficial) {
+        filteredRank++;
+        const medals = ['🥇','🥈','🥉'];
+        rankCell.textContent = medals[filteredRank - 1] || filteredRank;
+        rankCell.className = `td-rank${filteredRank <= 3 ? ' gold' : ''}`;
+      } else {
+        rankCell.textContent = '—';
+        rankCell.className = 'td-rank';
+      }
+    } else {
+      // Restore original global rank
+      const orig = row.dataset.globalRank;
+      if (orig !== undefined) {
+        rankCell.textContent = orig;
+        const isOfficial = row.dataset.official === 'true';
+        const origRank = parseInt(orig);
+        rankCell.className = `td-rank${isOfficial && origRank <= 3 ? ' gold' : ''}`;
+      }
+    }
+  });
+
   // Show/hide the active-filter pill
   const pill  = document.getElementById('lb-active-filter');
   const label = document.getElementById('lb-filter-label');
@@ -5482,9 +5529,9 @@ function renderLeaderboard() {
   const myRank    = me && me.rating != null ? pl.filter(p => p.rating != null).findIndex(p => p.id === me.id) + 1 : null;
   const myWinRate = me && me.gamesPlayed ? Math.round(me.wins / me.gamesPlayed * 100) : null;
 
-  // Peak rating: highest rating the current user has ever reached after any game
-  let myPeakRating = null;
-  if (me) {
+  // Peak rating: use stored peakRating if available, else derive from game history
+  let myPeakRating = me?.peakRating || null;
+  if (me && !myPeakRating) {
     S.games.forEach(g => {
       if (g.winnerId === me.id) myPeakRating = Math.max(myPeakRating ?? 0, g.player1EndRating);
       if (g.loserId  === me.id) myPeakRating = Math.max(myPeakRating ?? 0, g.player2EndRating);
@@ -5522,7 +5569,7 @@ function renderLeaderboard() {
     const sk = calcStreaks(p.id);
     const medal = isOfficial ? (['🥇','🥈','🥉'][ratedRank-1] || ratedRank) : '—';
     return `
-      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
+      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${medal}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
         <td class="td-rank ${isOfficial && ratedRank<=3?'gold':''}">${medal}</td>
         <td>
           <div style="display:flex;align-items:center;gap:11px;">
@@ -5962,6 +6009,8 @@ function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score=''
   S.games.push(game);
   winner.rating = c.winnerNew; winner.wins++;   winner.gamesPlayed++;
   loser.rating  = c.loserNew;  loser.losses++; loser.gamesPlayed++;
+  winner.peakRating = Math.max(winner.peakRating ?? 0, c.winnerNew);
+  loser.peakRating  = Math.max(loser.peakRating  ?? 0, c.loserNew);
   save();
   checkBadges(winnerId, game);
   checkBadges(loserId, game);
@@ -6149,9 +6198,9 @@ function drawBoard() {
   const nonSetPhases = ['copying','judging-setter','revenge','waiting-for-judge','judge-pick-setter','pick-setter'];
   const judgePlayer = g.judgeId ? byId(g.judgeId) : null;
   document.getElementById('live-board').innerHTML = `
-    ${playerPanel(p1, g, g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
+    ${playerPanel(p1, g, !g.setterId ? '' : g.setterId===g.p1 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
     <div class="vs-text">VS</div>
-    ${playerPanel(p2, g, g.setterId===g.p2 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
+    ${playerPanel(p2, g, !g.setterId ? '' : g.setterId===g.p2 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
     ${judgePlayer ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       ${avatarHtml(judgePlayer, 'avatar-sm')}
@@ -6582,6 +6631,8 @@ function finishLive(winnerId, loserId) {
   addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '', g.handicap || null);
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
+  // Store rating deltas as plain fields so both players receive them via Firestore snapshot
+  g.ratingDelta = { winnerDelta: game.winnerDelta, loserDelta: game.loserDelta, winnerNew: game.player1EndRating, loserNew: game.player2EndRating };
   // Auto-record result in tournament bracket if this was a tournament match
   if (g.tournamentId != null && g.tournamentRoundIdx != null && g.tournamentMatchIdx != null) {
     const tourney = getTourney(g.tournamentId);
@@ -6611,8 +6662,6 @@ function finishLive(winnerId, loserId) {
   );
   save();
   // Only show rating animation to the two players, not the judge
-  const _amPlayer = currentUser && (currentUser.id === winnerId || currentUser.id === loserId);
-  if (_amPlayer) showRatingAnim(byId(winnerId), byId(loserId), game);
   showGameOver(winnerId, loserId, game);
   drawBoard();
 }
@@ -6630,17 +6679,23 @@ function shareGameResult(winnerName, loserName) {
 
 function showGameOver(winnerId, loserId, game) {
   const winner = byId(winnerId), loser = byId(loserId);
-  if (!winner||!loser||!game) return;
-  const hasRatings = winner.gamesPlayed >= 3 && loser.gamesPlayed >= 3;
+  if (!winner||!loser) return;
+  const _amPlayer = currentUser && (currentUser.id === winnerId || currentUser.id === loserId);
+  if (_amPlayer) {
+    const rd = S.live?.ratingDelta;
+    if (rd) showRatingAnim(winner, loser, { player1EndRating: rd.winnerNew, player2EndRating: rd.loserNew, winnerDelta: rd.winnerDelta, loserDelta: rd.loserDelta });
+  }
+  const rd = S.live?.ratingDelta;
+  const hasRatings = rd && winner.gamesPlayed >= 3 && loser.gamesPlayed >= 3;
   const ratingLine = hasRatings
     ? `<div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
         <div style="text-align:center;">
           <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;">Rating</div>
-          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-pos">+${game.winnerDelta} → ${fmt(winner.rating)}</div>
+          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-pos">+${rd.winnerDelta} → ${fmt(winner.rating)}</div>
         </div>
         <div style="text-align:center;">
           <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;">Rating</div>
-          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-neg">${game.loserDelta} → ${fmt(loser.rating)}</div>
+          <div style="font-weight:700;font-size:13px;margin-top:2px;" class="rc-neg">${rd.loserDelta} → ${fmt(loser.rating)}</div>
         </div>
       </div>`
     : `<div style="margin-top:12px;font-size:11.5px;color:var(--text-muted);text-align:center;">Play more games to unlock ratings</div>`;
@@ -6652,7 +6707,7 @@ function showGameOver(winnerId, loserId, game) {
       <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
       <h2>🏆 GAME OVER!</h2>
       <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${winner.name} wins!</p>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${loser.name} spells S·K·I</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${loser.name} abandoned the game` : `${loser.name} spells S·K·I`}</p>
       ${ratingLine}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="shareGameResult('${winner.name.replace(/'/g,"\\'")}','${loser.name.replace(/'/g,"\\'")}')">
@@ -6763,6 +6818,7 @@ function abandonGame() {
     `You will automatically lose — your letters jump to S·K·I and ${winner.name} wins. Rating changes apply.`,
     () => {
       g.letters[loserId] = 3; // complete SKI = forfeit
+      g.forfeitBy = loserId;
       addLog('🏳️', `${currentUser.name} abandoned the game — forfeit! ${winner.name} wins.`);
       finishLive(winnerId, loserId);
     }
@@ -9444,7 +9500,9 @@ function renderConfirmations() {
           ${pLink(inv.p2Id, byId(inv.p2Id)?.name || inv.toName, 'font-weight:700;')}
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-          ${isJudge ? 'You\'ve been asked to be the neutral judge — you\'ll call all tricks.' : 'Accept to start the live SKI game — ratings update when it ends.'}
+          ${isJudge
+            ? 'You\'ve been asked to be the neutral judge — you\'ll call all tricks.'
+            : `Accept to start the live SKI game — ratings update when it ends.${inv.judgeId ? ` ⚖️ ${inv.judgeName || byId(inv.judgeId)?.name || 'A judge'} will call tricks.` : ''}${inv.handicap ? ' 🎿 Handicap mode.' : ''}`}
         </div>
         <div class="pending-card-actions">
           <button class="btn ${isJudge ? 'btn-primary' : 'btn-accent'} btn-sm" style="flex:1;justify-content:center;"
@@ -9506,7 +9564,7 @@ function renderConfirmations() {
         </div>
 
         ${(() => {
-          const myStrikes       = currentUser?.logStrikes || 0;
+          const myStrikes       = byId(currentUser?.id)?.logStrikes || 0;
           const reporterStrikes = byId(r.reporterId)?.logStrikes || 0;
           if (!myStrikes && !reporterStrikes) return '';
           return `<div style="display:flex;gap:12px;font-size:11.5px;color:var(--warning);margin-bottom:10px;padding:7px 10px;background:rgba(255,196,0,0.06);border-radius:6px;border:1px solid rgba(255,196,0,0.18);">
@@ -10614,9 +10672,7 @@ init();
 
 function showRatingAnim(winner, loser, game) {
   const el = document.getElementById('rating-anim-overlay');
-  if (!el) return;
-  // Skip the rating animation until both players have enough games for ratings to be meaningful
-  if ((winner.gamesPlayed || 0) < 3 || (loser.gamesPlayed || 0) < 3) return;
+  if (!el || !winner || !loser || !game) { console.warn('[ratingAnim] missing arg', {winner,loser,game}); return; }
   const wNew = fmt(game.player1EndRating), lNew = fmt(game.player2EndRating);
   const wD = game.winnerDelta, lD = game.loserDelta;
   el.innerHTML = `
@@ -10664,7 +10720,7 @@ if (location.hash === '#admin') setTimeout(openAdmin, 500);
 function _signalAbandon() {
   if (!S.live || S.live.over || !currentUser) return;
   const g = S.live;
-  const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2;
+  const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2 || currentUser.id === g.judgeId;
   if (!amPlayer) return;
   // Use targeted update — avoids full save() which is async and may not complete
   if (db) {
@@ -10682,7 +10738,7 @@ window.addEventListener('pagehide', (e) => { if (!e.persisted) _signalAbandon();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (S.live && !S.live.over && currentUser &&
-        (currentUser.id === S.live.p1 || currentUser.id === S.live.p2)) {
+        (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId)) {
       _abandonTimer = setTimeout(_signalAbandon, 30000);
     }
   } else {
