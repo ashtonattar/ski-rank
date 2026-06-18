@@ -2417,7 +2417,7 @@
       <div class="card" style="max-width:600px;">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Skier 1</label>
+            <label class="form-label" id="lg-p1-label">Rider 1</label>
             <div class="pp-wrap" id="pp-lg-p1">
               <input type="hidden" id="lg-p1">
               <button type="button" class="pp-trigger" onclick="openPicker('pp-lg-p1')">
@@ -2431,7 +2431,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Skier 2</label>
+            <label class="form-label" id="lg-p2-label">Rider 2</label>
             <div class="pp-wrap" id="pp-lg-p2">
               <input type="hidden" id="lg-p2">
               <button type="button" class="pp-trigger" onclick="openPicker('pp-lg-p2')">
@@ -5771,11 +5771,20 @@ function checkBadges(playerId, game) {
 // ═══════════════════════════════════════════════════════
 function renderLogForm() {
   fillSelects(['lg-p1','lg-p2']);
+  // Sport-correct labels
+  const sportWord = (currentUser?.riderType === 'boarder') ? 'Boarder' : 'Rider';
+  const p1lbl = document.getElementById('lg-p1-label');
+  const p2lbl = document.getElementById('lg-p2-label');
+  if (p1lbl) p1lbl.textContent = `${sportWord} 1`;
+  if (p2lbl) p2lbl.textContent = `${sportWord} 2`;
   // Auto-select current user as Player 1
   if (currentUser && !document.getElementById('lg-p1').value) {
     setPickerValue('pp-lg-p1', currentUser.id);
   }
   document.getElementById('lg-winner').innerHTML = '<option value="">Select winner...</option>';
+  // Clear cached winner id so score section always shows when winner is picked
+  const winnerNameEl = document.getElementById('lg-score-winner-name');
+  if (winnerNameEl) winnerNameEl.dataset.id = '';
 
   const onPlayerChange = () => {
     const p1 = document.getElementById('lg-p1').value;
@@ -5995,6 +6004,8 @@ function submitLog() {
   document.getElementById('lg-rating-preview').style.display='none';
   document.getElementById('lg-score-group').style.display='none';
   document.querySelectorAll('#lg-winner-letters .ski-letter-btn').forEach(b => b.classList.remove('active'));
+  const _wnel = document.getElementById('lg-score-winner-name');
+  if (_wnel) _wnel.dataset.id = '';
   clearClip('lg');
   const lgResort = document.getElementById('lg-resort');
   if (lgResort) lgResort.value = '';
