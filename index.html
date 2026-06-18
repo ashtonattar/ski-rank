@@ -7411,8 +7411,24 @@ function _onVPResize() {
   const drawer = document.getElementById('comments-drawer');
   if (!drawer || !drawer.classList.contains('open')) return;
   const vp = window.visualViewport;
-  const keyboardHeight = window.innerHeight - vp.height - vp.pageTop;
-  drawer.style.bottom = Math.max(0, keyboardHeight) + 'px';
+  // offsetTop = how far the visual viewport is pushed down from layout viewport top
+  const bottom = Math.max(0, window.innerHeight - vp.offsetTop - vp.height);
+  drawer.style.bottom = bottom + 'px';
+  // shrink drawer height so it doesn't overflow the visible area
+  drawer.style.height = Math.min(vp.height * 0.85, 600) + 'px';
+}
+
+function _onCommentInputFocus() {
+  // fallback: iOS sometimes doesn't fire visualViewport resize in time
+  setTimeout(_onVPResize, 100);
+  setTimeout(_onVPResize, 400);
+}
+
+function _onCommentInputBlur() {
+  const drawer = document.getElementById('comments-drawer');
+  if (!drawer) return;
+  drawer.style.bottom = '0';
+  drawer.style.height = '';
 }
 
 function openComments(itemId) {
@@ -7421,27 +7437,35 @@ function openComments(itemId) {
   renderCommentsList(itemId);
   const drawer = document.getElementById('comments-drawer');
   drawer.style.bottom = '0';
+  drawer.style.height = '';
   drawer.classList.add('open');
   document.getElementById('comments-drawer-backdrop').classList.add('open');
+  const input = document.getElementById('comment-input');
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', _onVPResize);
     window.visualViewport.addEventListener('scroll', _onVPResize);
   }
-  setTimeout(() => {
-    const input = document.getElementById('comment-input');
-    if (input) { input.focus(); input.scrollIntoView({ block: 'nearest' }); }
-  }, 350);
+  if (input) {
+    input.addEventListener('focus', _onCommentInputFocus);
+    input.addEventListener('blur', _onCommentInputBlur);
+    setTimeout(() => input.focus(), 350);
+  }
 }
 
 function closeComments() {
   const drawer = document.getElementById('comments-drawer');
-  if (drawer) { drawer.classList.remove('open'); drawer.style.bottom = ''; }
+  if (drawer) { drawer.classList.remove('open'); drawer.style.bottom = ''; drawer.style.height = ''; }
   document.getElementById('comments-drawer-backdrop').classList.remove('open');
   if (window.visualViewport) {
     window.visualViewport.removeEventListener('resize', _onVPResize);
     window.visualViewport.removeEventListener('scroll', _onVPResize);
   }
-  document.getElementById('comment-input')?.blur();
+  const input = document.getElementById('comment-input');
+  if (input) {
+    input.removeEventListener('focus', _onCommentInputFocus);
+    input.removeEventListener('blur', _onCommentInputBlur);
+    input.blur();
+  }
   _commentsItemId = null;
 }
 
