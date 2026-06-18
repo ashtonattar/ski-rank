@@ -7407,18 +7407,41 @@ function getCommentCount(itemId) {
   return ((S.comments || {})[itemId] || []).length;
 }
 
+function _onVPResize() {
+  const drawer = document.getElementById('comments-drawer');
+  if (!drawer || !drawer.classList.contains('open')) return;
+  const vp = window.visualViewport;
+  const keyboardHeight = window.innerHeight - vp.height - vp.pageTop;
+  drawer.style.bottom = Math.max(0, keyboardHeight) + 'px';
+}
+
 function openComments(itemId) {
   if (!currentUser) { toast('Sign in to view comments', 'err'); return; }
   _commentsItemId = itemId;
   renderCommentsList(itemId);
-  document.getElementById('comments-drawer').classList.add('open');
+  const drawer = document.getElementById('comments-drawer');
+  drawer.style.bottom = '0';
+  drawer.classList.add('open');
   document.getElementById('comments-drawer-backdrop').classList.add('open');
-  setTimeout(() => document.getElementById('comment-input')?.focus(), 350);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', _onVPResize);
+    window.visualViewport.addEventListener('scroll', _onVPResize);
+  }
+  setTimeout(() => {
+    const input = document.getElementById('comment-input');
+    if (input) { input.focus(); input.scrollIntoView({ block: 'nearest' }); }
+  }, 350);
 }
 
 function closeComments() {
-  document.getElementById('comments-drawer').classList.remove('open');
+  const drawer = document.getElementById('comments-drawer');
+  if (drawer) { drawer.classList.remove('open'); drawer.style.bottom = ''; }
   document.getElementById('comments-drawer-backdrop').classList.remove('open');
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', _onVPResize);
+    window.visualViewport.removeEventListener('scroll', _onVPResize);
+  }
+  document.getElementById('comment-input')?.blur();
   _commentsItemId = null;
 }
 
