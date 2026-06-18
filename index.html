@@ -5158,12 +5158,16 @@ const AUTH_HINTS = {
 
 let _activeSection = 'leaderboard'; // tracked so Firestore sync can refresh the right view
 
+const _viewScroll = {};
 function nav(view) {
   // Gate auth-required views for guests
   if (!currentUser && AUTH_REQUIRED_VIEWS.includes(view)) {
     showAuthScreen(AUTH_HINTS[view] || 'Sign in to continue.');
     return;
   }
+  // Save scroll position of the current view before switching
+  const main = document.querySelector('.main');
+  if (_activeSection) _viewScroll[_activeSection] = main?.scrollTop || 0;
   _activeSection = view;
   // Pause any playing reel videos when leaving explore
   document.querySelectorAll('video.reel-video').forEach(v => v.pause());
@@ -5171,6 +5175,8 @@ function nav(view) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelector(`[data-view="${view}"]`)?.classList.add('active');
+  // Restore scroll position for the new view (default 0)
+  if (main) main.scrollTop = _viewScroll[view] || 0;
   ({
     'leaderboard': renderLeaderboard,
     'log-game':    renderLogForm,
