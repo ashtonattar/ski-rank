@@ -6939,7 +6939,7 @@ function friendBtn(otherId, modal=false) {
   if (status === 'pending_sent')
     return `<button class="btn btn-ghost btn-sm" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);">Requested ✕</button>`;
   if (status === 'pending_received')
-    return `<button class="btn btn-primary btn-sm" onclick="acceptFriendRequest('${otherId}')">Accept</button>`;
+    return `<button class="btn btn-primary btn-sm" onclick="acceptFriendRequest('${otherId}')">Accept</button><button class="btn btn-ghost btn-sm" onclick="declineFriendRequest('${otherId}')" style="color:var(--text-muted);">Decline</button>`;
   return `<button class="btn btn-outline btn-sm" onclick="sendFriendRequest('${otherId}')">+ Add</button>`;
 }
 
