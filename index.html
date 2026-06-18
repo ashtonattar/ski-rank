@@ -5166,8 +5166,7 @@ function nav(view) {
     return;
   }
   // Save scroll position of the current view before switching
-  const main = document.querySelector('.main');
-  if (_activeSection) _viewScroll[_activeSection] = main?.scrollTop || 0;
+  if (_activeSection) _viewScroll[_activeSection] = window.scrollY || 0;
   _activeSection = view;
   // Pause any playing reel videos when leaving explore
   document.querySelectorAll('video.reel-video').forEach(v => v.pause());
@@ -5176,7 +5175,7 @@ function nav(view) {
   document.getElementById(`view-${view}`).classList.add('active');
   document.querySelector(`[data-view="${view}"]`)?.classList.add('active');
   // Restore scroll position for the new view (default 0)
-  if (main) main.scrollTop = _viewScroll[view] || 0;
+  window.scrollTo(0, _viewScroll[view] || 0);
   ({
     'leaderboard': renderLeaderboard,
     'log-game':    renderLogForm,
