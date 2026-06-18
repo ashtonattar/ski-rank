@@ -6854,9 +6854,7 @@ function renderPlayers() {
   if (!pl.length) { list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
 
-  // Clear search on re-render
   const rSearch = document.getElementById('riders-search');
-  if (rSearch) rSearch.value = '';
 
   list.innerHTML = pl.map(p => {
     const t=tier(p.rating);
@@ -6884,6 +6882,9 @@ function renderPlayers() {
   }).join('');
 
   list.innerHTML += `<div id="riders-no-results" style="display:none;text-align:center;padding:22px;color:var(--text-muted);font-size:13px;">No riders match your search.</div>`;
+
+  // Re-apply active search/filter after re-render
+  filterRiders(rSearch?.value || '');
 }
 
 
