@@ -7623,9 +7623,20 @@ function openChat(friendId, scrollToBottom=true) {
 
   if (scrollToBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
 
-  // Mark as read
+  // Mark as read and refresh sidebar badges
   markRead(friendId);
   updateMessagesBadge();
+  const listEl = document.getElementById('friends-list-items');
+  if (listEl) {
+    // Remove unread badge for this friend without full re-render (avoids resetting scroll)
+    document.querySelectorAll('.friend-row').forEach(r => {
+      if (r.onclick?.toString().includes(`'${friendId}'`)) {
+        const badge = r.querySelector('.friend-unread');
+        if (badge) badge.remove();
+        r.querySelector('[style*="font-weight"]') && (r.querySelector('[style*="font-weight"]').style.fontWeight = '600');
+      }
+    });
+  }
 
   // Highlight active friend row
   document.querySelectorAll('.friend-row').forEach(r => r.classList.remove('active'));
