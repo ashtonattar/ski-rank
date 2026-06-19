@@ -8189,11 +8189,57 @@ function openProfileClip(itemId) {
   });
 }
 
+let _profileId = null;
+let _profileGamePage = 0;
+
+function renderProfileGames(games, id) {
+  const PAGE = 10;
+  const total = games.length;
+  const totalPages = Math.ceil(total / PAGE);
+  const page = _profileGamePage;
+  const slice = games.slice(page * PAGE, page * PAGE + PAGE);
+
+  const rows = !slice.length
+    ? '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">No games yet</div>'
+    : slice.map(game => {
+        const isWin = game.winnerId === id;
+        const oppId = game.winnerId === id ? game.loserId : game.winnerId;
+        const opp = byId(oppId);
+        if (!opp) return '';
+        const delta = isWin ? game.winnerDelta : game.loserDelta;
+        return `
+          <div onclick="showGameDetail('${game.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
+            <span class="badge ${isWin?'badge-success':'badge-danger'}">${isWin?'W':'L'}</span>
+            <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${opp.name}</span></span>
+            ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);">🎿</span>` : ''}
+            ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);">🎬</span>` : ''}
+            <span class="${delta>=0?'rc-pos':'rc-neg'}" style="font-size:12.5px;">${delta>=0?'+':''}${delta}</span>
+            <span style="font-size:11.5px;color:var(--text-muted);">${dateFmt(game.date)}</span>
+            <span style="color:var(--text-muted);font-size:12px;">›</span>
+          </div>`;
+      }).join('');
+
+  const pagination = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;font-size:12.5px;color:var(--text-muted);">
+      <button onclick="_profileGamePage--;renderProfileGames(window._pgGames,window._pgId)" class="btn btn-ghost btn-sm" ${page===0?'disabled style="opacity:.3;"':''}>‹ Prev</button>
+      <span>${page+1} / ${totalPages}</span>
+      <button onclick="_profileGamePage++;renderProfileGames(window._pgGames,window._pgId)" class="btn btn-ghost btn-sm" ${page>=totalPages-1?'disabled style="opacity:.3;"':''}>Next ›</button>
+    </div>` : '';
+
+  const el = document.getElementById('profile-game-list');
+  if (el) el.innerHTML = rows + pagination;
+  // stash for pagination buttons
+  window._pgGames = games;
+  window._pgId = id;
+}
+
 function showProfile(id) {
   if (!currentUser) {
     showAuthScreen('👤 Sign in to view player profiles and stats.');
     return;
   }
+  _profileId = id;
+  _profileGamePage = 0;
   const p = byId(id);
   if (!p) return;
 
@@ -8357,26 +8403,8 @@ function showProfile(id) {
       <div id="modal-rh-chart"></div>
     </div>
 
-    <div style="margin-bottom:8px;font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Game History</div>
-    ${!games.length
-      ? '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">No games yet</div>'
-      : games.slice(0,12).map(game => {
-          const isWin = game.winnerId===id;
-          const oppId = game.winnerId===id ? game.loserId : game.winnerId;
-          const opp = byId(oppId);
-          if (!opp) return '';
-          const delta = isWin ? game.winnerDelta : game.loserDelta;
-          return `
-            <div onclick="showGameDetail('${game.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
-              <span class="badge ${isWin?'badge-success':'badge-danger'}">${isWin?'W':'L'}</span>
-              <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${opp.name}</span></span>
-              ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);">🎿</span>` : ''}
-              ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);">🎬</span>` : ''}
-              <span class="${delta>=0?'rc-pos':'rc-neg'}" style="font-size:12.5px;">${delta>=0?'+':''}${delta}</span>
-              <span style="font-size:11.5px;color:var(--text-muted);">${dateFmt(game.date)}</span>
-              <span style="color:var(--text-muted);font-size:12px;">›</span>
-            </div>`;
-        }).join('')}
+    <div style="margin-bottom:8px;font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Game History <span style="font-weight:400;font-size:10px;">(${games.length})</span></div>
+    <div id="profile-game-list"></div>
 
     <!-- ── Clips ── -->
     ${(() => {
@@ -8415,6 +8443,7 @@ function showProfile(id) {
     </div>`;
 
   openModal('profile-modal');
+  renderProfileGames(games, id);
 
   // Render rating history chart into the modal
   const rhContainer = document.getElementById('modal-rh-chart');
