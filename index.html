@@ -2344,9 +2344,8 @@
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;">▼</span>
           </div>
           <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
-            <button onclick="setLbRiderFilter('all')"     id="lb-rt-all"     style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">All</button>
-            <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">⛷️</button>
-            <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂</button>
+            <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">⛷️ Skiers</button>
+            <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂 Boarders</button>
           </div>
         </div>
         <div id="lb-active-filter" style="display:none;margin-bottom:12px;">
@@ -5350,12 +5349,12 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════════════════════
 //  SEARCH / FILTER
 // ═══════════════════════════════════════════════════════
-let _lbRiderFilter = 'all';
+let _lbRiderFilter = 'skier';
 let _ridersTypeFilter = 'all';
 
 function setLbRiderFilter(type) {
   _lbRiderFilter = type;
-  ['all','skier','boarder'].forEach(t => {
+  ['skier','boarder'].forEach(t => {
     const btn = document.getElementById(`lb-rt-${t}`);
     if (btn) { btn.style.background = t === type ? 'var(--primary)' : 'transparent'; btn.style.color = t === type ? '#000' : 'var(--text-muted)'; }
   });
@@ -5381,7 +5380,7 @@ function filterLeaderboard() {
     const rowType = (row.dataset.ridertype || 'skier');
     const textOk  = !q   || name.includes(q);
     const mtnOk   = !mtn || rowMtn === mtn;
-    const typeOk  = _lbRiderFilter === 'all' || rowType === _lbRiderFilter;
+    const typeOk  = rowType === _lbRiderFilter;
     row.style.display = (textOk && mtnOk && typeOk) ? '' : 'none';
   });
 
@@ -5390,7 +5389,7 @@ function filterLeaderboard() {
   if (noRes) noRes.style.display = visible.length === 0 ? '' : 'none';
 
   // Re-number ranks within the filtered set
-  const isFiltered = q || mtn || _lbRiderFilter !== 'all';
+  const isFiltered = q || mtn || true; // sport filter always active
   let filteredRank = 0;
   visible.forEach(row => {
     const rankCell = row.querySelector('.td-rank');
