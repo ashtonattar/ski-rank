@@ -8314,9 +8314,9 @@ function showProfile(id) {
 
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
       ${[['Wins',p.wins,'var(--success)'],['Losses',p.losses,'var(--danger)'],['Win %',wpct+'%','var(--primary)'],['Games',p.gamesPlayed,'var(--text-primary)']].map(([l,v,c])=>`
-        <div class="stat-card" style="padding:14px;">
+        <div class="stat-card" style="padding:14px;min-width:0;overflow:hidden;">
           <div class="stat-label">${l}</div>
-          <div style="font-size:26px;font-weight:800;color:${c};line-height:1.1;">${v}</div>
+          <div style="font-size:clamp(16px,4vw,26px);font-weight:800;color:${c};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v}</div>
         </div>`).join('')}
     </div>
 
