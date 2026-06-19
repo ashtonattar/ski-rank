@@ -2327,7 +2327,11 @@
             <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
           </div>
         </div>
-        <div id="lb-filters" style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+        <div id="lb-sport-filter" style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;margin-bottom:10px;align-self:flex-start;">
+          <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">⛷️ Skiers</button>
+          <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂 Boarders</button>
+        </div>
+        <div id="lb-search-filters" style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
           <div style="position:relative;flex:1;min-width:140px;box-sizing:border-box;">
             <input type="text" id="lb-search" class="form-input"
               placeholder="Search riders…"
@@ -2342,10 +2346,6 @@
             </select>
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🏔</span>
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;">▼</span>
-          </div>
-          <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
-            <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">⛷️ Skiers</button>
-            <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂 Boarders</button>
           </div>
         </div>
         <div id="lb-active-filter" style="display:none;margin-bottom:12px;">
@@ -5363,7 +5363,8 @@ function setLbRiderFilter(type) {
   const thW = document.getElementById('lb-th-rider-weekly');
   if (th) th.textContent = label;
   if (thW) thW.textContent = label;
-  filterLeaderboard();
+  if (_lbTab === 'weekly') renderWeeklyLeaderboard();
+  else filterLeaderboard();
 }
 
 function setRidersTypeFilter(type) {
@@ -5482,7 +5483,8 @@ function switchLbTab(tab) {
   if (tblWrap)   tblWrap.style.display   = isWeekly ? 'none' : '';
   if (lbEmpty && isWeekly) lbEmpty.style.display = 'none';
   if (wkWrap)    wkWrap.style.display    = isWeekly ? 'block' : 'none';
-  if (filters)   filters.style.display   = isWeekly ? 'none' : 'flex';
+  const searchFilters = document.getElementById('lb-search-filters');
+  if (searchFilters) searchFilters.style.display = isWeekly ? 'none' : 'flex';
   if (actFilter && isWeekly) actFilter.style.display = 'none';
 
   if (isWeekly) renderWeeklyLeaderboard();
@@ -5517,7 +5519,7 @@ function renderWeeklyLeaderboard() {
 
   const rows = Object.entries(stats)
     .map(([id, s]) => ({ id, player: byId(id), ...s }))
-    .filter(r => r.player)
+    .filter(r => r.player && (r.player.riderType || 'skier') === _lbRiderFilter)
     .sort((a, b) => b.delta - a.delta);
 
   body.innerHTML = rows.map((r, i) => `
