@@ -2359,7 +2359,7 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Skier</th>
+                <th id="lb-th-rider">Skier</th>
                 <th>SKI Rating</th>
                 <th class="lb-col-games">W</th>
                 <th class="lb-col-games">L</th>
@@ -2387,7 +2387,7 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Skier</th>
+                  <th id="lb-th-rider-weekly">Skier</th>
                   <th>Weekly Δ</th>
                   <th>W</th>
                   <th>L</th>
@@ -5358,6 +5358,11 @@ function setLbRiderFilter(type) {
     const btn = document.getElementById(`lb-rt-${t}`);
     if (btn) { btn.style.background = t === type ? 'var(--primary)' : 'transparent'; btn.style.color = t === type ? '#000' : 'var(--text-muted)'; }
   });
+  const label = type === 'boarder' ? 'Boarder' : 'Skier';
+  const th = document.getElementById('lb-th-rider');
+  const thW = document.getElementById('lb-th-rider-weekly');
+  if (th) th.textContent = label;
+  if (thW) thW.textContent = label;
   filterLeaderboard();
 }
 
