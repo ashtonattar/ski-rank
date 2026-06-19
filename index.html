@@ -8721,6 +8721,8 @@ function openCreateTournamentModal() {
   if (searchEl) searchEl.value = '';
   const counter = document.getElementById('tinv-counter');
   if (counter) { counter.textContent = '1 / 32'; counter.style.color = 'var(--text-muted)'; }
+  // Clear any leftover checkboxes from a previous modal session
+  document.querySelectorAll('#tourney-invite-picker input[type=checkbox]').forEach(cb => { cb.checked = false; });
   _inviteTab = 'all';
   setInviteTab('all', true);
   openModal('create-tourney-modal');
@@ -8973,12 +8975,13 @@ function startTournament(tourneyId) {
 
 // ── Delete tournament (creator only) ─────────────────────
 function deleteTournament(tourneyId) {
-  if (!confirm('Delete this tournament? This cannot be undone.')) return;
-  S.tournaments = (S.tournaments || []).filter(t => t.id !== tourneyId);
-  save();
-  closeModal('tourney-detail-modal');
-  renderTournaments();
-  toast('Tournament deleted.', 'ok');
+  confirm_('Delete tournament?', 'This cannot be undone — all bracket data will be lost.', () => {
+    S.tournaments = (S.tournaments || []).filter(t => t.id !== tourneyId);
+    save();
+    closeModal('tourney-detail-modal');
+    renderTournaments();
+    toast('Tournament deleted.', 'ok');
+  });
 }
 
 // ── Tournament victory screen ────────────────────────────
@@ -9552,7 +9555,7 @@ function renderRRHTML(t) {
   t.matches.forEach(m => {
     const done = m.status === 'played';
     const iAmInMatch = currentUser && (m.p1.id === currentUser.id || m.p2.id === currentUser.id);
-    const canRecord = iAmInMatch && !done && t.status === 'active';
+    const canRecord = (iAmInMatch || isCreator) && !done && t.status === 'active';
     html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-card);border:1px solid ${done?'var(--border)':'var(--border-light)'};border-radius:var(--radius-sm);">
       <span style="flex:1;font-size:13px;font-weight:${m.winnerId===m.p1.id?'700':'400'};color:${m.winnerId===m.p1.id?'var(--success)':m.winnerId===m.p2.id?'var(--text-muted)':'inherit'};">${m.p1.name}</span>
       <span style="font-size:11px;color:var(--text-muted);font-weight:600;">vs</span>
