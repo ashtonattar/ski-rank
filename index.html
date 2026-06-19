@@ -8438,7 +8438,7 @@ function showProfile(id) {
 
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
       ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');">Log Game vs ${p.name}</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')">⚡ Challenge ${p.name}</button>` : ''}
     </div>`;
 
