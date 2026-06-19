@@ -5536,6 +5536,8 @@ function renderWeeklyLeaderboard() {
 }
 
 function renderLeaderboard() {
+  // Auto-set sport filter to match current user's type
+  if (currentUser) setLbRiderFilter(currentUser.riderType === 'boarder' ? 'boarder' : 'skier');
   const pl = sorted();
   const body  = document.getElementById('lb-body');
   const empty = document.getElementById('lb-empty');
