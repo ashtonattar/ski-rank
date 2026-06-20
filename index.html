@@ -6713,7 +6713,10 @@ function finishLive(winnerId, loserId) {
   S.liveInvites = (S.liveInvites || []).filter(i =>
     !(i.p1Id === g.p1 && i.p2Id === g.p2)
   );
-  save();
+  // Force an immediate Firestore write (skip debounce) so the over:true state reaches
+  // all clients before the local player can click "New Game" and wipe S.live to null.
+  clearTimeout(_saveTimer);
+  _saveToFirestore();
   // Only show rating animation to the two players, not the judge
   showGameOver(winnerId, loserId, game);
   drawBoard();
