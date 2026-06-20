@@ -3644,6 +3644,7 @@ function startFirestoreSync() {
             }
             S.live.over = true;
             S.live.cancelled = true;
+            S.live.cancelledReason = 'refresh';
             clearTimeout(_saveTimer);
             _saveToFirestore(); // immediate — must reach other clients before we wipe locally
             _gameOverDismissed = true;
@@ -3737,8 +3738,9 @@ function startFirestoreSync() {
               S.live.over = true;
               S.live.cancelled = true;
               S.live.cancelledByJudge = abId;
+              S.live.cancelledReason = 'refresh';
               save();
-              showJudgeCancelled();
+              showMatchCancelled();
             } else if (amOtherPlayer) {
               _abandonHandled = true;
               // Clear the flag so we don't re-trigger on next snapshot
@@ -6749,13 +6751,16 @@ function showMatchCancelled() {
   const g = S.live;
   const p1 = byId(g.p1), p2 = byId(g.p2);
   const isJudgeLeft = !!g.cancelledByJudge;
+  const isRefresh = g.cancelledReason === 'refresh';
   const leaverId = g.cancelledByJudge || g.cancelledBy;
   const leaverName = byId(leaverId)?.name || (isJudgeLeft ? 'The judge' : 'A player');
   const icon = isJudgeLeft ? '⚖️' : '🏃';
-  const heading = isJudgeLeft ? 'JUDGE LEFT' : 'PLAYER LEFT';
-  const subline = isJudgeLeft
-    ? `${leaverName} abandoned — no result recorded.`
-    : `${leaverName} left the game — no result recorded.`;
+  const heading = isJudgeLeft
+    ? (isRefresh ? 'JUDGE DISCONNECTED' : 'JUDGE LEFT')
+    : (isRefresh ? 'PLAYER DISCONNECTED' : 'PLAYER LEFT');
+  const subline = isRefresh
+    ? `${leaverName} refreshed or closed the app — no result recorded.`
+    : `${leaverName} chose to leave the game — no result recorded.`;
   document.getElementById('live-over-section').style.display = 'block';
   const abandonBtn = document.getElementById('abandon-btn');
   if (abandonBtn) abandonBtn.style.display = 'none';
@@ -6763,7 +6768,7 @@ function showMatchCancelled() {
     <div class="game-over-banner" style="position:relative;">
       <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
       <h2 style="color:var(--danger);">${icon} ${heading}</h2>
-      <p style="font-size:17px;font-weight:700;margin-bottom:4px;">${leaverName} left the match</p>
+      <p style="font-size:17px;font-weight:700;margin-bottom:4px;">${leaverName} ${isRefresh ? 'disconnected' : 'left the match'}</p>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${subline} Ratings are unchanged.</p>
       <div style="background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;margin-bottom:18px;">
         ${p1 ? `<span style="font-weight:700;">${p1.name}</span>` : ''}
@@ -6913,6 +6918,7 @@ function abandonGame() {
       S.live.over = true;
       S.live.cancelled = true;
       S.live.cancelledByJudge = currentUser.id;
+      S.live.cancelledReason = 'quit';
       save();
       _gameOverDismissed = true;
       _resetLiveUI();
