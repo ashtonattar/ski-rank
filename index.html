@@ -5186,7 +5186,16 @@ const AUTH_HINTS = {
 let _activeSection = 'leaderboard'; // tracked so Firestore sync can refresh the right view
 
 const _viewScroll = {};
-function nav(view) {
+function nav(view, _force) {
+  // Warn if trying to leave an active game
+  if (!_force && view !== 'live-game' && _activeSection === 'live-game' &&
+      S.live && !S.live.over && currentUser &&
+      (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId)) {
+    confirm_('Leave the game?',
+      'Navigating away will forfeit the match and count as a loss. Stay on the Play screen to keep playing.',
+      () => nav(view, true));
+    return;
+  }
   // Gate auth-required views for guests
   if (!currentUser && AUTH_REQUIRED_VIEWS.includes(view)) {
     showAuthScreen(AUTH_HINTS[view] || 'Sign in to continue.');
