@@ -3862,6 +3862,51 @@ function stopFirestoreSync() {
   clearTimeout(_saveTimer);
 }
 
+// ── Live-game fallback poll ────────────────────────────────────────────────
+// When the onSnapshot listener drops (common on mobile), this polls Firestore
+// every 4 s while the current user is in an active game so the game-over
+// state is never missed for more than a few seconds.
+let _livePollInterval = null;
+
+function startLiveGamePoll() {
+  if (!db) return;
+  stopLiveGamePoll();
+  _livePollInterval = setInterval(async () => {
+    // Only run while in an active, unfinished game
+    if (!currentUser || !S.live || S.live.over || _gameOverDismissed) return;
+    const isParticipant = currentUser.id === S.live.p1 ||
+                          currentUser.id === S.live.p2 ||
+                          currentUser.id === S.live.judgeId;
+    if (!isParticipant) return;
+    try {
+      const snap = await db.collection('state').doc('global').get();
+      if (!snap.exists) return;
+      const fresh = snap.data();
+      if (!fresh || !fresh.live || !fresh.live.over) return;
+      // Remote game is over but we haven't seen it — listener must have dropped.
+      // Merge just the live field so we don't overwrite other local changes.
+      S.live = fresh.live;
+      if (Array.isArray(fresh.players)) S.players = fresh.players;
+      if (Array.isArray(fresh.games))   S.games   = fresh.games;
+      if (_activeSection === 'live-game') {
+        const liveActiveEl = document.getElementById('live-active');
+        const liveSetupEl  = document.getElementById('live-setup');
+        if (liveSetupEl)  liveSetupEl.style.display  = 'none';
+        if (liveActiveEl) liveActiveEl.style.display = 'block';
+        restoreLog();
+        drawBoard();
+        if (S.live.cancelled) showMatchCancelled();
+        else showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+      }
+      stopLiveGamePoll(); // game ended — no need to keep polling
+    } catch(e) { /* silent — listener will recover */ }
+  }, 4000);
+}
+
+function stopLiveGamePoll() {
+  if (_livePollInterval) { clearInterval(_livePollInterval); _livePollInterval = null; }
+}
+
 // ═══════════════════════════════════════════════════════
 //  AUTH
 // ═══════════════════════════════════════════════════════
@@ -6283,6 +6328,7 @@ function startLive() {
     _game:null
   };
   save();
+  startLiveGamePoll();
   document.getElementById('live-setup').style.display='none';
   document.getElementById('live-active').style.display='block';
   document.getElementById('live-over-section').style.display='none';
@@ -6773,6 +6819,7 @@ function finishLive(winnerId, loserId) {
   // all clients before the local player can click "New Game" and wipe S.live to null.
   clearTimeout(_saveTimer);
   _saveToFirestore();
+  stopLiveGamePoll();
   // Only show rating animation to the two players, not the judge
   showGameOver(winnerId, loserId, game);
   drawBoard();
@@ -6925,6 +6972,7 @@ function _resetLiveUI() {
 
 function resetLive() {
   // Clears the game for everyone (called after Save & New Game or abandon)
+  stopLiveGamePoll();
   _gameOverDismissed = false;
   _abandonHandled    = false;
   if (_abandonTimer) { clearTimeout(_abandonTimer); _abandonTimer = null; }
@@ -6962,6 +7010,7 @@ function abandonGame() {
       S.live.cancelledByJudge = currentUser.id;
       S.live.cancelledReason = 'quit';
       save();
+      stopLiveGamePoll();
       _gameOverDismissed = true;
       _resetLiveUI();
     });
@@ -10172,7 +10221,7 @@ function acceptLiveInvite(inviteId) {
     };
   }
   save();
-
+  startLiveGamePoll();
   checkNotifications();
   toast(`Game on! ⛷️`, 'ok');
   nav('live-game');
