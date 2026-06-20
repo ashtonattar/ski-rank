@@ -3813,8 +3813,17 @@ function startFirestoreSync() {
               renderLiveSetup();
             }
           } else {
-            // Game was cleared / abandoned by the other player
-            renderLiveSetup();
+            // Game was cleared / abandoned by the other player —
+            // but don't wipe the screen if this user is still waiting as judge or as P1 waiting for P2.
+            const _judgeStillWaiting = currentUser && (S.liveInvites || []).some(
+              i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted'
+            );
+            const _p1StillWaiting = currentUser && (S.liveInvites || []).some(
+              i => i.fromId === currentUser.id && i.status === 'pending'
+            );
+            if (!_judgeStillWaiting && !_p1StillWaiting) {
+              renderLiveSetup();
+            }
           }
         }
       },
@@ -6156,7 +6165,7 @@ function renderLiveSetup() {
       document.getElementById('live-invite-waiting').innerHTML = `
         <p style="font-size:15px;font-weight:700;margin-bottom:6px;">⚖️ You're the judge!</p>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">
-          Waiting for <strong>${p1Name}</strong> &amp; <strong>${p2Name}</strong> to accept their invites…
+          Waiting for <strong>${p2Name}</strong> to accept their invite…
         </p>
         <button class="btn btn-ghost btn-sm" onclick="
           const ji = (S.liveInvites||[]).find(i=>i.role==='judge'&&i.toId===currentUser?.id&&i.status==='accepted');
