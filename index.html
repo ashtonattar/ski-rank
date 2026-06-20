@@ -3557,7 +3557,7 @@ function startFirestoreSync() {
           return;
         }
         // Our own pending write fired this snapshot — skip to avoid overwriting
-        if (snap.metadata.hasPendingWrites) { console.log('[snap] skipped hasPendingWrites'); return; }
+        if (snap.metadata.hasPendingWrites) return;
 
         const fresh = snap.data();
         if (!fresh || !Array.isArray(fresh.players)) return;
@@ -3723,7 +3723,6 @@ function startFirestoreSync() {
         // Live game — update the board in real time without a full nav re-render
         // (avoids clearing the trick-input field while someone is typing)
         if (_activeSection === 'live-game') {
-          console.log('[snap] live-game branch — live:', JSON.stringify({over:S.live?.over,winnerId:S.live?.winnerId,cancelled:S.live?.cancelled,abandonedBy:S.live?.abandonedBy}), '_gameOverDismissed:', _gameOverDismissed);
           // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
           if (S.live && S.live.abandonedBy && !S.live.over && !_abandonHandled) {
             const abId = S.live.abandonedBy;
@@ -3815,7 +3814,6 @@ function startFirestoreSync() {
             }
           } else if (S.live && S.live.over) {
             const _wasPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
-            console.log('[snap] over branch — _wasPlayer:', _wasPlayer, '_gameOverDismissed:', _gameOverDismissed, 'winnerId:', S.live.winnerId);
             if (!_gameOverDismissed && _wasPlayer) {
               // Make sure live-active is visible so the game-over section inside it shows
               const liveActiveEl = document.getElementById('live-active');
@@ -3848,7 +3846,13 @@ function startFirestoreSync() {
           }
         }
       },
-      err => console.warn('Firestore onSnapshot error:', err)
+      err => {
+        console.warn('Firestore onSnapshot error:', err);
+        // Listener is now dead — restart it after a short delay so live updates resume
+        setTimeout(() => {
+          if (currentUser) startFirestoreSync();
+        }, 3000);
+      }
     );
   });
 }
@@ -6768,7 +6772,6 @@ function finishLive(winnerId, loserId) {
   // Force an immediate Firestore write (skip debounce) so the over:true state reaches
   // all clients before the local player can click "New Game" and wipe S.live to null.
   clearTimeout(_saveTimer);
-  console.log('[finishLive] writing — over:true winnerId:', winnerId, 'loserId:', loserId);
   _saveToFirestore();
   // Only show rating animation to the two players, not the judge
   showGameOver(winnerId, loserId, game);
