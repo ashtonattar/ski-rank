@@ -3630,17 +3630,29 @@ function startFirestoreSync() {
         // Guests should never see another player's live game — clear it immediately.
         if (!currentUser) S.live = null;
 
-        // On first sync after login/refresh: abandon any live game the current user was in.
-        // Prevents players from being silently dropped back into a stale game on reload.
+        // On first sync after login/refresh: if the current user was in an active live game,
+        // mark it cancelled so the other player/judge sees a "player left" screen.
         if (_clearLiveOnFirstSync) {
           _clearLiveOnFirstSync = false;
-          if (S.live && currentUser &&
+          if (S.live && !S.live.over && currentUser &&
               (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
-            S.live = null;
-            _gameOverDismissed = false;
+            const isJudge = S.live.judgeId === currentUser.id;
+            if (isJudge) {
+              S.live.cancelledByJudge = currentUser.id;
+            } else {
+              S.live.cancelledBy = currentUser.id;
+            }
+            S.live.over = true;
+            S.live.cancelled = true;
+            clearTimeout(_saveTimer);
+            _saveToFirestore(); // immediate — must reach other clients before we wipe locally
+            _gameOverDismissed = true;
             _resetLiveUI();
-            save();
-            toast('A live game in progress was cleared on reload.', 'ok');
+          } else if (S.live && S.live.over && currentUser &&
+              (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
+            // Game was already over when we refreshed — just reset UI, don't show game-over again
+            _gameOverDismissed = true;
+            _resetLiveUI();
           }
         }
 
@@ -6733,19 +6745,26 @@ function shareGameResult(winnerName, loserName) {
   }
 }
 
-function showJudgeCancelled() {
+function showMatchCancelled() {
   const g = S.live;
-  const judgeName = byId(g.cancelledByJudge)?.name || byId(g.judgeId)?.name || 'The judge';
   const p1 = byId(g.p1), p2 = byId(g.p2);
+  const isJudgeLeft = !!g.cancelledByJudge;
+  const leaverId = g.cancelledByJudge || g.cancelledBy;
+  const leaverName = byId(leaverId)?.name || (isJudgeLeft ? 'The judge' : 'A player');
+  const icon = isJudgeLeft ? '⚖️' : '🏃';
+  const heading = isJudgeLeft ? 'JUDGE LEFT' : 'PLAYER LEFT';
+  const subline = isJudgeLeft
+    ? `${leaverName} abandoned — no result recorded.`
+    : `${leaverName} left the game — no result recorded.`;
   document.getElementById('live-over-section').style.display = 'block';
   const abandonBtn = document.getElementById('abandon-btn');
   if (abandonBtn) abandonBtn.style.display = 'none';
   document.getElementById('live-over-section').innerHTML = `
     <div class="game-over-banner" style="position:relative;">
       <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
-      <h2 style="color:var(--danger);">⚖️ JUDGE LEFT</h2>
-      <p style="font-size:17px;font-weight:700;margin-bottom:4px;">${judgeName} abandoned the match</p>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">No result was recorded — ratings are unchanged.</p>
+      <h2 style="color:var(--danger);">${icon} ${heading}</h2>
+      <p style="font-size:17px;font-weight:700;margin-bottom:4px;">${leaverName} left the match</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${subline} Ratings are unchanged.</p>
       <div style="background:rgba(0,0,0,0.2);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;margin-bottom:18px;">
         ${p1 ? `<span style="font-weight:700;">${p1.name}</span>` : ''}
         <span style="color:var(--text-muted);"> vs </span>
@@ -6757,6 +6776,8 @@ function showJudgeCancelled() {
       </div>
     </div>`;
 }
+// Keep old name as alias for callers
+function showJudgeCancelled() { showMatchCancelled(); }
 
 function showGameOver(winnerId, loserId, game) {
   const winner = byId(winnerId), loser = byId(loserId);
