@@ -3618,7 +3618,14 @@ function startFirestoreSync() {
         const myMissingRecord = (!_wipeInProgress && currentUser)
           ? S.players.find(lp => lp.id === currentUser.id && !fresh.players.some(fp => fp.id === lp.id))
           : null;
+        // Snapshot local invite statuses before overwriting — prevents a stale write
+        // from another client from reverting an already-accepted invite back to pending.
+        const _prevInvites = [...(S.liveInvites || [])];
         Object.assign(S, fresh);
+        S.liveInvites = (S.liveInvites || []).map(inv => {
+          const prev = _prevInvites.find(p => p.id === inv.id);
+          return (prev?.status === 'accepted' && inv.status === 'pending') ? { ...inv, status: 'accepted' } : inv;
+        });
 
         // Guests should never see another player's live game — clear it immediately.
         if (!currentUser) S.live = null;
