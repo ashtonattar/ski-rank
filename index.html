@@ -3772,6 +3772,8 @@ function startFirestoreSync() {
               const actionStrip = document.getElementById('play-action-strip');
               if (heroBox)     heroBox.style.display     = 'none';
               if (actionStrip) actionStrip.style.display = 'none';
+              // Ensure the fallback poll is running for this player
+              startLiveGamePoll();
             }
             // Auto-advance phase if judge's invite is now 'accepted' but phase is still waiting-for-judge.
             // Handles the race where a player accepted before the judge's status propagated to Firestore.
