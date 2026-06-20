@@ -6167,8 +6167,10 @@ function renderLiveSetup() {
     document.getElementById('live-setup').style.display='none';
     document.getElementById('live-active').style.display='block';
     restoreLog();
-    if (S.live.over) showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
-    else drawBoard();
+    if (S.live.over) {
+      if (S.live.cancelled) showMatchCancelled();
+      else showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+    } else drawBoard();
   } else {
     document.getElementById('live-setup').style.display='block';
     document.getElementById('live-active').style.display='none';
