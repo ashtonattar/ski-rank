@@ -6145,7 +6145,9 @@ function renderLiveSetup() {
   refreshHandicapPreview();
   const isParticipant = S.live && currentUser &&
     (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
-  const inGame = isParticipant; // only show the game board to actual participants
+  // Don't treat a dismissed game-over as "in game" — S.live is left intact after dismiss
+  // so the other player can still see the result, but the hero boxes should be visible again.
+  const inGame = isParticipant && !(S.live?.over && _gameOverDismissed);
   document.getElementById('play-hero-box').style.display    = inGame ? 'none' : '';
   document.getElementById('play-action-strip').style.display = inGame ? 'none' : '';
 
