@@ -5191,9 +5191,34 @@ function nav(view, _force) {
   if (!_force && view !== 'live-game' && _activeSection === 'live-game' &&
       S.live && !S.live.over && currentUser &&
       (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId)) {
-    confirm_('Leave the game?',
-      'Navigating away will forfeit the match and count as a loss. Stay on the Play screen to keep playing.',
-      () => nav(view, true));
+    const g = S.live;
+    const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2;
+    const msg = amPlayer
+      ? 'Navigating away will forfeit the match and count as a loss. Stay on the Play screen to keep playing.'
+      : 'Navigating away will cancel the match — no result will be recorded.';
+    confirm_('Leave the game?', msg, () => {
+      if (amPlayer) {
+        const loserId  = currentUser.id;
+        const winnerId = currentUser.id === g.p1 ? g.p2 : g.p1;
+        g.letters[loserId] = 3;
+        g.forfeitBy = loserId;
+        addLog('🏳️', `${currentUser.name} left — forfeit! ${byId(winnerId)?.name} wins.`);
+        finishLive(winnerId, loserId);
+        _gameOverDismissed = true;
+        _resetLiveUI();
+      } else {
+        addLog('⚖️', `${currentUser.name} left — match cancelled. No result recorded.`);
+        S.live.over = true;
+        S.live.cancelled = true;
+        S.live.cancelledByJudge = currentUser.id;
+        S.live.cancelledReason = 'quit';
+        clearTimeout(_saveTimer);
+        _saveToFirestore();
+        _gameOverDismissed = true;
+        _resetLiveUI();
+      }
+      nav(view, true);
+    });
     return;
   }
   // Gate auth-required views for guests
