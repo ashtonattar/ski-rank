@@ -3873,20 +3873,19 @@ let _livePollInterval = null;
 function startLiveGamePoll() {
   if (!db) return;
   stopLiveGamePoll();
+  console.log('[poll] started');
   _livePollInterval = setInterval(async () => {
-    // Only run while in an active, unfinished game
-    if (!currentUser || !S.live || S.live.over || _gameOverDismissed) return;
-    const isParticipant = currentUser.id === S.live.p1 ||
-                          currentUser.id === S.live.p2 ||
-                          currentUser.id === S.live.judgeId;
-    if (!isParticipant) return;
+    const isParticipant = currentUser && S.live && (
+      currentUser.id === S.live.p1 ||
+      currentUser.id === S.live.p2 ||
+      currentUser.id === S.live.judgeId);
+    console.log('[poll] tick — live:', !!S.live, 'over:', S.live?.over, 'isParticipant:', isParticipant, 'dismissed:', _gameOverDismissed);
+    if (!currentUser || !S.live || S.live.over || _gameOverDismissed || !isParticipant) return;
     try {
       const snap = await db.collection('state').doc('global').get();
-      if (!snap.exists) return;
       const fresh = snap.data();
-      if (!fresh || !fresh.live || !fresh.live.over) return;
-      // Remote game is over but we haven't seen it — listener must have dropped.
-      // Merge just the live field so we don't overwrite other local changes.
+      console.log('[poll] fetched — remote over:', fresh?.live?.over, 'winnerId:', fresh?.live?.winnerId);
+      if (!snap.exists || !fresh || !fresh.live || !fresh.live.over) return;
       S.live = fresh.live;
       if (Array.isArray(fresh.players)) S.players = fresh.players;
       if (Array.isArray(fresh.games))   S.games   = fresh.games;
@@ -3900,8 +3899,8 @@ function startLiveGamePoll() {
         if (S.live.cancelled) showMatchCancelled();
         else showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
       }
-      stopLiveGamePoll(); // game ended — no need to keep polling
-    } catch(e) { /* silent — listener will recover */ }
+      stopLiveGamePoll();
+    } catch(e) { console.warn('[poll] error:', e.message); }
   }, 4000);
 }
 
