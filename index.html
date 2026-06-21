@@ -3873,6 +3873,7 @@ let _livePollInterval = null;
 function startLiveGamePoll() {
   if (!db) return;
   stopLiveGamePoll();
+  _gameOverDismissed = false;
   console.log('[poll] started');
   _livePollInterval = setInterval(async () => {
     const isParticipant = currentUser && S.live && (
