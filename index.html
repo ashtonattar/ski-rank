@@ -2784,7 +2784,7 @@
     <!-- ─── EXPLORE ─── -->
     <div id="view-explore" class="view">
       <!-- Post Clip FAB -->
-      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(16px + env(safe-area-inset-top));left:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">＋ Post Clip</button>
+      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(16px + env(safe-area-inset-top));right:18px;z-index:200;background:var(--ice);color:#030c1c;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,212,255,0.45);letter-spacing:.3px;">📷 Post Clip</button>
 
 
       <div id="explore-feed" class="explore-feed"></div>
@@ -5282,8 +5282,9 @@ function nav(view, _force) {
   // Save scroll position of the current view before switching
   if (_activeSection) _viewScroll[_activeSection] = window.scrollY || 0;
   _activeSection = view;
-  // Pause any playing reel videos when leaving explore
+  // Pause any playing reel videos when leaving explore, and hide the post FAB
   document.querySelectorAll('video.reel-video').forEach(v => v.pause());
+  if (view !== 'explore') { const fab = document.getElementById('post-clip-fab'); if (fab) fab.style.display = 'none'; }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
@@ -5917,6 +5918,7 @@ function renderLogForm() {
     w.innerHTML = '<option value="">Select winner...</option>';
     if (p1) { const pl=byId(p1); w.innerHTML+=`<option value="${p1}">${pl.name}</option>`; }
     if (p2) { const pl=byId(p2); w.innerHTML+=`<option value="${p2}">${pl.name}</option>`; }
+    w.selectedIndex = 0; // prevent browser from auto-selecting sole option on iOS
 
     refreshMatchupPreview();
   };
@@ -7719,8 +7721,10 @@ function shareReel(itemId) {
   }
   if (navigator.share) {
     navigator.share({ title:'SKI Rank Clip', text, url }).catch(()=>{});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text + ' ' + url).then(() => toast('Link copied! 🔗', 'ok')).catch(() => toast('Could not copy link.', 'err'));
   } else {
-    navigator.clipboard?.writeText(text + ' ' + url).then(() => toast('Link copied!', 'ok'));
+    toast('Share not supported on this device.', 'err');
   }
 }
 
@@ -8424,11 +8428,16 @@ function showProfile(id) {
   const t = tier(p.rating, p.gamesPlayed);
   const ratedList = sorted().filter(x => isRated(x));
   const rank = isRated(p) ? ratedList.findIndex(x=>x.id===id) + 1 : null;
-  const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
 
   const games = [...S.games]
     .filter(g=>g.winnerId===id||g.loserId===id)
     .sort((a,b)=>b.date-a.date);
+
+  // Derive stats from actual game records so stats cards and history are always consistent
+  const actualWins   = games.filter(g => g.winnerId === id).length;
+  const actualLosses = games.filter(g => g.loserId  === id).length;
+  const actualGames  = games.length;
+  const wpct = actualGames ? Math.round(actualWins / actualGames * 100) : 0;
 
   // Head-to-head vs current user
   const h2h = currentUser && id !== currentUser.id
@@ -8491,7 +8500,7 @@ function showProfile(id) {
     </div>` : ''}
 
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
-      ${[['Wins',p.wins,'var(--success)'],['Losses',p.losses,'var(--danger)'],['Win %',wpct+'%','var(--primary)'],['Games',p.gamesPlayed,'var(--text-primary)']].map(([l,v,c])=>`
+      ${[['Wins',actualWins,'var(--success)'],['Losses',actualLosses,'var(--danger)'],['Win %',wpct+'%','var(--primary)'],['Games',actualGames,'var(--text-primary)']].map(([l,v,c])=>`
         <div class="stat-card" style="padding:14px;min-width:0;overflow:hidden;">
           <div class="stat-label">${l}</div>
           <div style="font-size:clamp(16px,4vw,26px);font-weight:800;color:${c};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v}</div>
@@ -9111,6 +9120,7 @@ function createTournament() {
     return { id: p.id, name: p.name, status: 'pending' };
   });
 
+  if (invitees.length < 1) { toast('Add at least one other participant to create a tournament.', 'err'); return; }
   // creator counts as 1 participant, so max invitees = 31
   if (invitees.length > 31) { toast('Maximum 32 participants (you + 31 invitees).', 'err'); return; }
 
