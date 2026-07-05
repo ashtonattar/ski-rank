@@ -3630,26 +3630,12 @@ function startFirestoreSync() {
         // Guests should never see another player's live game — clear it immediately.
         if (!currentUser) S.live = null;
 
-        // On first sync after login/refresh: if the current user was in an active live game,
-        // mark it cancelled so the other player/judge sees a "player left" screen.
+        // On first sync after login/refresh: a reload should resume an active live game,
+        // not forfeit it — real abandonment is already handled by the nav-guard (confirm
+        // dialog when leaving the Play tab) and the live-game poll/listener fallback.
         if (_clearLiveOnFirstSync) {
           _clearLiveOnFirstSync = false;
-          if (S.live && !S.live.over && currentUser &&
-              (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
-            const isJudge = S.live.judgeId === currentUser.id;
-            if (isJudge) {
-              S.live.cancelledByJudge = currentUser.id;
-            } else {
-              S.live.cancelledBy = currentUser.id;
-            }
-            S.live.over = true;
-            S.live.cancelled = true;
-            S.live.cancelledReason = 'refresh';
-            clearTimeout(_saveTimer);
-            _saveToFirestore(); // immediate — must reach other clients before we wipe locally
-            _gameOverDismissed = true;
-            _resetLiveUI();
-          } else if (S.live && S.live.over && currentUser &&
+          if (S.live && S.live.over && currentUser &&
               (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
             // Game was already over when we refreshed — just reset UI, don't show game-over again
             _gameOverDismissed = true;
