@@ -4197,6 +4197,12 @@ function showAuthScreen(hint='') {
   ['li-email','li-password','su-name','su-email','su-resort','su-password','su-confirm'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  // Reset submit buttons — a previous submission may have left them disabled
+  // with "Signing in…"/"Creating account…" text if the screen was closed mid-request.
+  const loginBtn = document.querySelector('#form-login .auth-btn');
+  if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In ⛷️'; }
+  const signupBtn = document.querySelector('#form-signup .auth-btn');
+  if (signupBtn) { signupBtn.disabled = false; signupBtn.textContent = 'Create Account 🔥'; }
   // Show back button only when coming from preview mode (app already loaded, no session)
   const backRow = document.getElementById('auth-back-row');
   if (backRow) backRow.style.display = !currentUser && document.getElementById('app').style.display !== 'none' ? 'block' : 'none';
