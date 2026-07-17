@@ -11040,12 +11040,17 @@ async function init() {
         // Token is valid — look up the player record
         const player = await _playerFromFirebaseUser(fbUser);
         if (player) {
+          // A guest browsing in preview mode already has #app visible, so that check
+          // alone misses a fresh sign-in — also launch whenever the auth screen is
+          // still open (mid sign-in/signup) or we're transitioning from no session.
+          const authScreen = document.getElementById('auth-screen');
+          const midAuthFlow = authScreen && authScreen.style.display !== 'none';
+          const needsLaunch = !currentUser || midAuthFlow ||
+            !document.getElementById('app') || document.getElementById('app').style.display === 'none';
           currentUser = { id: player.id, name: player.name, email: player.email, riderType: player.riderType || 'skier' };
           // Sync the lightweight localStorage entry so legacy code paths work
           setSession(currentUser);
-          if (!document.getElementById('app') || document.getElementById('app').style.display === 'none') {
-            launchApp();
-          }
+          if (needsLaunch) launchApp();
           return;
         }
         // Firebase Auth user exists but no player record — sign out
