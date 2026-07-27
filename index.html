@@ -3778,27 +3778,7 @@ function startFirestoreSync() {
               restoreLog();
               drawBoard();
               // Resolve dispute once BOTH votes are confirmed in Firestore.
-              // Runs on both devices but _disputeResolved guards against double-apply.
-              if (S.live.phase === 'dispute' && !_disputeResolved) {
-                const dv = S.live.disputeVotes || {};
-                const v1 = dv[S.live.p1];
-                const v2 = dv[S.live.p2];
-                if (v1 && v2) {
-                  _disputeResolved = true;
-                  if (v1 === v2) {
-                    const upheld = v1 === 'confirm';
-                    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
-                    applyPendingCall(!upheld);
-                  } else {
-                    S.live.strikes = S.live.strikes || {};
-                    S.live.strikes[S.live.p1] = (S.live.strikes[S.live.p1] || 0) + 1;
-                    S.live.strikes[S.live.p2] = (S.live.strikes[S.live.p2] || 0) + 1;
-                    const s1 = S.live.strikes[S.live.p1], s2 = S.live.strikes[S.live.p2];
-                    addLog('⚡', `Disagreement! Both players get a strike. ${byId(S.live.p1).name}: ${s1}/3 · ${byId(S.live.p2).name}: ${s2}/3. Call stands.`);
-                    applyPendingCall(false);
-                  }
-                }
-              }
+              resolveDisputeIfReady();
             }
           } else if (S.live && S.live.over) {
             const _wasPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
@@ -6678,9 +6658,12 @@ function enterDisputePhase(callType) {
   g.disputeVotes = {};
   g.phase        = 'dispute';
   _disputeResolved = false; // reset so the new dispute can be resolved
-  const callerName = callType.startsWith('setter') || callType === 'revengeLanded' || callType === 'revengeMissed'
-    ? byId(g.setterId).name
-    : byId(g.setterId).name; // setter always makes the call
+  // setterLanded/setterBailed are judged by the copier (they watch the setter's attempt);
+  // copierLand/copierMiss/revengeLanded/revengeMissed are judged by the setter.
+  const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  const callerName = (callType === 'setterLanded' || callType === 'setterBailed')
+    ? byId(copierId).name
+    : byId(g.setterId).name;
   addLog('⚖️', `${callerName} made a call — both players must confirm or deny.`);
   save(); drawBoard();
 }
@@ -6704,8 +6687,37 @@ function submitDisputeVote(vote) {
   if (!g.disputeVotes) g.disputeVotes = {};
   g.disputeVotes[currentUser.id] = vote;
   drawBoard();
-  // Resolution is handled in the Firestore snapshot handler once both votes
-  // are confirmed server-side — avoids race conditions between devices.
+  // Try to resolve immediately — the deciding vote's own write is skipped by
+  // this client's onSnapshot listener (see hasPendingWrites guard), so if no
+  // other client is actively listening at this exact moment the game would
+  // otherwise hang in the dispute phase forever. Resolving locally here
+  // guarantees whichever client casts the deciding vote finishes the round.
+  resolveDisputeIfReady();
+}
+
+// Resolve a dispute once both players' votes are present. Safe to call
+// repeatedly (from the snapshot handler and right after casting a vote) —
+// _disputeResolved guards against double-applying the outcome.
+function resolveDisputeIfReady() {
+  const g = S.live;
+  if (!g || g.phase !== 'dispute' || _disputeResolved) return;
+  const dv = g.disputeVotes || {};
+  const v1 = dv[g.p1];
+  const v2 = dv[g.p2];
+  if (!v1 || !v2) return;
+  _disputeResolved = true;
+  if (v1 === v2) {
+    const upheld = v1 === 'confirm';
+    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
+    applyPendingCall(!upheld);
+  } else {
+    g.strikes = g.strikes || {};
+    g.strikes[g.p1] = (g.strikes[g.p1] || 0) + 1;
+    g.strikes[g.p2] = (g.strikes[g.p2] || 0) + 1;
+    const s1 = g.strikes[g.p1], s2 = g.strikes[g.p2];
+    addLog('⚡', `Disagreement! Both players get a strike. ${byId(g.p1).name}: ${s1}/3 · ${byId(g.p2).name}: ${s2}/3. Call stands.`);
+    applyPendingCall(false);
+  }
 }
 
 // Apply the pending call — reversed=true flips the outcome
