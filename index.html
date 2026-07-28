@@ -3416,8 +3416,16 @@ let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapsho
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
 let   _disputeResolved = false; // prevent double-resolution when both players' snapshots fire simultaneously
+let   _setterVoteResolved = false; // prevent double-resolution of the pick-setter vote
 let   _abandonHandled  = false; // prevent survivor from calling finishLive twice for the same abandon
 let   _abandonTimer    = null;  // visibilitychange timer — forfeit if hidden > 30s during active game
+
+// Live games live in their own Firestore doc (liveGames/{gameId}) instead of the
+// single shared state/global doc — so a mid-match write never collides with an
+// unrelated write (someone else posting a comment, logging a game, etc).
+let   _liveGameUnsub   = null; // unsubscribe handle for the liveGames/{id} onSnapshot listener
+let   _currentLiveGameId = null; // gameId of the liveGames doc we're currently subscribed to
+let   _liveSaveTimer   = null; // debounce handle for saveLiveGame
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -3447,6 +3455,9 @@ async function _saveToFirestore(pendingCopy) {
     // the debounce window can't overwrite our pending local changes.
     const copy = pendingCopy || JSON.parse(JSON.stringify(S));
     copy.players.forEach(p => { delete p.avatarUrl; });
+    // Live game state now lives in its own liveGames/{id} doc (see saveLiveGame) —
+    // never write it into the shared global doc.
+    delete copy.live;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -3538,6 +3549,12 @@ function startFirestoreSync() {
   if (!db) return;
   stopFirestoreSync();
 
+  // Fast path: if the locally-cached state already knows which live game we
+  // were in (e.g. reload mid-match), reattach immediately rather than waiting
+  // for a liveInvites round-trip. subscribeLiveGame() verifies against the
+  // real doc, so a stale/finished cached id is harmless.
+  if (S.live && S.live.id) subscribeLiveGame(S.live.id);
+
   // Load avatars first, then subscribe so the first snapshot render has photos
   _loadAvatars().then(() => {
     _firestoreUnsub = db.collection('state').doc('global').onSnapshot(
@@ -3561,6 +3578,9 @@ function startFirestoreSync() {
 
         const fresh = snap.data();
         if (!fresh || !Array.isArray(fresh.players)) return;
+        // Live games now live in their own liveGames/{id} doc (see subscribeLiveGame) —
+        // never let a stale/legacy `live` field on the global doc clobber it here.
+        delete fresh.live;
 
         // Re-attach cached avatars
         fresh.players.forEach(p => {
@@ -3591,11 +3611,12 @@ function startFirestoreSync() {
           const declined = (fresh.liveInvites || []).find(i =>
             i.fromId === currentUser.id && i.status === 'declined'
           );
-          if (accepted && fresh.live && !S.live) {
+          if (accepted && !S.live && !_currentLiveGameId) {
             Object.assign(S, fresh);
             try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
             checkNotifications();
             toast(`${accepted.toName} accepted! Game starting ⛷️`, 'ok');
+            subscribeLiveGame(accepted.gameId || accepted.id);
             nav('live-game');
             return;
           }
@@ -3628,20 +3649,7 @@ function startFirestoreSync() {
         });
 
         // Guests should never see another player's live game — clear it immediately.
-        if (!currentUser) S.live = null;
-
-        // On first sync after login/refresh: a reload should resume an active live game,
-        // not forfeit it — real abandonment is already handled by the nav-guard (confirm
-        // dialog when leaving the Play tab) and the live-game poll/listener fallback.
-        if (_clearLiveOnFirstSync) {
-          _clearLiveOnFirstSync = false;
-          if (S.live && S.live.over && currentUser &&
-              (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
-            // Game was already over when we refreshed — just reset UI, don't show game-over again
-            _gameOverDismissed = true;
-            _resetLiveUI();
-          }
-        }
+        if (!currentUser) { S.live = null; unsubscribeLiveGame(); }
 
         if (myMissingRecord) {
           S.players = [...S.players, myMissingRecord];
@@ -3706,112 +3714,13 @@ function startFirestoreSync() {
         if (_activeSection === 'profile') renderMyProfile();
         updateSidebarAvatar();
 
-        // Live game — update the board in real time without a full nav re-render
-        // (avoids clearing the trick-input field while someone is typing)
+        // The live game's own state (board, phase, disputes, abandon signals) now lives
+        // in its own liveGames/{id} doc and is handled by subscribeLiveGame() below —
+        // this listener only needs to react to invite changes (accept a judge, discover
+        // a game we should attach to) and keep the "waiting" setup screen in sync.
         if (_activeSection === 'live-game') {
-          // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
-          if (S.live && S.live.abandonedBy && !S.live.over && !_abandonHandled) {
-            const abId = S.live.abandonedBy;
-            const isJudgeLeaving = abId === S.live.judgeId;
-            const amOtherPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2) && currentUser.id !== abId;
-            if (isJudgeLeaving && amOtherPlayer) {
-              _abandonHandled = true;
-              if (db) db.collection('state').doc('global').update({ 'live.abandonedBy': null })
-                .catch(e => console.warn('abandon flag clear failed', e));
-              S.live.abandonedBy = null;
-              const judgeName = byId(abId)?.name || 'The judge';
-              addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
-              S.live.over = true;
-              S.live.cancelled = true;
-              S.live.cancelledByJudge = abId;
-              S.live.cancelledReason = 'refresh';
-              save();
-              showMatchCancelled();
-            } else if (amOtherPlayer) {
-              _abandonHandled = true;
-              // Clear the flag so we don't re-trigger on next snapshot
-              if (db) db.collection('state').doc('global').update({ 'live.abandonedBy': null })
-                .catch(e => console.warn('abandon flag clear failed', e));
-              S.live.abandonedBy = null;
-              const winnerId = currentUser.id;
-              const loserId  = abId;
-              const loserName = byId(loserId)?.name || 'Opponent';
-              S.live.letters[loserId] = 3; // full SKI = forfeit
-              S.live.forfeitBy = loserId;
-              addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
-              finishLive(winnerId, loserId);
-            }
-          } else if (S.live && !S.live.over) {
-            const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
-            const liveActive = document.getElementById('live-active');
-            const liveSetup  = document.getElementById('live-setup');
-            // Flip setup→active for players and for a judge who accepted before S.live existed
-            const isJudgeWaiting = currentUser && currentUser.id === S.live.judgeId &&
-              (S.liveInvites || []).some(i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted');
-            if ((isPlayer || isJudgeWaiting) && liveActive && liveActive.style.display === 'none') {
-              if (liveSetup)  liveSetup.style.display  = 'none';
-              liveActive.style.display = 'block';
-              document.getElementById('live-over-section').style.display = 'none';
-              document.getElementById('live-log').innerHTML = '';
-              // Also hide the top hero boxes (normally done in renderLiveSetup when inGame)
-              const heroBox    = document.getElementById('play-hero-box');
-              const actionStrip = document.getElementById('play-action-strip');
-              if (heroBox)     heroBox.style.display     = 'none';
-              if (actionStrip) actionStrip.style.display = 'none';
-              // Ensure the fallback poll is running for this player
-              startLiveGamePoll();
-            }
-            // Auto-advance phase if judge's invite is now 'accepted' but phase is still waiting-for-judge.
-            // Handles the race where a player accepted before the judge's status propagated to Firestore.
-            if (S.live.phase === 'waiting-for-judge' && S.live.judgeId && isPlayer) {
-              const judgeNowAccepted = (S.liveInvites || []).some(
-                i => i.role === 'judge' && i.toId === S.live.judgeId && i.status === 'accepted'
-              );
-              if (judgeNowAccepted) {
-                S.live.phase = 'judge-pick-setter';
-                if (db) db.collection('state').doc('global')
-                  .update({ 'live.phase': 'judge-pick-setter' })
-                  .catch(e => console.warn('Phase advance failed:', e));
-              }
-            }
-            if (liveActive && liveActive.style.display !== 'none') {
-              restoreLog();
-              drawBoard();
-              // Resolve dispute once BOTH votes are confirmed in Firestore.
-              resolveDisputeIfReady();
-            }
-          } else if (S.live && S.live.over) {
-            const _wasPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
-            if (!_gameOverDismissed && _wasPlayer) {
-              // Make sure live-active is visible so the game-over section inside it shows
-              const liveActiveEl = document.getElementById('live-active');
-              const liveSetupEl  = document.getElementById('live-setup');
-              if (liveSetupEl)  liveSetupEl.style.display  = 'none';
-              if (liveActiveEl) liveActiveEl.style.display = 'block';
-              restoreLog();
-              drawBoard();
-              if (S.live.cancelled) {
-                showJudgeCancelled();
-              } else {
-                showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
-              }
-            } else if (!_wasPlayer) {
-              // Not a participant — just show the setup screen
-              renderLiveSetup();
-            }
-          } else {
-            // Game was cleared / abandoned by the other player —
-            // but don't wipe the screen if this user is still waiting as judge or as P1 waiting for P2.
-            const _judgeStillWaiting = currentUser && (S.liveInvites || []).some(
-              i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted'
-            );
-            const _p1StillWaiting = currentUser && (S.liveInvites || []).some(
-              i => i.fromId === currentUser.id && i.status === 'pending'
-            );
-            if (!_judgeStillWaiting && !_p1StillWaiting) {
-              renderLiveSetup();
-            }
-          }
+          _tryResumeLiveGame();
+          if (!S.live) renderLiveSetup();
         }
       },
       err => {
@@ -3828,6 +3737,177 @@ function startFirestoreSync() {
 function stopFirestoreSync() {
   if (_firestoreUnsub) { _firestoreUnsub(); _firestoreUnsub = null; }
   clearTimeout(_saveTimer);
+  unsubscribeLiveGame();
+}
+
+// ── Live game sync (its own liveGames/{id} doc) ─────────────────────────────
+// Kept separate from the shared state/global doc so a mid-match write (a vote,
+// a dispute call, an abandon flag) never collides with someone else's unrelated
+// write (posting a comment, logging a game, editing a tournament, etc).
+
+// If we're not already tracking a game, look for one via an accepted invite
+// involving the current user (liveInvites still lives on the global doc, and
+// carries a gameId pointing at the liveGames doc to attach to).
+function _tryResumeLiveGame() {
+  if (!currentUser || _currentLiveGameId) return;
+  const inv = (S.liveInvites || []).find(i =>
+    i.status === 'accepted' && (
+      i.fromId === currentUser.id || i.toId === currentUser.id ||
+      i.p1Id === currentUser.id   || i.p2Id === currentUser.id ||
+      i.judgeId === currentUser.id
+    )
+  );
+  const gameId = inv && (inv.gameId || inv.id);
+  if (gameId) subscribeLiveGame(gameId);
+}
+
+function subscribeLiveGame(gameId) {
+  if (!db || !gameId || _currentLiveGameId === gameId) return;
+  unsubscribeLiveGame();
+  _currentLiveGameId = gameId;
+  _liveGameUnsub = db.collection('liveGames').doc(gameId).onSnapshot(snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    if (!snap.exists) {
+      // Doc never got created, or was cleared — nothing to attach to.
+      if (S.live && S.live.id === gameId) S.live = null;
+      if (_activeSection === 'live-game') renderLiveSetup();
+      return;
+    }
+
+    S.live = snap.data();
+    try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+
+    // On first sync after login/refresh: a reload should resume an active live game,
+    // not forfeit it — real abandonment is already handled by the nav-guard (confirm
+    // dialog when leaving the Play tab) and the live-game poll/listener fallback.
+    if (_clearLiveOnFirstSync) {
+      _clearLiveOnFirstSync = false;
+      if (S.live.over && currentUser &&
+          (S.live.p1 === currentUser.id || S.live.p2 === currentUser.id || S.live.judgeId === currentUser.id)) {
+        _gameOverDismissed = true;
+        _resetLiveUI();
+      }
+    }
+
+    if (_activeSection !== 'live-game') return;
+
+    // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
+    if (S.live.abandonedBy && !S.live.over && !_abandonHandled) {
+      const abId = S.live.abandonedBy;
+      const isJudgeLeaving = abId === S.live.judgeId;
+      const amOtherPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2) && currentUser.id !== abId;
+      if (isJudgeLeaving && amOtherPlayer) {
+        _abandonHandled = true;
+        db.collection('liveGames').doc(gameId).update({ abandonedBy: null })
+          .catch(e => console.warn('abandon flag clear failed', e));
+        S.live.abandonedBy = null;
+        const judgeName = byId(abId)?.name || 'The judge';
+        addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
+        S.live.over = true;
+        S.live.cancelled = true;
+        S.live.cancelledByJudge = abId;
+        S.live.cancelledReason = 'refresh';
+        save();
+        showMatchCancelled();
+      } else if (amOtherPlayer) {
+        _abandonHandled = true;
+        // Clear the flag so we don't re-trigger on next snapshot
+        db.collection('liveGames').doc(gameId).update({ abandonedBy: null })
+          .catch(e => console.warn('abandon flag clear failed', e));
+        S.live.abandonedBy = null;
+        const winnerId = currentUser.id;
+        const loserId  = abId;
+        const loserName = byId(loserId)?.name || 'Opponent';
+        S.live.letters[loserId] = 3; // full SKI = forfeit
+        S.live.forfeitBy = loserId;
+        addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
+        finishLive(winnerId, loserId);
+      }
+    } else if (!S.live.over) {
+      const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
+      const liveActive = document.getElementById('live-active');
+      const liveSetup  = document.getElementById('live-setup');
+      // Flip setup→active for players and for a judge who accepted before S.live existed
+      const isJudgeWaiting = currentUser && currentUser.id === S.live.judgeId &&
+        (S.liveInvites || []).some(i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted');
+      if ((isPlayer || isJudgeWaiting) && liveActive && liveActive.style.display === 'none') {
+        if (liveSetup)  liveSetup.style.display  = 'none';
+        liveActive.style.display = 'block';
+        document.getElementById('live-over-section').style.display = 'none';
+        document.getElementById('live-log').innerHTML = '';
+        // Also hide the top hero boxes (normally done in renderLiveSetup when inGame)
+        const heroBox    = document.getElementById('play-hero-box');
+        const actionStrip = document.getElementById('play-action-strip');
+        if (heroBox)     heroBox.style.display     = 'none';
+        if (actionStrip) actionStrip.style.display = 'none';
+        // Ensure the fallback poll is running for this player
+        startLiveGamePoll();
+      }
+      // Auto-advance phase if judge's invite is now 'accepted' but phase is still waiting-for-judge.
+      // Handles the race where a player accepted before the judge's status propagated to Firestore.
+      if (S.live.phase === 'waiting-for-judge' && S.live.judgeId && isPlayer) {
+        const judgeNowAccepted = (S.liveInvites || []).some(
+          i => i.role === 'judge' && i.toId === S.live.judgeId && i.status === 'accepted'
+        );
+        if (judgeNowAccepted) {
+          S.live.phase = 'judge-pick-setter';
+          db.collection('liveGames').doc(gameId)
+            .update({ phase: 'judge-pick-setter' })
+            .catch(e => console.warn('Phase advance failed:', e));
+        }
+      }
+      if (liveActive && liveActive.style.display !== 'none') {
+        restoreLog();
+        drawBoard();
+        // Resolve dispute / pick-setter votes once BOTH sides are confirmed in Firestore.
+        resolveDisputeIfReady();
+        resolveSetterVoteIfReady();
+      }
+    } else {
+      const _wasPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId);
+      if (!_gameOverDismissed && _wasPlayer) {
+        // Make sure live-active is visible so the game-over section inside it shows
+        const liveActiveEl = document.getElementById('live-active');
+        const liveSetupEl  = document.getElementById('live-setup');
+        if (liveSetupEl)  liveSetupEl.style.display  = 'none';
+        if (liveActiveEl) liveActiveEl.style.display = 'block';
+        restoreLog();
+        drawBoard();
+        if (S.live.cancelled) {
+          showJudgeCancelled();
+        } else {
+          showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+        }
+      } else if (!_wasPlayer) {
+        // Not a participant — just show the setup screen
+        renderLiveSetup();
+      }
+    }
+  }, err => {
+    console.warn('liveGames onSnapshot error:', err);
+    setTimeout(() => {
+      if (_currentLiveGameId === gameId) subscribeLiveGame(gameId);
+    }, 3000);
+  });
+}
+
+function unsubscribeLiveGame() {
+  if (_liveGameUnsub) { _liveGameUnsub(); _liveGameUnsub = null; }
+  _currentLiveGameId = null;
+  clearTimeout(_liveSaveTimer);
+}
+
+// Persist S.live to its own liveGames/{id} doc. Debounced like the global save
+// unless immediate is passed (used when the outcome must reach everyone right
+// away, e.g. a completed game, before the local player can navigate elsewhere).
+function saveLiveGame(liveObj, immediate) {
+  if (!db || !liveObj || !liveObj.id) return;
+  const copy = JSON.parse(JSON.stringify(liveObj));
+  const write = () => db.collection('liveGames').doc(copy.id).set(copy)
+    .catch(e => console.warn('Live game save error:', e));
+  clearTimeout(_liveSaveTimer);
+  if (immediate) write();
+  else _liveSaveTimer = setTimeout(write, 300);
 }
 
 // ── Live-game fallback poll ────────────────────────────────────────────────
@@ -3840,22 +3920,17 @@ function startLiveGamePoll() {
   if (!db) return;
   stopLiveGamePoll();
   _gameOverDismissed = false;
-  console.log('[poll] started');
   _livePollInterval = setInterval(async () => {
     const isParticipant = currentUser && S.live && (
       currentUser.id === S.live.p1 ||
       currentUser.id === S.live.p2 ||
       currentUser.id === S.live.judgeId);
-    console.log('[poll] tick — live:', !!S.live, 'over:', S.live?.over, 'isParticipant:', isParticipant, 'dismissed:', _gameOverDismissed);
-    if (!currentUser || !S.live || S.live.over || _gameOverDismissed || !isParticipant) return;
+    if (!currentUser || !S.live || !S.live.id || S.live.over || _gameOverDismissed || !isParticipant) return;
     try {
-      const snap = await db.collection('state').doc('global').get();
+      const snap = await db.collection('liveGames').doc(S.live.id).get();
       const fresh = snap.data();
-      console.log('[poll] fetched — remote over:', fresh?.live?.over, 'winnerId:', fresh?.live?.winnerId);
-      if (!snap.exists || !fresh || !fresh.live || !fresh.live.over) return;
-      S.live = fresh.live;
-      if (Array.isArray(fresh.players)) S.players = fresh.players;
-      if (Array.isArray(fresh.games))   S.games   = fresh.games;
+      if (!snap.exists || !fresh || !fresh.over) return;
+      S.live = fresh;
       if (_activeSection === 'live-game') {
         const liveActiveEl = document.getElementById('live-active');
         const liveSetupEl  = document.getElementById('live-setup');
@@ -4974,6 +5049,8 @@ function load() {
 function save() {
   // Always write to localStorage immediately (offline backup + fast reads)
   try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(e) {}
+  // Live game state gets its own doc/write path — see saveLiveGame().
+  if (S.live) saveLiveGame(S.live);
   // Debounced write to Firestore — capture S NOW so an incoming onSnapshot
   // can't overwrite our local changes before the timer fires.
   if (db) {
@@ -6291,7 +6368,9 @@ function startLive() {
 
   _abandonHandled = false;
   _gameOverDismissed = false;
+  _setterVoteResolved = false;
   S.live = {
+    id: uid(),
     p1, p2,
     judgeId: judge,
     letters: { ..._startLetters },
@@ -6309,6 +6388,7 @@ function startLive() {
     _game:null
   };
   save();
+  subscribeLiveGame(S.live.id);
   startLiveGamePoll();
   document.getElementById('live-setup').style.display='none';
   document.getElementById('live-active').style.display='block';
@@ -6539,29 +6619,50 @@ function setterSubmitTrick() {
 function voteForSetter(choice) {
   const g = S.live;
   if (!g || g.phase !== 'pick-setter' || !currentUser) return;
-  if (!g.setterVotes) g.setterVotes = {};
-  g.setterVotes[currentUser.id] = choice;
+  if ((g.setterVotes || {})[currentUser.id]) return; // already voted
 
-  const v1 = g.setterVotes[g.p1];
-  const v2 = g.setterVotes[g.p2];
-
-  if (v1 && v2) {
-    // Both voted — resolve
-    let starterId;
-    if (v1 !== 'random' && v2 !== 'random' && v1 === v2) {
-      // Both picked the same player
-      starterId = v1;
-      addLog('🤝', `Both players agreed — ${byId(starterId).name} sets first!`);
-    } else {
-      // Different votes or random involved — pick randomly
-      starterId = Math.random() < 0.5 ? g.p1 : g.p2;
-      addLog('🎲', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
-    }
-    g.setterId    = starterId;
-    g.phase       = 'setting';
-    g.setterVotes = {};
+  // Write ONLY this player's vote using a targeted field update — a full save()
+  // would overwrite the opponent's vote since each device only has its own vote
+  // locally (same fix as submitDisputeVote).
+  if (db && g.id) {
+    db.collection('liveGames').doc(g.id).update({
+      [`setterVotes.${currentUser.id}`]: choice
+    }).catch(e => console.warn('Setter vote write failed:', e));
   }
 
+  if (!g.setterVotes) g.setterVotes = {};
+  g.setterVotes[currentUser.id] = choice;
+  drawBoard();
+  // Try to resolve immediately — the deciding vote's own write is skipped by this
+  // client's onSnapshot listener (hasPendingWrites guard), so without this the
+  // game could hang on the vote screen until the other player's listener fires.
+  resolveSetterVoteIfReady();
+}
+
+// Resolve the pick-setter vote once both players' votes are present. Safe to
+// call repeatedly (from here and from the live-game snapshot handler) —
+// _setterVoteResolved guards against double-applying the outcome.
+function resolveSetterVoteIfReady() {
+  const g = S.live;
+  if (!g || g.phase !== 'pick-setter' || _setterVoteResolved) return;
+  const v1 = (g.setterVotes || {})[g.p1];
+  const v2 = (g.setterVotes || {})[g.p2];
+  if (!v1 || !v2) return;
+  _setterVoteResolved = true;
+
+  let starterId;
+  if (v1 !== 'random' && v2 !== 'random' && v1 === v2) {
+    // Both picked the same player
+    starterId = v1;
+    addLog('🤝', `Both players agreed — ${byId(starterId).name} sets first!`);
+  } else {
+    // Different votes or random involved — pick randomly
+    starterId = Math.random() < 0.5 ? g.p1 : g.p2;
+    addLog('🎲', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
+  }
+  g.setterId    = starterId;
+  g.phase       = 'setting';
+  g.setterVotes = {};
   save(); drawBoard();
 }
 
@@ -6677,9 +6778,9 @@ function submitDisputeVote(vote) {
   // Write ONLY this player's vote using a targeted field update.
   // A full save() would overwrite the opponent's vote since each device
   // only has its own vote locally — targeted update is additive.
-  if (db) {
-    db.collection('state').doc('global').update({
-      [`live.disputeVotes.${currentUser.id}`]: vote
+  if (db && g.id) {
+    db.collection('liveGames').doc(g.id).update({
+      [`disputeVotes.${currentUser.id}`]: vote
     }).catch(e => console.warn('Dispute vote write failed:', e));
   }
 
@@ -6832,6 +6933,7 @@ function finishLive(winnerId, loserId) {
   // all clients before the local player can click "New Game" and wipe S.live to null.
   clearTimeout(_saveTimer);
   _saveToFirestore();
+  saveLiveGame(g, true);
   stopLiveGamePoll();
   // Only show rating animation to the two players, not the judge
   showGameOver(winnerId, loserId, game);
@@ -6998,6 +7100,7 @@ function resetLive() {
   }
   S.live = null;
   save();
+  unsubscribeLiveGame();
   _resetLiveUI();
 }
 
@@ -7022,6 +7125,7 @@ function abandonGame() {
       S.live.cancelled = true;
       S.live.cancelledByJudge = currentUser.id;
       S.live.cancelledReason = 'quit';
+      saveLiveGame(S.live, true);
       save();
       stopLiveGamePoll();
       _gameOverDismissed = true;
@@ -10133,7 +10237,8 @@ function sendLiveInvite() {
       id: uid(), fromId: currentUser.id, fromName: currentUser.name,
       toId: judgeId, toName: judge.name,
       p1Id: p1, p2Id: p2, judgeId,
-      resort, status: 'pending', role: 'judge', createdAt: Date.now()
+      resort, status: 'pending', role: 'judge', createdAt: Date.now(),
+      gameId: invite.id // points at the p1/p2 invite whose id is the liveGames doc id
     };
     S.liveInvites.push(judgeInvite);
   }
@@ -10170,18 +10275,22 @@ function acceptLiveInvite(inviteId) {
   if (inv.role === 'judge') {
     inv.status = 'accepted';
 
-    if (S.live && (S.live.p1 === inv.p1Id && S.live.p2 === inv.p2Id)) {
-      // Players already accepted — S.live exists, advance the phase now
-      if (db) {
-        db.collection('state').doc('global')
-          .update({ 'live.phase': 'judge-pick-setter' })
-          .catch(e => console.warn('Judge phase update failed:', e));
-      }
-      if (S.live.phase === 'waiting-for-judge') S.live.phase = 'judge-pick-setter';
-      addLog('⚖️', `${currentUser.name} has joined as judge — pick who sets first!`);
+    // If the players already created the live game doc (still waiting-for-judge),
+    // advance its phase now that the judge is in. Checked against the doc itself
+    // (not local S.live) since the judge may not have subscribed to it yet.
+    if (db && inv.gameId) {
+      db.collection('liveGames').doc(inv.gameId).get().then(snap => {
+        if (snap.exists && snap.data().phase === 'waiting-for-judge') {
+          db.collection('liveGames').doc(inv.gameId)
+            .update({ phase: 'judge-pick-setter' })
+            .catch(e => console.warn('Judge phase update failed:', e));
+        }
+      }).catch(() => {});
+      subscribeLiveGame(inv.gameId);
     }
-    // If S.live doesn't exist yet (judge accepted before players), the invite status
-    // is now 'accepted' — when a player accepts they'll read this and skip waiting-for-judge.
+    // If the doc doesn't exist yet (judge accepted before players), the invite's
+    // 'accepted' status is what a player reads to skip waiting-for-judge when
+    // THEY create it (see judgeAlreadyAccepted below).
 
     // Save the liveInvites status change so players can detect judge already accepted
     clearTimeout(_saveTimer);
@@ -10198,6 +10307,7 @@ function acceptLiveInvite(inviteId) {
   // Clear any finished game so it doesn't block the new one from starting
   if (S.live && S.live.over) {
     S.live = null;
+    unsubscribeLiveGame();
     _gameOverDismissed = false;
     _resetLiveUI();
     // Also wipe the game-over banner HTML so it can't bleed into the new game
@@ -10205,11 +10315,19 @@ function acceptLiveInvite(inviteId) {
     if (overEl) { overEl.style.display = 'none'; overEl.innerHTML = ''; }
   }
 
-  // Don't overwrite S.live if the host already created it — that would wipe
-  // any votes or state the host has already set (e.g. pick-setter votes).
-  // Only create it as a fallback if it doesn't exist yet.
-  if (!S.live || S.live.p1 !== inv.p1Id || S.live.p2 !== inv.p2Id) {
+  const gameId = inv.gameId || inv.id;
+
+  const _finishAccept = () => {
+    save(); // persists the liveInvites status change to the global doc
+    startLiveGamePoll();
+    checkNotifications();
+    toast(`Game on! ⛷️`, 'ok');
+    nav('live-game');
+  };
+
+  const _createLiveGame = () => {
     _abandonHandled = false;
+    _setterVoteResolved = false;
     const _initLetters = inv.handicapLetters || { [inv.p1Id]: 0, [inv.p2Id]: 0 };
     // Check if the judge already accepted their invite before the players did
     const judgeAlreadyAccepted = inv.judgeId &&
@@ -10218,6 +10336,7 @@ function acceptLiveInvite(inviteId) {
       ? (judgeAlreadyAccepted ? 'judge-pick-setter' : 'waiting-for-judge')
       : 'pick-setter';
     S.live = {
+      id: gameId,
       p1: inv.p1Id, p2: inv.p2Id,
       judgeId:     inv.judgeId || null,
       letters:     { ..._initLetters },
@@ -10240,12 +10359,23 @@ function acceptLiveInvite(inviteId) {
       tournamentRoundIdx: inv.tournamentRoundIdx ?? null,
       tournamentMatchIdx: inv.tournamentMatchIdx ?? null
     };
+    saveLiveGame(S.live, true);
+    subscribeLiveGame(gameId);
+  };
+
+  // Don't overwrite the doc if it already exists — that would wipe any votes or
+  // state already set. Check the doc itself (not local S.live) so this is correct
+  // even if this client hasn't subscribed to it yet.
+  if (db && gameId) {
+    db.collection('liveGames').doc(gameId).get().then(snap => {
+      if (snap.exists) subscribeLiveGame(gameId);
+      else _createLiveGame();
+      _finishAccept();
+    }).catch(() => { _createLiveGame(); _finishAccept(); });
+  } else {
+    _createLiveGame();
+    _finishAccept();
   }
-  save();
-  startLiveGamePoll();
-  checkNotifications();
-  toast(`Game on! ⛷️`, 'ok');
-  nav('live-game');
 }
 
 function declineLiveInvite(inviteId) {
@@ -11141,10 +11271,10 @@ function _signalAbandon() {
   const amPlayer = currentUser.id === g.p1 || currentUser.id === g.p2 || currentUser.id === g.judgeId;
   if (!amPlayer) return;
   // Use targeted update — avoids full save() which is async and may not complete
-  if (db) {
-    db.collection('state').doc('global').update({
-      'live.abandonedBy': currentUser.id,
-      'live.abandonedAt': Date.now()
+  if (db && g.id) {
+    db.collection('liveGames').doc(g.id).update({
+      abandonedBy: currentUser.id,
+      abandonedAt: Date.now()
     }).catch(() => {});
   }
 }
@@ -11490,7 +11620,13 @@ async function adminWipeGameData() {
   const empty = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
   S = empty;
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
-  if (db) await db.collection('state').doc('global').set(empty).catch(e => console.warn(e));
+  if (db) {
+    await db.collection('state').doc('global').set(empty).catch(e => console.warn(e));
+    try {
+      const lgsnap = await db.collection('liveGames').get();
+      for (const d of lgsnap.docs) await d.ref.delete();
+    } catch(e) { console.warn('liveGames wipe:', e); }
+  }
   _wipeInProgress = false;
   toast('Game data wiped.', 'ok');
   renderAdminStats();
@@ -11518,6 +11654,10 @@ async function adminWipeEverything() {
       const asnap = await db.collection('avatars').get();
       for (const d of asnap.docs) await d.ref.delete();
     } catch(e) { console.warn('avatars wipe:', e); }
+    try {
+      const lgsnap = await db.collection('liveGames').get();
+      for (const d of lgsnap.docs) await d.ref.delete();
+    } catch(e) { console.warn('liveGames wipe:', e); }
   }
 
   toast('Everything wiped. Reloading…', 'ok');
