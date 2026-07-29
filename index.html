@@ -3458,6 +3458,11 @@ async function _saveToFirestore(pendingCopy) {
     // Live game state now lives in its own liveGames/{id} doc (see saveLiveGame) —
     // never write it into the shared global doc.
     delete copy.live;
+    // Chat messages are appended via a targeted arrayUnion update (see sendMessage) —
+    // omit them here so a stale local copy (racing another user's message) can never
+    // clobber messages someone else just sent. merge:true below means omitting a
+    // field just leaves it untouched server-side, not deleted.
+    delete copy.messages;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -3505,7 +3510,9 @@ async function _saveToFirestore(pendingCopy) {
     }));
 
     const batch = db.batch();
-    batch.set(db.collection('state').doc('global'), copy);
+    // merge:true — fields omitted above (live, messages) are left untouched on the
+    // server rather than deleted, since they're now written through targeted updates.
+    batch.set(db.collection('state').doc('global'), copy, { merge: true });
     for (const pid of _dirtyAvatars) {
       const url = _avatarCache[pid];
       if (url) batch.set(db.collection('avatars').doc(pid), { url });
@@ -8120,16 +8127,26 @@ function sendMessage() {
   if (!text) return;
 
   if (!Array.isArray(S.messages)) S.messages = [];
-  S.messages.push({
+  const msg = {
     id:       uid(),
     fromId:   currentUser.id,
     fromName: currentUser.name,
     toId:     _activeChatId,
     text,
     date:     Date.now()
-  });
+  };
+  S.messages.push(msg);
   input.value = '';
   save();
+  // Persist the message via an atomic arrayUnion instead of relying on the
+  // debounced full-document save() — two people messaging within the same
+  // ~500ms window would otherwise silently drop each other's message, since
+  // each client's full-document write only knows about its own local copy.
+  if (db) {
+    db.collection('state').doc('global').update({
+      messages: firebase.firestore.FieldValue.arrayUnion(msg)
+    }).catch(e => console.warn('Message send failed:', e));
+  }
   openChat(_activeChatId);
   renderFriendsView();
 }
