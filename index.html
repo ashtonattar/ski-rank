@@ -3419,6 +3419,8 @@ let   _disputeResolved = false; // prevent double-resolution when both players' 
 let   _setterVoteResolved = false; // prevent double-resolution of the pick-setter vote
 let   _abandonHandled  = false; // prevent survivor from calling finishLive twice for the same abandon
 let   _abandonTimer    = null;  // visibilitychange timer — forfeit if hidden > 30s during active game
+let   _abandonGraceTimer = null; // pending forfeit decision, delayed to give a reloading player time to reconnect
+const ABANDON_GRACE_MS = 8000;   // how long to wait after abandonedBy is set before treating it as a real forfeit
 
 // Live games live in their own Firestore doc (liveGames/{gameId}) instead of the
 // single shared state/global doc — so a mid-match write never collides with an
@@ -3820,41 +3822,41 @@ function subscribeLiveGame(gameId) {
       }
     }
 
+    // Self-heal: if I'm reconnecting (this snapshot just reached me) and the doc
+    // still has ME flagged as having abandoned — e.g. from the beforeunload signal
+    // fired by my own reload — clear it right away. This is what actually lets a
+    // reload resume instead of forfeit: without it, the flag just sits there until
+    // the opponent's grace-period timer (below) fires and forfeits me anyway.
+    if (currentUser && S.live.abandonedBy === currentUser.id && !S.live.over) {
+      db.collection('liveGames').doc(gameId).update({ abandonedBy: null, abandonedAt: null })
+        .catch(e => console.warn('abandon self-heal failed', e));
+      S.live.abandonedBy = null;
+    }
+
     if (_activeSection !== 'live-game') return;
 
-    // Detect opponent closing the app — they wrote abandonedBy, we finish the game for them
+    // Detect opponent closing the app — they wrote abandonedBy. Don't forfeit them
+    // immediately: a page reload fires this same signal, so give them ABANDON_GRACE_MS
+    // to reconnect and self-heal (above) before treating it as a real abandonment.
     if (S.live.abandonedBy && !S.live.over && !_abandonHandled) {
       const abId = S.live.abandonedBy;
-      const isJudgeLeaving = abId === S.live.judgeId;
       const amOtherPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2) && currentUser.id !== abId;
-      if (isJudgeLeaving && amOtherPlayer) {
-        _abandonHandled = true;
-        db.collection('liveGames').doc(gameId).update({ abandonedBy: null })
-          .catch(e => console.warn('abandon flag clear failed', e));
-        S.live.abandonedBy = null;
-        const judgeName = byId(abId)?.name || 'The judge';
-        addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
-        S.live.over = true;
-        S.live.cancelled = true;
-        S.live.cancelledByJudge = abId;
-        S.live.cancelledReason = 'refresh';
-        save();
-        showMatchCancelled();
-      } else if (amOtherPlayer) {
-        _abandonHandled = true;
-        // Clear the flag so we don't re-trigger on next snapshot
-        db.collection('liveGames').doc(gameId).update({ abandonedBy: null })
-          .catch(e => console.warn('abandon flag clear failed', e));
-        S.live.abandonedBy = null;
-        const winnerId = currentUser.id;
-        const loserId  = abId;
-        const loserName = byId(loserId)?.name || 'Opponent';
-        S.live.letters[loserId] = 3; // full SKI = forfeit
-        S.live.forfeitBy = loserId;
-        addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
-        finishLive(winnerId, loserId);
+      if (amOtherPlayer) {
+        clearTimeout(_abandonGraceTimer);
+        const elapsed  = Date.now() - (S.live.abandonedAt || Date.now());
+        const remaining = Math.max(0, ABANDON_GRACE_MS - elapsed);
+        _abandonGraceTimer = setTimeout(() => {
+          _abandonGraceTimer = null;
+          resolveAbandonIfStillPending(gameId, abId);
+        }, remaining);
       }
-    } else if (!S.live.over) {
+    } else if (!S.live.abandonedBy) {
+      // Flag cleared (self-healed by the other client, or already resolved) — cancel any pending forfeit decision.
+      clearTimeout(_abandonGraceTimer);
+      _abandonGraceTimer = null;
+    }
+
+    if (!S.live.over) {
       const isPlayer = currentUser && (currentUser.id === S.live.p1 || currentUser.id === S.live.p2);
       const liveActive = document.getElementById('live-active');
       const liveSetup  = document.getElementById('live-setup');
@@ -3926,6 +3928,52 @@ function unsubscribeLiveGame() {
   if (_liveGameUnsub) { _liveGameUnsub(); _liveGameUnsub = null; }
   _currentLiveGameId = null;
   clearTimeout(_liveSaveTimer);
+  clearTimeout(_abandonGraceTimer);
+  _abandonGraceTimer = null;
+}
+
+// Fires ABANDON_GRACE_MS after an abandonedBy flag was first seen — gives the
+// abandoning player time to reconnect and self-heal (see subscribeLiveGame) before
+// this client commits a forfeit on their behalf. Re-checks the live doc directly
+// rather than trusting local S.live, since a self-heal write could have landed
+// after this timer was scheduled but before it fired.
+async function resolveAbandonIfStillPending(gameId, abId) {
+  if (_currentLiveGameId !== gameId || _abandonHandled || !currentUser) return;
+  let g = S.live;
+  try {
+    const snap = await db.collection('liveGames').doc(gameId).get();
+    if (!snap.exists) return;
+    g = snap.data();
+  } catch (e) { /* fall back to local S.live below */ }
+  if (!g || g.over || g.abandonedBy !== abId) return; // resolved or self-healed already
+  const isJudgeLeaving = abId === g.judgeId;
+  const amOtherPlayer  = currentUser.id === g.p1 || currentUser.id === g.p2;
+  if (!amOtherPlayer || currentUser.id === abId) return;
+
+  _abandonHandled = true;
+  S.live = g;
+  db.collection('liveGames').doc(gameId).update({ abandonedBy: null, abandonedAt: null })
+    .catch(e => console.warn('abandon flag clear failed', e));
+  S.live.abandonedBy = null;
+
+  if (isJudgeLeaving) {
+    const judgeName = byId(abId)?.name || 'The judge';
+    addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
+    S.live.over = true;
+    S.live.cancelled = true;
+    S.live.cancelledByJudge = abId;
+    S.live.cancelledReason = 'refresh';
+    save();
+    showMatchCancelled();
+  } else {
+    const winnerId = currentUser.id;
+    const loserId  = abId;
+    const loserName = byId(loserId)?.name || 'Opponent';
+    S.live.letters[loserId] = 3; // full SKI = forfeit
+    S.live.forfeitBy = loserId;
+    addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
+    finishLive(winnerId, loserId);
+  }
 }
 
 // Persist S.live to its own liveGames/{id} doc. Debounced like the global save
