@@ -5093,11 +5093,13 @@ function scoreMultiplier(scoreStr) {
   return 1.0; // "SK" or anything else
 }
 
-// handicap: { higherId, hcap } from S.live.handicap — the higherId player starts with letters
-// If the lower-rated (advantaged) player wins → dampen ELO changes (0.6×)
-// If the higher-rated (disadvantaged) player wins → boost ELO changes (1.4×)
-const HANDICAP_DAMPEN = 0.6;
-const HANDICAP_BOOST  = 1.4;
+// Upset modifier: fires on every game based on pre-game ratings alone —
+// not gated behind whether handicap mode was used for the match.
+// If the lower-rated player wins (upset) → boost ELO change (1.4×)
+// If the higher-rated player wins (expected) → dampen ELO change (0.6×)
+// Equal ratings → no modifier.
+const UPSET_DAMPEN = 0.6;
+const UPSET_BOOST   = 1.4;
 
 function calcRatings(winner, loser, score='', handicap=null) {
   // Unrated players are treated as START_RATING for Elo math;
@@ -5111,15 +5113,12 @@ function calcRatings(winner, loser, score='', handicap=null) {
   const el = expected(lR, wR); // loser's win probability
   const m  = scoreMultiplier(score);
 
-  // Handicap modifier: dampen if advantaged player won, boost if disadvantaged player won
   let hm = 1.0;
-  if (handicap && handicap.hcap > 0) {
-    const disadvantagedWon = winner.id === handicap.higherId;
-    hm = disadvantagedWon ? HANDICAP_BOOST : HANDICAP_DAMPEN;
-  }
+  if (wR < lR) hm = UPSET_BOOST;
+  else if (wR > lR) hm = UPSET_DAMPEN;
 
-  // Winner gains more if they were the underdog (standard Elo)
-  // Handicap multiplier only applied to winner's gain — loser always loses standard amount
+  // Winner gains more if they were the underdog (standard Elo, compounded by the upset multiplier above)
+  // Upset multiplier only applied to winner's gain — loser always loses standard amount
   const dw = Math.round(Kw * (1 - ew) * m * hm);
 
   const dl = Math.round(Kl * (0 - el) * m);
@@ -5130,7 +5129,7 @@ function calcRatings(winner, loser, score='', handicap=null) {
     winnerDelta: dw,
     loserDelta:  dl,
     scoreMultiplier: m,
-    handicapMultiplier: hm,
+    upsetMultiplier: hm,
     winnerStartRating: wR,
     loserStartRating:  lR
   };

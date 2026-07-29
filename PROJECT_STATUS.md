@@ -26,7 +26,7 @@
 - **Auth:** sign in / sign up / guest mode, nav bar reflects auth state.
 - **Trick builder:** pick trick components by category (Grabs, Spins, Flips, etc.) and difficulty.
 - **Live 1v1 games:** setup screen, optional neutral judge invite, pick-setter vote phase, dispute phase, forfeit-on-abandon, judge/player-left screens, reconnect handling via Firestore snapshots + a polling fallback.
-- **Rating system:** ELO-style `calcRatings()` — upset wins (lower-rated player beats higher-rated) get boosted rating change (1.4×), expected wins get dampened (0.6×).
+- **Rating system:** ELO-style `calcRatings()` — upset wins (lower-rated player beats higher-rated) get boosted rating change (1.4×), expected wins get dampened (0.6×). This now fires automatically on every game based on pre-game ratings alone, independent of whether handicap mode was used for the match (previously it only fired inside explicit handicap-mode games — see Recent Work).
 - **Tiers & badges:** skill tiers (e.g. "Developing" = 4.00–6.99 rating) with modal displays, badge unlocks.
 - **Rankings/leaderboard:** weekly + all-time, filterable by sport (skier vs. boarder).
 - **Profiles:** stats, rating history chart, paginated game history (10/page).
@@ -38,9 +38,13 @@
 
 ## Current Focus / Recent Work
 
-As of **2026-07-28**, work has centered on stabilizing the **live judged-game state machine**. Most recent commits (newest first):
+As of **2026-07-28**, work has centered on stabilizing the **live judged-game state machine** and verifying the rating engine. Most recent commits (newest first):
 
-0. **(uncommitted)** Architecture fix: moved live-game state out of the single shared `state/global` doc into its own `liveGames/{gameId}` collection, so a mid-match write can no longer collide with an unrelated write from another user (a comment, a logged game, a tournament edit). See "Architecture decisions" below. **Tested 2026-07-28** with two real accounts in separate browser tabs against production Firestore: invite → accept → real-time board sync → trick submit → dispute (confirm/deny) → abandon/forfeit → game-over with correct rating deltas, all synced correctly with no console errors. Required adding a Firestore security rule for `liveGames/{gameId}` (previously default-denied — rules aren't tracked in this repo, only in the Firebase Console).
+0a. **(uncommitted)** Rating engine: made the upset boost/dampen multiplier (`1.4×`/`0.6×`) always fire based on pre-game rating comparison (`winner.rating < loser.rating` etc.), instead of only when an explicit `handicap` object was passed in. Previously a plain upset win with no handicap mode got zero bonus — only handicap-mode games (an unrelated feature, letters-based head start) triggered it, via comparing `winner.id` to `handicap.higherId`. Renamed `HANDICAP_BOOST`/`HANDICAP_DAMPEN` → `UPSET_BOOST`/`UPSET_DAMPEN` and the result field `handicapMultiplier` → `upsetMultiplier` (not referenced elsewhere in the codebase). Net effect: strict zero-sum rating exchange (equal deltas for winner/loser) now only holds when both players have exactly equal ratings — any rating gap at all introduces the asymmetric multiplier, by design.
+   - **Verified** with a 32-case Node unit-test script run against the extracted rating functions (no DOM dependency) covering: baseline symmetry, K-factor tiers, upset/expected multiplier firing with and without a handicap object, score multipliers, floor/ceiling clamps (100/1600), and the loser's delta never receiving the multiplier. All passing after the change.
+0. Architecture fix (`1dcc53d`): moved live-game state out of the single shared `state/global` doc into its own `liveGames/{gameId}` collection, so a mid-match write can no longer collide with an unrelated write from another user (a comment, a logged game, a tournament edit). See "Architecture decisions" below. Required adding a Firestore security rule for `liveGames/{gameId}` (previously default-denied — rules aren't tracked in this repo, only in the Firebase Console).
+   - **Tested 2026-07-28, two-player mode** (no judge): invite → accept → real-time board sync → trick submit → dispute (confirm/deny) → abandon/forfeit → game-over with correct rating deltas. All synced correctly, no console errors.
+   - **Tested 2026-07-28, three-player judge mode**: judge accepts *before* players (waiting screen correct) → both players accept → judge picks setter → setter submits trick → judge rules landed/bailed/copy-landed/copy-missed → revenge-attempt flow (bail → revenge → landed, letter awarded correctly) → judge leaving cancels the match for both players with "result voided," ratings unchanged. All three clients stayed in sync throughout with no console errors; players never saw dispute-vote UI (judge calls every trick, as designed).
 1. Fix live game permanently stuck in dispute phase, and mislabeled dispute caller
 2. Fix Rankings table showing literal "undefined" in Games column
 3. Fix nav bar not updating to signed-in state after login from guest mode
@@ -88,4 +92,4 @@ python3 -m http.server 3400
 ```
 
 ---
-*Last updated: 2026-07-28 (moved live games to their own `liveGames/{gameId}` Firestore collection — see Architecture decisions). Update this file after any further app changes so future sessions start with accurate context.*
+*Last updated: 2026-07-28 (live-game refactor + setter-vote fix committed as `1dcc53d` and pushed, verified in both two-player and three-player judge mode; rating-engine upset multiplier made unconditional and unit-tested, not yet committed). Update this file after any further app changes so future sessions start with accurate context.*
