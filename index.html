@@ -3463,6 +3463,11 @@ async function _saveToFirestore(pendingCopy) {
     // clobber messages someone else just sent. merge:true below means omitting a
     // field just leaves it untouched server-side, not deleted.
     delete copy.messages;
+    // Logged-game confirmation requests are added/removed via targeted arrayUnion/
+    // arrayRemove updates (see submitLoggedGame/confirmGame/disputeGame/cancelPending) —
+    // two people logging or resolving games within the same debounce window would
+    // otherwise silently drop each other's pending request, same class of bug as messages.
+    delete copy.pending;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -6173,6 +6178,15 @@ function submitLog() {
 
   S.pending.push(request);
   save();
+  // Persist via an atomic arrayUnion instead of relying on the debounced full-document
+  // save() — two people logging games (or resolving other pending requests) within the
+  // same ~500ms window would otherwise silently drop each other's submission, since
+  // each client's full-document write only knows about its own local copy.
+  if (db) {
+    db.collection('state').doc('global').update({
+      pending: firebase.firestore.FieldValue.arrayUnion(request)
+    }).catch(e => console.warn('Log game submit failed:', e));
+  }
 
   resetPicker('pp-lg-p2');
   document.getElementById('lg-winner').value='';
@@ -10154,6 +10168,11 @@ function confirmGame(id) {
   const game = commitGame(req.winnerId, req.loserId, req.tricks.join(','), req.notes, [], req.score || '', req.clipUrl || '', req.resort || '');
   S.pending = S.pending.filter(r => r.id !== id);
   save();
+  if (db) {
+    db.collection('state').doc('global').update({
+      pending: firebase.firestore.FieldValue.arrayRemove(req)
+    }).catch(e => console.warn('Pending removal sync failed:', e));
+  }
 
   showRatingAnim(byId(req.winnerId), byId(req.loserId), game);
   toast('Confirmed! Ratings updated ✅', 'ok');
@@ -10180,6 +10199,11 @@ function disputeGame(id) {
 
       S.pending = S.pending.filter(r => r.id !== id);
       save();
+      if (db) {
+        db.collection('state').doc('global').update({
+          pending: firebase.firestore.FieldValue.arrayRemove(req)
+        }).catch(e => console.warn('Pending removal sync failed:', e));
+      }
       toast('Result disputed — both players received a ⚡ strike.', 'ok');
       checkNotifications();
       renderConfirmations();
@@ -10202,8 +10226,14 @@ function cancelPending(id) {
   confirm_('Cancel submission?',
     'The pending game request will be withdrawn.',
     () => {
+      const req = S.pending.find(r => r.id === id);
       S.pending = S.pending.filter(r => r.id !== id);
       save();
+      if (db && req) {
+        db.collection('state').doc('global').update({
+          pending: firebase.firestore.FieldValue.arrayRemove(req)
+        }).catch(e => console.warn('Pending removal sync failed:', e));
+      }
       toast('Submission cancelled.', 'ok');
       checkNotifications();
       renderConfirmations();
