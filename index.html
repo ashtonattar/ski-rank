@@ -3035,7 +3035,7 @@
 
           <div class="form-group" style="margin-top:16px;">
             <label class="form-label">Bio</label>
-            <textarea class="prof-textarea" id="prof-bio" placeholder="Tell the crew a bit about yourself — your style, favourite tricks, how long you've been shredding…"></textarea>
+            <textarea class="prof-textarea" id="prof-bio" placeholder="Tell the crew a bit about yourself — your style, favourite tricks, how long you've been shredding…" oninput="_profileFormDirty=true"></textarea>
           </div>
 
           <div class="form-group" style="margin-top:14px;">
@@ -3044,7 +3044,7 @@
               <input type="text" class="form-input" id="prof-resort"
                 placeholder="e.g. Whistler, Park City, Mammoth…"
                 autocomplete="off"
-                oninput="resortInput(this)"
+                oninput="_profileFormDirty=true; resortInput(this)"
                 onkeydown="resortKeydown(event)"
                 onfocus="resortInput(this)"
                 onblur="setTimeout(()=>closeResortDropdown(),180)">
@@ -3060,7 +3060,7 @@
                 placeholder="yourhandle"
                 autocomplete="off"
                 style="padding-left:28px;"
-                oninput="this.value=this.value.replace(/[@\s]/g,'')">
+                oninput="_profileFormDirty=true; this.value=this.value.replace(/[@\s]/g,'')">
             </div>
           </div>
 
@@ -3985,6 +3985,9 @@ function stopLiveGamePoll() {
 //  AUTH
 // ═══════════════════════════════════════════════════════
 let currentUser = null;
+// True while the user has unsaved edits in the "Edit Profile" form — guards against
+// a snapshot-triggered renderMyProfile() re-render clobbering in-progress typing.
+let _profileFormDirty = false;
 
 async function hashPw(pw) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw + '__skirank_2025__'));
@@ -3997,8 +4000,8 @@ async function hashPw(pw) {
 // and is cleared as soon as the user migrates.
 
 function getSession()   { try { return JSON.parse(localStorage.getItem('skirank_session')||'null'); } catch(e){ return null; } }
-function setSession(u)  { localStorage.setItem('skirank_session', JSON.stringify(u)); currentUser = u; }
-function clearSession() { localStorage.removeItem('skirank_session'); currentUser = null; }
+function setSession(u)  { localStorage.setItem('skirank_session', JSON.stringify(u)); currentUser = u; _profileFormDirty = false; }
+function clearSession() { localStorage.removeItem('skirank_session'); currentUser = null; _profileFormDirty = false; }
 
 // Look up the app's player record from a Firebase Auth user object.
 // Returns null if not found.
@@ -11046,9 +11049,14 @@ function renderMyProfile() {
   }
 
   // ── Edit fields ──
-  document.getElementById('prof-bio').value       = p.bio       || '';
-  document.getElementById('prof-resort').value    = p.homeResort || '';
-  document.getElementById('prof-instagram').value = p.instagram  || '';
+  // A snapshot can arrive (and re-render this view) while the user is mid-edit here;
+  // skip repopulating from saved state until they Save/discard so typing isn't clobbered
+  // (same root cause as the liveInvites/messages/tournaments overwrite races).
+  if (!_profileFormDirty) {
+    document.getElementById('prof-bio').value       = p.bio       || '';
+    document.getElementById('prof-resort').value    = p.homeResort || '';
+    document.getElementById('prof-instagram').value = p.instagram  || '';
+  }
 
   // ── Rating history chart ──
   renderRatingHistory(p.id);
@@ -11132,6 +11140,7 @@ function saveProfileData() {
   p.homeResort = document.getElementById('prof-resort').value.trim();
   p.location   = p.homeResort; // keep location in sync (shown in leaderboard)
   p.instagram  = document.getElementById('prof-instagram').value.trim().replace(/^@/, '');
+  _profileFormDirty = false;
   save();
   toast('Profile saved! 🎿', 'ok');
   renderMyProfile();
