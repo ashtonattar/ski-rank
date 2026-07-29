@@ -3654,10 +3654,29 @@ function startFirestoreSync() {
         // Snapshot local invite statuses before overwriting — prevents a stale write
         // from another client from reverting an already-accepted invite back to pending.
         const _prevInvites = [...(S.liveInvites || [])];
+        // Same protection for tournaments — a stale snapshot (from a write queued
+        // before this client's own pending tournament change lands) must not revert
+        // an invitee's accepted/declined status or drop a participant who just joined.
+        const _prevTourneys = S.tournaments || [];
         Object.assign(S, fresh);
         S.liveInvites = (S.liveInvites || []).map(inv => {
           const prev = _prevInvites.find(p => p.id === inv.id);
           return (prev?.status === 'accepted' && inv.status === 'pending') ? { ...inv, status: 'accepted' } : inv;
+        });
+        S.tournaments = (S.tournaments || []).map(t => {
+          const prevT = _prevTourneys.find(p => p.id === t.id);
+          if (!prevT) return t;
+          const invitees = (t.invitees || []).map(inv => {
+            const prevInv = (prevT.invitees || []).find(pi => pi.id === inv.id);
+            return (prevInv && prevInv.status !== 'pending' && inv.status === 'pending')
+              ? { ...inv, status: prevInv.status } : inv;
+          });
+          const participants = [...(t.participants || [])];
+          const participantIds = new Set(participants.map(p => p.id));
+          (prevT.participants || []).forEach(pp => {
+            if (!participantIds.has(pp.id)) { participants.push(pp); participantIds.add(pp.id); }
+          });
+          return { ...t, invitees, participants };
         });
 
         // Guests should never see another player's live game — clear it immediately.
