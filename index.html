@@ -1674,9 +1674,9 @@
     .comment-author { font-size: 12px; font-weight: 700; color: var(--ice); margin-bottom: 3px; cursor: pointer; }
     .comment-text   { font-size: 13px; color: var(--text-primary); word-break: break-word; }
     .comment-time   { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
-    /* Mute/pause button top-right */
+    /* Mute/pause button top-left */
     .reel-controls {
-      position: absolute; top: calc(16px + env(safe-area-inset-top)); right: 16px;
+      position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 16px;
       display: flex; gap: 8px;
     }
     .reel-ctrl-btn {
@@ -5235,12 +5235,12 @@ const ONBOARDING_STEPS = [
     title: 'Rank Tiers',
     body: `Your rating places you in a tier:<br><br>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;text-align:left;">
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Elite</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Expert</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Advanced</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Intermediate</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Developing</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Beginner</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Legend</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Charger</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Shredder</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Park Rat</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Rookie</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
       </div>`,
     cta: 'Next →'
   },
@@ -5491,12 +5491,12 @@ function tier(raw, gamesPlayed) {
   if (gamesPlayed != null && gamesPlayed < RATED_THRESHOLD)
     return { label:'Provisional', color:'#94a3b8', icon:'<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg>', provisional: true };
   const r = raw / 100;
-  if (r >= 14) return { label:'Elite',        color:'#f97316', icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>' };
-  if (r >= 12) return { label:'Expert',       color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
-  if (r >= 10) return { label:'Advanced',     color:'#a78bfa', icon:'<svg class="icon icon-strength"><use href="#i-strength"/></svg>' };
-  if (r >=  7) return { label:'Intermediate', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
-  if (r >=  4) return { label:'Developing',   color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
-  return              { label:'Beginner',      color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
+  if (r >= 14) return { label:'Legend',   color:'#f97316', icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>' };
+  if (r >= 12) return { label:'Sender',   color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
+  if (r >= 10) return { label:'Charger',  color:'#a78bfa', icon:'<svg class="icon icon-strength"><use href="#i-strength"/></svg>' };
+  if (r >=  7) return { label:'Shredder', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
+  if (r >=  4) return { label:'Park Rat', color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
+  return              { label:'Rookie',   color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
 }
 
 // Renders a tier/provisional pill: colored glow, icon in a tinted chip. Pass clickable:true to wire up the tier-list modal.
@@ -12280,27 +12280,27 @@ async function adminWipeEverything() {
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Rank Tiers</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.22);">
-        <span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Elite</span>
+        <span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Legend</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">14.00+</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.22);">
-        <span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Expert</span>
+        <span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">12.00 – 13.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.22);">
-        <span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Advanced</span>
+        <span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Charger</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">10.00 – 11.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.22);">
-        <span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Intermediate</span>
+        <span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Shredder</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">7.00 – 9.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);">
-        <span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Developing</span>
+        <span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Park Rat</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">4.00 – 6.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.22);">
-        <span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Beginner</span>
+        <span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Rookie</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">0.00 – 3.99</span>
       </div>
     </div>
