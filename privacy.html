@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Slope Battles</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg-base:#14171b;
+    --bg-card:rgba(26,30,34,0.72);
+    --border:rgba(232,217,163,0.08);
+    --ice:#ff3e7f;
+    --text-primary:#eceeec;
+    --text-secondary:#a3ab9e;
+    --text-muted:#6b7269;
+    --radius:14px;
+  }
+  html{background:var(--bg-base);}
+  body{
+    background:var(--bg-base);
+    color:var(--text-secondary);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    line-height:1.7;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+  a{color:var(--ice);}
+  .back{
+    display:inline-block;margin-bottom:20px;color:var(--text-muted);
+    text-decoration:none;font-size:13px;font-weight:600;
+  }
+  .back:hover{color:var(--text-primary);}
+  h1{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:38px;letter-spacing:1px;color:var(--text-primary);
+    margin-bottom:4px;
+  }
+  .updated{font-size:13px;color:var(--text-muted);margin-bottom:20px;}
+  .disclaimer{
+    background:var(--bg-card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:14px 16px;
+    font-size:13px;color:var(--text-muted);font-style:italic;
+    margin-bottom:32px;
+  }
+  h2{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:22px;letter-spacing:0.5px;color:var(--text-primary);
+    margin:32px 0 10px;padding-top:8px;border-top:1px solid var(--border);
+  }
+  h2:first-of-type{border-top:none;padding-top:0;}
+  h3{font-size:15px;color:var(--text-primary);margin:18px 0 8px;}
+  p{margin-bottom:12px;}
+  ul{margin:0 0 12px 20px;}
+  li{margin-bottom:6px;}
+  strong{color:var(--text-primary);}
+  table{
+    width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:13px;
+    display:block;overflow-x:auto;white-space:nowrap;
+  }
+  th,td{
+    border:1px solid var(--border);padding:8px 10px;text-align:left;
+    vertical-align:top;white-space:normal;
+  }
+  th{background:var(--bg-card);color:var(--text-primary);font-weight:700;}
+  td{color:var(--text-secondary);}
+  footer{margin-top:40px;font-size:12px;color:var(--text-muted);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Back to Slope Battles</a>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: July 30, 2026</div>
+
+  <p>This Privacy Policy explains what information Slope Battles ("the App," "we," "us") collects, how it's used, and your choices. By creating an account or using the App, you agree to this policy.</p>
+
+  <div class="disclaimer">This document is a starting template, not legal advice. It includes a dedicated CCPA/CPRA section (§5A) written for California residents, but you should still have a lawyer review it before relying on it in production — especially to confirm whether you qualify as a "business" under CCPA's revenue/data-volume thresholds, and if you have users in the EU/UK (GDPR) or anywhere with minors, since those regimes require additional disclosures and mechanisms this template doesn't fully implement.</div>
+
+  <h2>1. Information We Collect</h2>
+  <p><strong>Account information.</strong> When you sign up, we collect your email address and password (handled by Firebase Authentication; we never see or store your raw password).</p>
+  <p><strong>Profile &amp; content you provide.</strong> Display name, avatar image, games you log (opponents, tricks, results), chat messages sent to other users, friend requests, comments, likes, and any video clips you upload.</p>
+  <p><strong>Usage &amp; device data.</strong> Basic technical data generated automatically by our infrastructure provider (e.g., timestamps, error logs) as part of operating the App.</p>
+  <p>We do not knowingly collect precise geolocation, payment information, or government ID data.</p>
+
+  <h3>Notice at Collection (California)</h3>
+  <p>The table below maps what we collect to the statutory categories defined in the CCPA (Cal. Civ. Code § 1798.140). It's provided at or before collection, as California law requires.</p>
+  <table>
+    <tr><th>CCPA Category</th><th>Examples in this App</th><th>Source</th><th>Business Purpose</th><th>Retention</th></tr>
+    <tr><td>Identifiers</td><td>Email address, username, unique account/user ID</td><td>You, directly</td><td>Create &amp; secure your account; authenticate login</td><td>Life of account + reasonable period after deletion for security/legal purposes</td></tr>
+    <tr><td>Customer records-type info</td><td>Display name, avatar image</td><td>You, directly</td><td>Operate your public profile</td><td>Life of account</td></tr>
+    <tr><td>Commercial/activity info</td><td>Games logged, tournament results, ratings, likes, comments</td><td>You, directly (and other users about games involving you)</td><td>Operate leaderboard, matchmaking, tournaments, social features</td><td>Life of account (may persist in other users' game history after your deletion, per §4)</td></tr>
+    <tr><td>Internet/network/device activity</td><td>Basic technical/error logs generated by our hosting provider (Firebase)</td><td>Automatically, from your device</td><td>Security, debugging, abuse prevention</td><td>Per our hosting provider's standard log retention</td></tr>
+    <tr><td>Audio/visual info</td><td>Video clips you upload to Explore</td><td>You, directly</td><td>Display your content in the Explore feed</td><td>Until you delete the clip or your account</td></tr>
+    <tr><td>Electronic/user-generated content</td><td>Chat messages, friend requests, comments</td><td>You, directly</td><td>Provide messaging &amp; social features</td><td>Life of account, or until you delete the message</td></tr>
+  </table>
+  <p>We do <strong>not</strong> knowingly collect Sensitive Personal Information as defined by the CPRA (e.g., precise geolocation, government ID, financial account credentials, health data, biometric data, or racial/ethnic origin).</p>
+
+  <h2>2. How We Use Information</h2>
+  <ul>
+    <li>To operate core features: matchmaking, live games, leaderboards, tournaments, friend/chat features, and the Explore video feed.</li>
+    <li>To maintain account security and prevent abuse (e.g., spam, cheating, harassment).</li>
+    <li>To communicate with you about your account or the App (e.g., game invites, confirmations).</li>
+    <li>To improve and troubleshoot the App.</li>
+  </ul>
+  <p>We do not sell your personal information.</p>
+
+  <h2>3. How Information Is Shared</h2>
+  <ul>
+    <li><strong>With other users, by design.</strong> Your display name, avatar, rating, game history, tournament results, and any clips/comments/messages you post are visible to other users of the App as part of normal functionality (e.g., anything you post publicly in Explore is visible to anyone who can access that feed; friend requests and chats are visible to the people involved).</li>
+    <li><strong>With service providers.</strong> We use Google Firebase (Authentication, Firestore, Cloud Storage) to run the App. Firebase processes data on our behalf under Google's own privacy and security terms.</li>
+    <li><strong>For legal reasons.</strong> We may disclose information if required by law, or to protect the rights, safety, or property of the App, our users, or the public.</li>
+    <li>We do not share your information with third parties for their own advertising or marketing purposes. We do not sell personal information, and we do not "share" it for cross-context behavioral advertising as those terms are defined under the CCPA/CPRA (see §5A).</li>
+  </ul>
+
+  <h2>4. Data Retention</h2>
+  <p>We retain your information for as long as your account is active. If you delete your account, we will delete or anonymize your personal data within a reasonable period, except where retention is required for legal, security, or dispute-resolution purposes (e.g., preserving records of a reported abuse incident).</p>
+
+  <h2>5. Your Choices &amp; Rights</h2>
+  <ul>
+    <li>You can edit or delete your profile information, messages you've sent, and content you've posted within the App.</li>
+    <li>You can request a copy of your data or request account deletion by contacting us (below).</li>
+    <li>Depending on where you live, you may have additional rights (access, correction, deletion, portability, objection to processing). We will honor valid requests as required by applicable law.</li>
+  </ul>
+
+  <h2>5A. California Privacy Rights (CCPA/CPRA)</h2>
+  <p>If you are a California resident, the California Consumer Privacy Act, as amended by the California Privacy Rights Act ("CCPA/CPRA"), gives you the following rights with respect to your personal information:</p>
+  <ul>
+    <li><strong>Right to Know</strong> — You can request that we disclose the categories and specific pieces of personal information we've collected about you, the categories of sources, the business purpose for collecting it, and the categories of third parties (if any) we've disclosed it to, covering the 12 months preceding your request.</li>
+    <li><strong>Right to Delete</strong> — You can request deletion of personal information we've collected from you, subject to certain legal exceptions (e.g., completing a transaction, security, legal compliance, or exercising free speech).</li>
+    <li><strong>Right to Correct</strong> — You can request that we correct inaccurate personal information we maintain about you.</li>
+    <li><strong>Right to Opt Out of Sale/Sharing</strong> — <strong>We do not sell your personal information, and we do not "share" it (as CPRA defines that term, meaning disclosure for cross-context behavioral advertising) with third parties.</strong> Because we don't do either, no "Do Not Sell or Share My Personal Information" link is required, but you may still submit an opt-out preference request at any time and we will honor it going forward.</li>
+    <li><strong>Right to Limit Use of Sensitive Personal Information</strong> — We don't collect Sensitive Personal Information as defined by CPRA (see §1), so there is nothing to limit.</li>
+    <li><strong>Right to Non-Discrimination</strong> — We will not deny you service, charge you a different price, or provide a different level of quality because you exercised any of these rights.</li>
+    <li><strong>Right to Appeal</strong> — If we deny your request, you may appeal by replying to our denial email; we will respond to your appeal within 60 days.</li>
+  </ul>
+  <p><strong>How to submit a request.</strong> Email <a href="mailto:ashtonattar@gmail.com">ashtonattar@gmail.com</a> with the subject line "CCPA Request" and specify whether you're requesting to know, delete, or correct. We will verify your identity using the email address associated with your account (and may ask follow-up questions) before acting on the request. You may also designate an authorized agent to submit a request on your behalf; we may require written proof of that authorization and separately verify your identity.</p>
+  <p><strong>Response time.</strong> We will confirm receipt within 10 business days and substantively respond within 45 calendar days, extendable once by another 45 days when reasonably necessary (we'll notify you if that happens).</p>
+  <p><strong>Look-back period.</strong> Upon a verified request, we will provide information for the 12-month period preceding the request, unless you ask for information collected before January 1, 2022, and it remains reasonably accessible.</p>
+  <p><strong>Shine the Light.</strong> California Civil Code §1798.83 lets California residents ask what personal information we share with third parties for their own direct marketing. We don't share personal information for third-party direct marketing, so no separate disclosure is needed.</p>
+
+  <h2>6. Children's Privacy</h2>
+  <p>The App is not directed to children under 13 (or the relevant minimum age in your jurisdiction), and we do not knowingly collect personal information from children under that age. If you believe a child has provided us information, contact us and we will delete it.</p>
+
+  <h2>7. Security</h2>
+  <p>We use reasonable technical and organizational measures (including relying on Firebase's security infrastructure) to protect your information. No method of transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
+
+  <h2>8. User-Generated Content Disclaimer</h2>
+  <p>The App allows users to post content (clips, comments, messages, profile info). We do not pre-screen all content and are not responsible for content posted by users. We may remove content or suspend accounts that violate our terms at our discretion.</p>
+
+  <h2>9. Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. If we make material changes, we will update the "Last updated" date above and, where appropriate, notify users through the App.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions about this policy or your data can be sent to: <a href="mailto:ashtonattar@gmail.com">ashtonattar@gmail.com</a></p>
+
+  <p style="margin-top:24px;"><a href="terms.html">See also: Terms of Service →</a></p>
+
+  <footer>Slope Battles</footer>
+</div>
+</body>
+</html>

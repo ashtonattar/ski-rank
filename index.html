@@ -1674,21 +1674,6 @@
     .comment-author { font-size: 12px; font-weight: 700; color: var(--ice); margin-bottom: 3px; cursor: pointer; }
     .comment-text   { font-size: 13px; color: var(--text-primary); word-break: break-word; }
     .comment-time   { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
-    /* Mute/pause button top-left */
-    .reel-controls {
-      position: absolute; top: calc(16px + env(safe-area-inset-top)); left: 16px;
-      display: flex; gap: 8px;
-    }
-    .reel-ctrl-btn {
-      width: 36px; height: 36px;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; cursor: pointer; backdrop-filter: blur(6px);
-      transition: background .15s;
-    }
-    .reel-ctrl-btn:hover { background:rgba(0,0,0,0.7); }
     /* Scroll indicator */
     .reel-scroll-hint {
       position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
@@ -2469,6 +2454,9 @@
                autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()">
       </div>
       <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-muted);">
+        By creating an account, you agree to our <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+      </div>
     </div>
 
     <div class="auth-footer"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Your data is private and securely stored</div>
