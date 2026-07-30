@@ -2474,13 +2474,13 @@
 
       <div class="card">
         <div class="card-hdr" style="flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <span class="card-title">📊 Rankings</span>
-          <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
-            <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;">
+          <span class="card-title" style="width:100%;">📊 Rankings</span>
+          <div style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;width:100%;">
+            <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
               <button id="lb-tab-alltime" onclick="switchLbTab('alltime')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:var(--primary);color:#000;">All-Time</button>
               <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
             </div>
-            <div id="lb-sport-filter" style="display:inline-flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;">
+            <div id="lb-sport-filter" style="display:inline-flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
               <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">⛷️ Skiers</button>
               <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂 Boarders</button>
             </div>
@@ -3171,9 +3171,9 @@
           <div id="prof-hero-resort" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;"></div>
           <div id="prof-hero-instagram" style="margin-bottom:4px;"></div>
           <div style="display:flex;gap:16px;align-items:center;margin-bottom:4px;font-size:12.5px;">
-            <span><strong id="prof-hero-followers" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Followers</span></span>
-            <span><strong id="prof-hero-following" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Following</span></span>
-            <span><strong id="prof-hero-friends" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Friends</span></span>
+            <span style="cursor:pointer;" onclick="openStatListModal('followers')"><strong id="prof-hero-followers" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Followers</span></span>
+            <span style="cursor:pointer;" onclick="openStatListModal('following')"><strong id="prof-hero-following" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Following</span></span>
+            <span style="cursor:pointer;" onclick="openStatListModal('friends')"><strong id="prof-hero-friends" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Friends</span></span>
           </div>
           <div class="profile-hero-bio-preview" id="prof-hero-bio"></div>
         </div>
@@ -3250,45 +3250,6 @@
         <div id="rating-history-chart"></div>
       </div>
 
-      <!-- Friends -->
-      <div class="card" style="margin-bottom:20px;">
-        <div class="card-hdr">
-          <span class="card-title">Friends</span>
-          <span class="badge badge-primary" id="prof-friend-count">0</span>
-        </div>
-        <div id="prof-friends-list"></div>
-        <div id="prof-friends-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
-          <div style="font-size:32px;margin-bottom:8px;">🤝</div>
-          No friends yet — add riders from the Riders tab!
-        </div>
-      </div>
-
-      <!-- Followers / Following -->
-      <div class="profile-grid" style="margin-bottom:20px;">
-        <div class="card">
-          <div class="card-hdr">
-            <span class="card-title">Followers</span>
-            <span class="badge badge-primary" id="prof-followers-count">0</span>
-          </div>
-          <div id="prof-followers-list"></div>
-          <div id="prof-followers-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
-            <div style="font-size:32px;margin-bottom:8px;">👥</div>
-            No followers yet.
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-hdr">
-            <span class="card-title">Following</span>
-            <span class="badge badge-primary" id="prof-following-count">0</span>
-          </div>
-          <div id="prof-following-list"></div>
-          <div id="prof-following-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
-            <div style="font-size:32px;margin-bottom:8px;">➕</div>
-            Not following anyone yet — check out the Riders tab!
-          </div>
-        </div>
-      </div>
-
       <!-- Full game history (all players) -->
       <div class="card">
         <div class="card-hdr">
@@ -3328,6 +3289,21 @@
       <button class="modal-close" onclick="closeModal('profile-modal')">✕</button>
     </div>
     <div id="profile-content"></div>
+  </div>
+</div>
+
+<!-- Stat List Modal (Friends / Followers / Following) -->
+<div class="modal-overlay hidden" id="stat-list-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-hdr">
+      <span class="modal-title" id="stat-list-title">Friends</span>
+      <button class="modal-close" onclick="closeModal('stat-list-modal')">✕</button>
+    </div>
+    <div id="stat-list-content"></div>
+    <div id="stat-list-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
+      <div style="font-size:32px;margin-bottom:8px;" id="stat-list-empty-icon">🤝</div>
+      <span id="stat-list-empty-text"></span>
+    </div>
   </div>
 </div>
 
@@ -11443,86 +11419,86 @@ function renderMyProfile() {
     }).join('');
   }
 
-  // ── Friends list ──
-  const myFriends = (p.friends || []).map(id => byId(id)).filter(Boolean);
-  const friendCount = document.getElementById('prof-friend-count');
-  const friendList  = document.getElementById('prof-friends-list');
-  const friendEmpty = document.getElementById('prof-friends-empty');
-  if (friendCount) friendCount.textContent = myFriends.length;
-  if (friendList) {
-    if (!myFriends.length) {
-      friendList.innerHTML = '';
-      if (friendEmpty) friendEmpty.style.display = 'block';
-    } else {
-      if (friendEmpty) friendEmpty.style.display = 'none';
-      friendList.innerHTML = myFriends.map(f => {
-        const ft = tier(f.rating, f.gamesPlayed);
-        const ftBadge = ft.provisional
-          ? `<span onclick="showTierModal()" style="color:#94a3b8;cursor:pointer;" title="View all tiers">⏳ Provisional · ${f.gamesPlayed}/${RATED_THRESHOLD}</span>`
-          : `<span onclick="showTierModal()" style="color:${ft.color};cursor:pointer;" title="View all tiers">${ft.icon} ${ft.label}</span>`;
-        return `
-          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-            ${avatarHtml(f, 'avatar-sm')}
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
-              <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>
-          </div>`;
-      }).join('');
-    }
-  }
-
-  // ── Followers list ──
-  const myFollowers = S.players.filter(x => Array.isArray(x.following) && x.following.includes(p.id));
-  const followersCountEl = document.getElementById('prof-followers-count');
-  const followersList     = document.getElementById('prof-followers-list');
-  const followersEmpty    = document.getElementById('prof-followers-empty');
-  if (followersCountEl) followersCountEl.textContent = myFollowers.length;
-  if (followersList) {
-    if (!myFollowers.length) {
-      followersList.innerHTML = '';
-      if (followersEmpty) followersEmpty.style.display = 'block';
-    } else {
-      if (followersEmpty) followersEmpty.style.display = 'none';
-      followersList.innerHTML = myFollowers.map(f => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-          ${avatarHtml(f, 'avatar-sm')}
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
-            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
-          </div>
-          ${followBtn(f.id)}
-        </div>`).join('');
-    }
-  }
-
-  // ── Following list ──
-  const myFollowing = (p.following || []).map(id => byId(id)).filter(Boolean);
-  const followingCountEl = document.getElementById('prof-following-count');
-  const followingList     = document.getElementById('prof-following-list');
-  const followingEmpty    = document.getElementById('prof-following-empty');
-  if (followingCountEl) followingCountEl.textContent = myFollowing.length;
-  if (followingList) {
-    if (!myFollowing.length) {
-      followingList.innerHTML = '';
-      if (followingEmpty) followingEmpty.style.display = 'block';
-    } else {
-      if (followingEmpty) followingEmpty.style.display = 'none';
-      followingList.innerHTML = myFollowing.map(f => `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
-          ${avatarHtml(f, 'avatar-sm')}
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
-            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>
-        </div>`).join('');
-    }
-  }
-
   // ── Full game history (all games, shown in profile) ──
   renderHistory();
+}
+
+// ── Friends / Followers / Following popup (click a stat on the profile hero) ──
+function openStatListModal(kind) {
+  if (!currentUser) return;
+  const p = S.players.find(x => x.id === currentUser.id);
+  if (!p) return;
+
+  const titleEl = document.getElementById('stat-list-title');
+  const listEl  = document.getElementById('stat-list-content');
+  const emptyEl = document.getElementById('stat-list-empty');
+  const emptyIcon = document.getElementById('stat-list-empty-icon');
+  const emptyText = document.getElementById('stat-list-empty-text');
+
+  let people, rowHtml, icon, emptyMsg, title;
+
+  if (kind === 'friends') {
+    title = 'Friends';
+    icon = '🤝';
+    emptyMsg = 'No friends yet — add riders from the Riders tab!';
+    people = (p.friends || []).map(id => byId(id)).filter(Boolean);
+    rowHtml = f => {
+      const ft = tier(f.rating, f.gamesPlayed);
+      const ftBadge = ft.provisional
+        ? `<span onclick="showTierModal()" style="color:#94a3b8;cursor:pointer;" title="View all tiers">⏳ Provisional · ${f.gamesPlayed}/${RATED_THRESHOLD}</span>`
+        : `<span onclick="showTierModal()" style="color:${ft.color};cursor:pointer;" title="View all tiers">${ft.icon} ${ft.label}</span>`;
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          ${avatarHtml(f, 'avatar-sm')}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>
+        </div>`;
+    };
+  } else if (kind === 'followers') {
+    title = 'Followers';
+    icon = '👥';
+    emptyMsg = 'No followers yet.';
+    people = S.players.filter(x => Array.isArray(x.following) && x.following.includes(p.id));
+    rowHtml = f => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        ${avatarHtml(f, 'avatar-sm')}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+        </div>
+        ${followBtn(f.id)}
+      </div>`;
+  } else {
+    title = 'Following';
+    icon = '➕';
+    emptyMsg = 'Not following anyone yet — check out the Riders tab!';
+    people = (p.following || []).map(id => byId(id)).filter(Boolean);
+    rowHtml = f => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        ${avatarHtml(f, 'avatar-sm')}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>
+      </div>`;
+  }
+
+  titleEl.textContent = title;
+  if (!people.length) {
+    listEl.innerHTML = '';
+    emptyIcon.textContent = icon;
+    emptyText.textContent = emptyMsg;
+    emptyEl.style.display = 'block';
+  } else {
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = people.map(rowHtml).join('');
+  }
+
+  openModal('stat-list-modal');
 }
 
 function saveProfileData() {
