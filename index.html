@@ -3168,6 +3168,11 @@
           </div>
           <div id="prof-hero-resort" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;"></div>
           <div id="prof-hero-instagram" style="margin-bottom:4px;"></div>
+          <div style="display:flex;gap:16px;align-items:center;margin-bottom:4px;font-size:12.5px;">
+            <span><strong id="prof-hero-followers" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Followers</span></span>
+            <span><strong id="prof-hero-following" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Following</span></span>
+            <span><strong id="prof-hero-friends" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Friends</span></span>
+          </div>
           <div class="profile-hero-bio-preview" id="prof-hero-bio"></div>
         </div>
       </div>
@@ -3253,6 +3258,32 @@
         <div id="prof-friends-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
           <div style="font-size:32px;margin-bottom:8px;">🤝</div>
           No friends yet — add riders from the Riders tab!
+        </div>
+      </div>
+
+      <!-- Followers / Following -->
+      <div class="profile-grid" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-title">Followers</span>
+            <span class="badge badge-primary" id="prof-followers-count">0</span>
+          </div>
+          <div id="prof-followers-list"></div>
+          <div id="prof-followers-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
+            <div style="font-size:32px;margin-bottom:8px;">👥</div>
+            No followers yet.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-title">Following</span>
+            <span class="badge badge-primary" id="prof-following-count">0</span>
+          </div>
+          <div id="prof-following-list"></div>
+          <div id="prof-following-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
+            <div style="font-size:32px;margin-bottom:8px;">➕</div>
+            Not following anyone yet — check out the Riders tab!
+          </div>
         </div>
       </div>
 
@@ -3768,8 +3799,9 @@ function startFirestoreSync() {
         });
         fresh.players.forEach(p => {
           if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null;
-          if (!Array.isArray(p.badges))  p.badges  = [];
-          if (!Array.isArray(p.friends)) p.friends = [];
+          if (!Array.isArray(p.badges))    p.badges    = [];
+          if (!Array.isArray(p.friends))   p.friends   = [];
+          if (!Array.isArray(p.following)) p.following = [];
         });
 
         // Handle live-game invite events before overwriting S
@@ -3861,6 +3893,7 @@ function startFirestoreSync() {
             gamesPlayed: 0,
             badges:      [],
             friends:     [],
+            following:   [],
             createdAt:   Date.now()
           };
           S.players = [...S.players, healedPlayer];
@@ -4336,6 +4369,7 @@ async function doSignup() {
     gamesPlayed: 0,
     badges: [],
     friends: [],
+    following: [],
     createdAt: newUser.createdAt
   }];
 
@@ -7475,6 +7509,7 @@ function renderPlayers() {
         </div>
         <div style="display:flex;gap:7px;align-items:center;">
           ${p.id !== currentUser?.id ? friendBtn(p.id) : ''}
+          ${p.id !== currentUser?.id ? followBtn(p.id) : ''}
           <button class="btn btn-outline btn-sm" onclick="showProfile('${p.id}')">Profile</button>
         </div>
       </div>`;
@@ -7639,6 +7674,57 @@ function unfriend(otherId) {
     renderPlayers();
     toast(`${other?.name || 'Skier'} removed from friends.`);
   });
+}
+
+// ═══════════════════════════════════════════════════════
+//  FOLLOWING (one-way, separate from mutual friends)
+// ═══════════════════════════════════════════════════════
+function isFollowing(otherId) {
+  if (!currentUser) return false;
+  const me = byId(currentUser.id);
+  return !!(me && Array.isArray(me.following) && me.following.includes(otherId));
+}
+function followerCount(id) {
+  return S.players.filter(p => Array.isArray(p.following) && p.following.includes(id)).length;
+}
+function followingCount(id) {
+  const p = byId(id);
+  return (p && Array.isArray(p.following)) ? p.following.length : 0;
+}
+function toggleFollow(otherId) {
+  if (!currentUser || otherId === currentUser.id) return;
+  const me = byId(currentUser.id);
+  if (!me) return;
+  if (!Array.isArray(me.following)) me.following = [];
+  const idx = me.following.indexOf(otherId);
+  const wasFollowing = idx !== -1;
+  if (wasFollowing) me.following.splice(idx, 1);
+  else me.following.push(otherId);
+  save();
+  renderPlayers();
+  refreshModalFollowBtn(otherId);
+  if (_activeSection === 'profile') renderMyProfile();
+  const other = byId(otherId);
+  if (!wasFollowing) toast(`Following ${other?.name || 'skier'}.`, 'ok');
+}
+// Compact/modal button for the Follow action — mirrors friendBtn's two sizes
+function followBtn(otherId, modal=false) {
+  if (!currentUser || otherId === currentUser.id) return '';
+  const following = isFollowing(otherId);
+  if (modal) {
+    return following
+      ? `<button class="btn btn-ghost" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;color:var(--text-secondary);">✓ Following</button>`
+      : `<button class="btn btn-outline" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;">+ Follow</button>`;
+  }
+  return following
+    ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${otherId}')" style="color:var(--text-secondary);">✓ Following</button>`
+    : `<button class="btn btn-outline btn-sm" onclick="toggleFollow('${otherId}')">+ Follow</button>`;
+}
+function refreshModalFollowBtn(playerId) {
+  const wrap = document.getElementById('modal-follow-btn');
+  if (wrap) wrap.innerHTML = followBtn(playerId, true);
+  const followerCountEl = document.getElementById('modal-follower-count');
+  if (followerCountEl && _profileId === playerId) followerCountEl.textContent = followerCount(playerId);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -8846,6 +8932,10 @@ function showProfile(id) {
   // Streaks
   const streaks = calcStreaks(id);
 
+  // Follower / following counts (one-way — separate from mutual friends above)
+  const followers  = followerCount(id);
+  const followingN = followingCount(id);
+
   const avatarHtml = p.avatarUrl
     ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,62,127,0.35);" alt="">`
     : `<div class="avatar avatar-lg" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
@@ -8863,6 +8953,10 @@ function showProfile(id) {
           <span style="font-size:12px;color:var(--text-muted);">${p.riderType === 'boarder' ? '🏂 Snowboarder' : '⛷️ Skier'}</span>
           ${p.homeResort ? `<span style="font-size:12px;color:var(--text-muted);">🏔 ${p.homeResort}</span>` : p.location ? `<span style="font-size:12px;color:var(--text-muted);">📍 ${p.location}</span>` : ''}
           ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;">📸 @${p.instagram}</a>` : ''}
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:7px;font-size:12.5px;" id="modal-follow-counts">
+          <span><strong id="modal-follower-count" style="color:var(--text-primary);">${followers}</strong> <span style="color:var(--text-muted);">Followers</span></span>
+          <span><strong id="modal-following-count" style="color:var(--text-primary);">${followingN}</strong> <span style="color:var(--text-muted);">Following</span></span>
         </div>
         ${p.bio ? `<div style="font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.55;">${p.bio}</div>` : ''}
       </div>
@@ -9015,6 +9109,7 @@ function showProfile(id) {
 
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
       ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
+      ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')">⚡ Challenge ${p.name}</button>` : ''}
     </div>`;
@@ -11283,6 +11378,9 @@ function renderMyProfile() {
     ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener"
         style="color:var(--ice);text-decoration:none;font-size:12.5px;">📸 @${p.instagram}</a>`
     : '';
+  document.getElementById('prof-hero-followers').textContent = followerCount(p.id);
+  document.getElementById('prof-hero-following').textContent = followingCount(p.id);
+  document.getElementById('prof-hero-friends').textContent   = (p.friends || []).length;
 
   // ── Avatar display ──
   const wrap = document.getElementById('prof-avatar-display');
@@ -11370,6 +11468,54 @@ function renderMyProfile() {
             <button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>
           </div>`;
       }).join('');
+    }
+  }
+
+  // ── Followers list ──
+  const myFollowers = S.players.filter(x => Array.isArray(x.following) && x.following.includes(p.id));
+  const followersCountEl = document.getElementById('prof-followers-count');
+  const followersList     = document.getElementById('prof-followers-list');
+  const followersEmpty    = document.getElementById('prof-followers-empty');
+  if (followersCountEl) followersCountEl.textContent = myFollowers.length;
+  if (followersList) {
+    if (!myFollowers.length) {
+      followersList.innerHTML = '';
+      if (followersEmpty) followersEmpty.style.display = 'block';
+    } else {
+      if (followersEmpty) followersEmpty.style.display = 'none';
+      followersList.innerHTML = myFollowers.map(f => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          ${avatarHtml(f, 'avatar-sm')}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+          </div>
+          ${followBtn(f.id)}
+        </div>`).join('');
+    }
+  }
+
+  // ── Following list ──
+  const myFollowing = (p.following || []).map(id => byId(id)).filter(Boolean);
+  const followingCountEl = document.getElementById('prof-following-count');
+  const followingList     = document.getElementById('prof-following-list');
+  const followingEmpty    = document.getElementById('prof-following-empty');
+  if (followingCountEl) followingCountEl.textContent = myFollowing.length;
+  if (followingList) {
+    if (!myFollowing.length) {
+      followingList.innerHTML = '';
+      if (followingEmpty) followingEmpty.style.display = 'block';
+    } else {
+      if (followingEmpty) followingEmpty.style.display = 'none';
+      followingList.innerHTML = myFollowing.map(f => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          ${avatarHtml(f, 'avatar-sm')}
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="showProfile('${f.id}')">${f.name}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>
+        </div>`).join('');
     }
   }
 
