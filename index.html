@@ -2941,7 +2941,7 @@
     <!-- ─── EXPLORE ─── -->
     <div id="view-explore" class="view">
       <!-- Post Clip FAB -->
-      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(255,62,127,0.45);letter-spacing:.3px;">📷 Post Clip</button>
+      <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(255,62,127,0.45);letter-spacing:.3px;transform:translateZ(0);will-change:transform;">📷 Post Clip</button>
 
 
       <div id="explore-feed" class="explore-feed"></div>
@@ -5610,6 +5610,7 @@ function nav(view, _force) {
   closeMoreSheet();
   // Restore scroll position for the new view (default 0)
   window.scrollTo(0, _viewScroll[view] || 0);
+  if (view === 'profile') _histPage = 0;
   ({
     'leaderboard': renderLeaderboard,
     'log-game':    renderLogForm,
@@ -8664,6 +8665,8 @@ function timeFmt(ts) {
 // ═══════════════════════════════════════════════════════
 //  HISTORY
 // ═══════════════════════════════════════════════════════
+const HIST_PAGE_SIZE = 5;
+let _histPage = 0;
 function renderHistory() {
   const uid     = currentUser?.id;
   const games   = [...S.games]
@@ -8709,8 +8712,13 @@ function renderHistory() {
       </div>
     </div>`).join('');
 
-  // Confirmed entries
-  const confirmedHtml = games.map(game => {
+  // Confirmed entries — paginated, 5 per page
+  const totalPages = Math.max(1, Math.ceil(games.length / HIST_PAGE_SIZE));
+  if (_histPage >= totalPages) _histPage = totalPages - 1;
+  if (_histPage < 0) _histPage = 0;
+  const pageGames = games.slice(_histPage * HIST_PAGE_SIZE, _histPage * HIST_PAGE_SIZE + HIST_PAGE_SIZE);
+
+  const confirmedHtml = pageGames.map(game => {
     const winner = byId(game.winnerId);
     const loser  = byId(game.loserId);
     if (!winner||!loser) return '';
@@ -8744,7 +8752,14 @@ function renderHistory() {
       </div>`;
   }).join('');
 
-  list.innerHTML = pendingHtml + confirmedHtml;
+  const paginationHtml = games.length > HIST_PAGE_SIZE ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 2px;font-size:12.5px;color:var(--text-muted);">
+      <button onclick="_histPage--;renderHistory()" class="btn btn-ghost btn-sm" ${_histPage===0?'disabled style="opacity:.3;"':''}>‹ Prev</button>
+      <span>Page ${_histPage+1} of ${totalPages}</span>
+      <button onclick="_histPage++;renderHistory()" class="btn btn-ghost btn-sm" ${_histPage>=totalPages-1?'disabled style="opacity:.3;"':''}>Next ›</button>
+    </div>` : '';
+
+  list.innerHTML = pendingHtml + confirmedHtml + paginationHtml;
 }
 
 // ═══════════════════════════════════════════════════════
