@@ -2366,12 +2366,12 @@
     </div>
 
     <div id="auth-back-row" style="display:none;margin-bottom:4px;">
-      <button onclick="dismissAuthScreen()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;transition:color .15s;" onmouseenter="this.style.color='var(--ice)'" onmouseleave="this.style.color='var(--text-muted)'">← Back to preview</button>
+      <button onclick="dismissAuthScreen()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;transition:color .15s;" onmouseenter="this.style.color='var(--ice)'" onmouseleave="this.style.color='var(--text-muted)'"><svg class="icon icon-back"><use href="#i-back"/></svg> Back to preview</button>
     </div>
     <div id="auth-hint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(255,62,127,0.08);border:1px solid rgba(255,62,127,0.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ice);text-align:center;line-height:1.5;"></div>
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-origin-notice" class="auth-origin-notice">
-      <strong>⚠️ Opening as a local file</strong><br>
+      <strong><svg class="icon icon-warning"><use href="#i-warning"/></svg> Opening as a local file</strong><br>
       Accounts are saved per browser origin. Any accounts you created via
       <strong>localhost</strong> (the dev server) won't appear here — and accounts you
       create now will only work when opening the file the same way.<br><br>
@@ -2397,7 +2397,7 @@
         <input type="password" class="form-input" id="li-password" placeholder="••••••••"
                autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
-      <button class="btn btn-primary auth-btn" onclick="doLogin()">Sign In ⛷️</button>
+      <button class="btn btn-primary auth-btn" onclick="doLogin()">Sign In <svg class="icon icon-skier"><use href="#i-skier"/></svg></button>
     </div>
 
     <!-- ── Sign Up ── -->
@@ -2417,16 +2417,16 @@
         <div style="display:flex;gap:8px;">
           <button type="button" id="su-type-skier" onclick="selectRiderType('skier')"
             style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
-            ⛷️ Skier
+            <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
           </button>
           <button type="button" id="su-type-boarder" onclick="selectRiderType('boarder')"
             style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--border);background:transparent;color:var(--text-muted);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
-            🏂 Snowboarder
+            <svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboarder
           </button>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">🏔 Home Resort <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Home Resort <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <div class="resort-wrap">
           <input type="text" class="form-input" id="su-resort"
             placeholder="e.g. Whistler, Park City, Mammoth…"
@@ -2448,10 +2448,10 @@
         <input type="password" class="form-input" id="su-confirm" placeholder="Repeat password"
                autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()">
       </div>
-      <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account 🔥</button>
+      <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
     </div>
 
-    <div class="auth-footer">🔒 Your data is private and securely stored</div>
+    <div class="auth-footer"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Your data is private and securely stored</div>
   </div>
 </div>
 
@@ -2484,19 +2484,19 @@
   <!-- ═══ Bottom tab bar (Native Shell) ═══ -->
   <nav class="tabbar">
     <button class="nav-btn active" data-view="live-game" onclick="nav('live-game')">
-      <span class="nav-icon">⚡</span><span>Play</span>
+      <span class="nav-icon"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span><span>Play</span>
     </button>
     <button class="nav-btn" data-view="leaderboard" onclick="nav('leaderboard')">
-      <span class="nav-icon">📊</span><span>Rank</span>
+      <span class="nav-icon"><svg class="icon icon-bar-chart"><use href="#i-bar-chart"/></svg></span><span>Rank</span>
     </button>
     <button class="nav-btn" data-view="explore" onclick="nav('explore')">
-      <span class="nav-icon">🌎</span><span>Explore</span>
+      <span class="nav-icon"><svg class="icon icon-globe"><use href="#i-globe"/></svg></span><span>Explore</span>
     </button>
     <button class="nav-btn" data-view="friends" onclick="nav('friends')" id="nav-friends">
-      <span class="nav-icon">👥</span><span style="flex:1;">Friends</span><span class="nav-badge" id="friends-badge" style="display:none;">0</span>
+      <span class="nav-icon"><svg class="icon icon-users"><use href="#i-users"/></svg></span><span style="flex:1;">Friends</span><span class="nav-badge" id="friends-badge" style="display:none;">0</span>
     </button>
     <button class="nav-btn" id="nav-more" onclick="openMoreSheet()">
-      <span class="nav-icon">☰</span><span style="flex:1;">More</span><span class="nav-badge" id="more-badge" style="display:none;">0</span>
+      <span class="nav-icon"><svg class="icon icon-menu"><use href="#i-menu"/></svg></span><span style="flex:1;">More</span><span class="nav-badge" id="more-badge" style="display:none;">0</span>
     </button>
   </nav>
 
@@ -2507,16 +2507,16 @@
     <div class="more-sheet-title">More</div>
     <div class="more-sheet-list">
       <button class="nav-btn" data-view="confirmations" onclick="nav('confirmations');closeMoreSheet()" id="nav-confirmations">
-        <span class="nav-icon">🔔</span><span style="flex:1;">Inbox</span><span class="nav-badge" id="inbox-badge" style="display:none;">0</span>
+        <span class="nav-icon"><svg class="icon icon-bell"><use href="#i-bell"/></svg></span><span style="flex:1;">Inbox</span><span class="nav-badge" id="inbox-badge" style="display:none;">0</span>
       </button>
       <button class="nav-btn" data-view="players" onclick="nav('players');closeMoreSheet()">
-        <span class="nav-icon">🎿</span><span style="flex:1;">Riders</span>
+        <span class="nav-icon"><svg class="icon icon-skis"><use href="#i-skis"/></svg></span><span style="flex:1;">Riders</span>
       </button>
       <button class="nav-btn" data-view="log-game" onclick="nav('log-game');closeMoreSheet()">
-        <span class="nav-icon">✏️</span><span style="flex:1;">Log a Game</span>
+        <span class="nav-icon"><svg class="icon icon-edit"><use href="#i-edit"/></svg></span><span style="flex:1;">Log a Game</span>
       </button>
       <button class="nav-btn" data-view="tournaments" onclick="nav('tournaments');closeMoreSheet()" id="nav-tournaments">
-        <span class="nav-icon">🏆</span><span style="flex:1;">Tourneys</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
+        <span class="nav-icon"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span><span style="flex:1;">Tourneys</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
       </button>
     </div>
   </div>
@@ -2539,21 +2539,21 @@
             <div style="font-weight:800;font-size:15px;margin-bottom:4px;">You haven't played yet</div>
             <div style="font-size:13px;color:var(--text-muted);">Challenge a rider to start — no rating required.</div>
           </div>
-          <button class="btn btn-primary" onclick="nav('live-game')">⚡ Play Now</button>
+          <button class="btn btn-primary" onclick="nav('live-game')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Play Now</button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-hdr" style="flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <span class="card-title" style="width:100%;">📊 Rankings</span>
+          <span class="card-title" style="width:100%;"><svg class="icon icon-bar-chart"><use href="#i-bar-chart"/></svg> Rankings</span>
           <div style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;width:100%;">
             <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
               <button id="lb-tab-alltime" onclick="switchLbTab('alltime')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:var(--primary);color:#000;">All-Time</button>
               <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
             </div>
             <div id="lb-sport-filter" style="display:inline-flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
-              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">⛷️ Skiers</button>
-              <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂 Boarders</button>
+              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Skiers</button>
+              <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Boarders</button>
             </div>
           </div>
         </div>
@@ -2570,14 +2570,14 @@
               style="width:100%;height:36px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0 32px 0 32px;font-size:16px;font-family:inherit;appearance:none;cursor:pointer;outline:none;">
               <option value="">All Mountains</option>
             </select>
-            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🏔</span>
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span>
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;">▼</span>
           </div>
         </div>
         <div id="lb-active-filter" style="display:none;margin-bottom:12px;">
           <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 12px;background:rgba(255,62,127,0.12);border:1px solid rgba(255,62,127,0.3);border-radius:20px;font-size:12px;color:var(--ice);">
             <span id="lb-filter-label"></span>
-            <span onclick="clearMountainFilter()" style="cursor:pointer;font-size:13px;opacity:.7;" title="Clear filter">✕</span>
+            <span onclick="clearMountainFilter()" style="cursor:pointer;font-size:13px;opacity:.7;" title="Clear filter"><svg class="icon icon-close"><use href="#i-close"/></svg></span>
           </span>
         </div>
         <div class="tbl-wrap">
@@ -2599,7 +2599,7 @@
           </table>
         </div>
         <div id="lb-empty" class="empty" style="display:none;">
-          <div class="empty-icon">🏔️</div>
+          <div class="empty-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></div>
           <h3>No games logged yet</h3>
           <p>Log a game to start building the rankings.</p>
           <button class="btn btn-primary" onclick="nav('log-game')">Log a Game</button>
@@ -2624,7 +2624,7 @@
             </table>
           </div>
           <div id="lb-weekly-empty" class="empty" style="display:none;">
-            <div class="empty-icon">📅</div>
+            <div class="empty-icon"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg></div>
             <h3>No games this week</h3>
             <p>Play some games — weekly rankings reset every 7 days.</p>
           </div>
@@ -2708,12 +2708,12 @@
           <label class="form-label">Tricks attempted (optional)</label>
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="text" class="form-input" id="lg-tricks" placeholder="e.g. Frontflip, Cork 720…" style="flex:1;">
-            <button class="btn btn-ghost btn-sm" onclick="openTrickLib('log')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library">📖</button>
+            <button class="btn btn-ghost btn-sm" onclick="openTrickLib('log')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">🏔 Resort / Location (optional)</label>
+          <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location (optional)</label>
           <div class="resort-wrap">
             <input type="text" class="form-input" id="lg-resort"
               placeholder="e.g. Whistler, Park City, Mammoth…"
@@ -2732,10 +2732,10 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">🎥 Video Clip (optional)</label>
+          <label class="form-label"><svg class="icon icon-video"><use href="#i-video"/></svg> Video Clip (optional)</label>
           <div class="clip-box" id="lg-clip-box">
             <div class="clip-box-inner">
-              <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+              <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
               <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Upload a video clip</div>
               <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">MP4 · MOV · AVI · up to 200 MB</div>
               <input type="hidden" id="lg-clip-url">
@@ -2762,9 +2762,9 @@
           <h1 class="play-hero-title">CHALLENGE<br>A RIDER</h1>
           <p class="play-hero-sub">Set a trick. Your opponent copies it or collects a letter.<br>First to spell <strong>S·K·I</strong> loses.</p>
           <div class="play-hero-pills">
-            <div class="play-pill"><span>⚡</span> Instant invite</div>
+            <div class="play-pill"><span><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span> Instant invite</div>
             <div class="play-pill"><span>📱</span> Live scoring</div>
-            <div class="play-pill"><span>🏆</span> No rating needed</div>
+            <div class="play-pill"><span><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span> No rating needed</div>
           </div>
         </div>
         <!-- Animated ski letters -->
@@ -2791,7 +2791,7 @@
 
       <!-- Setup panel -->
       <div id="live-setup" class="card" style="max-width:560px; margin-bottom:20px;">
-        <div class="card-hdr"><span class="card-title">⚡ New Challenge</span></div>
+        <div class="card-hdr"><span class="card-title"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> New Challenge</span></div>
 
         <!-- Invite form -->
         <div id="live-invite-form">
@@ -2826,7 +2826,7 @@
             </div>
           </div>
           <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label">🏔 Resort / Location (optional)</label>
+            <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location (optional)</label>
             <div class="resort-wrap">
               <input type="text" class="form-input" id="lv-resort"
                 placeholder="e.g. Whistler, Park City, Mammoth…"
@@ -2839,7 +2839,7 @@
             </div>
           </div>
           <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label">⚖️ Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+            <label class="form-label"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">A third person who calls all tricks — neither player can judge</div>
             <div class="pp-wrap" id="pp-lv-judge">
               <input type="hidden" id="lv-judge">
@@ -2857,7 +2857,7 @@
           <div id="lv-handicap-section" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <div>
-                <label class="form-label" style="margin-bottom:2px;">⚡ Handicap Mode <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+                <label class="form-label" style="margin-bottom:2px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Handicap Mode <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
                 <div style="font-size:12px;color:var(--text-muted);">Higher-rated player starts with letter(s) to level the game</div>
               </div>
               <label class="toggle-switch">
@@ -2873,7 +2873,7 @@
 
         <!-- Waiting state (shown after invite sent) -->
         <div id="live-invite-waiting" style="display:none;text-align:center;padding:10px 0;">
-          <div style="font-size:36px;margin-bottom:10px;animation:spin 2s linear infinite;display:inline-block;">⛷️</div>
+          <div style="font-size:36px;margin-bottom:10px;animation:spin 2s linear infinite;display:inline-block;"><svg class="icon icon-skier"><use href="#i-skier"/></svg></div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:6px;">Waiting for opponent…</div>
           <div id="live-invite-waiting-text" style="font-size:13px;color:var(--text-muted);margin-bottom:18px;"></div>
           <button class="btn btn-ghost btn-sm" onclick="cancelLiveInvite()">Cancel Invite</button>
@@ -2894,11 +2894,11 @@
             <div class="form-group" style="margin-bottom:10px;">
               <div style="display:flex;gap:8px;align-items:center;">
                 <input type="text" class="form-input" id="trick-input" placeholder="Type or pick a trick…" style="flex:1;">
-                <button class="btn btn-ghost btn-sm" onclick="openTrickLib('live')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library">📖</button>
+                <button class="btn btn-ghost btn-sm" onclick="openTrickLib('live')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
               </div>
             </div>
             <div class="trick-btns">
-              <button class="btn btn-primary" style="width:100%;" onclick="setterSubmitTrick()">🎯 Set Trick</button>
+              <button class="btn btn-primary" style="width:100%;" onclick="setterSubmitTrick()"><svg class="icon icon-target"><use href="#i-target"/></svg> Set Trick</button>
             </div>
           </div>
           <!-- Phase: non-setter judges whether setter landed (new) -->
@@ -2910,8 +2910,8 @@
               Trick attempted: <strong id="judge-setter-trick" style="color:var(--primary);">—</strong>
             </p>
             <div class="trick-btns">
-              <button class="btn btn-landed" onclick="judgeSetterLanded()">✅ Yes, They Landed!</button>
-              <button class="btn btn-missed" onclick="judgeSetterBailed()">❌ No, They Bailed</button>
+              <button class="btn btn-landed" onclick="judgeSetterLanded()"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Yes, They Landed!</button>
+              <button class="btn btn-missed" onclick="judgeSetterBailed()"><svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> No, They Bailed</button>
             </div>
           </div>
           <!-- Phase: setter judges whether copier landed -->
@@ -2923,35 +2923,35 @@
               Trick to copy: <strong id="trick-display" style="color:var(--primary);">—</strong>
             </p>
             <div class="trick-btns">
-              <button class="btn btn-landed" onclick="copierLand()">✅ Yes, They Landed!</button>
-              <button class="btn btn-missed" onclick="copierMiss()">❌ No, They Missed</button>
+              <button class="btn btn-landed" onclick="copierLand()"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Yes, They Landed!</button>
+              <button class="btn btn-missed" onclick="copierMiss()"><svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> No, They Missed</button>
             </div>
           </div>
           <!-- Phase: setter bailed — setter judges opponent's revenge attempt -->
           <div id="phase-revenge" style="display:none;">
             <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">
-              🔥 Did <span id="revenge-name"></span> land the revenge?
+              <svg class="icon icon-fire"><use href="#i-fire"/></svg> Did <span id="revenge-name"></span> land the revenge?
             </h3>
             <p style="font-size:13.5px;color:var(--text-secondary);margin-bottom:12px;">
               Trick: <strong id="revenge-trick" style="color:var(--fire);">—</strong>
               <span style="color:var(--text-muted);font-size:12px;"> · If yes, you take the letter</span>
             </p>
             <div class="trick-btns">
-              <button class="btn btn-landed" onclick="revengeAttemptLanded()">✅ Yes, They Landed It!</button>
-              <button class="btn btn-missed" onclick="revengeAttemptMissed()">❌ No, They Missed Too</button>
+              <button class="btn btn-landed" onclick="revengeAttemptLanded()"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Yes, They Landed It!</button>
+              <button class="btn btn-missed" onclick="revengeAttemptMissed()"><svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> No, They Missed Too</button>
             </div>
           </div>
           <!-- Phase: dispute — both players confirm or deny the call -->
           <div id="phase-dispute" style="display:none;">
             <div style="text-align:center;margin-bottom:14px;">
-              <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warning);margin-bottom:6px;">⚖️ Disputed Call</div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warning);margin-bottom:6px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Disputed Call</div>
               <div id="dispute-call-desc" style="font-size:15px;font-weight:700;margin-bottom:4px;"></div>
               <div style="font-size:12.5px;color:var(--text-muted);">Do you agree with this call?</div>
             </div>
             <!-- Confirm / Deny buttons (hidden after voting) -->
             <div id="dispute-vote-btns" class="trick-btns">
-              <button class="btn btn-landed" onclick="submitDisputeVote('confirm')">✅ Confirm the Call</button>
-              <button class="btn btn-missed" onclick="submitDisputeVote('deny')">❌ Deny the Call</button>
+              <button class="btn btn-landed" onclick="submitDisputeVote('confirm')"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Confirm the Call</button>
+              <button class="btn btn-missed" onclick="submitDisputeVote('deny')"><svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> Deny the Call</button>
             </div>
             <!-- Waiting message (shown after voting) -->
             <div id="dispute-voted-msg" style="display:none;text-align:center;padding:8px 0;font-size:13.5px;color:var(--text-secondary);"></div>
@@ -2996,13 +2996,13 @@
           </div>
           <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
             <button onclick="setRidersTypeFilter('all')"     id="riders-rt-all"     style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">All</button>
-            <button onclick="setRidersTypeFilter('skier')"   id="riders-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">⛷️</button>
-            <button onclick="setRidersTypeFilter('boarder')" id="riders-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;">🏂</button>
+            <button onclick="setRidersTypeFilter('skier')"   id="riders-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-skier"><use href="#i-skier"/></svg></button>
+            <button onclick="setRidersTypeFilter('boarder')" id="riders-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg></button>
           </div>
         </div>
         <div id="player-list"></div>
         <div id="player-empty" class="empty" style="display:none;">
-          <div class="empty-icon">👤</div>
+          <div class="empty-icon"><svg class="icon icon-user"><use href="#i-user"/></svg></div>
           <h3>No skiers yet</h3>
           <p>Players are added automatically when they create an account.</p>
         </div>
@@ -3085,7 +3085,7 @@
         <!-- Right: chat panel -->
         <div class="friends-chat card" id="friends-chat-panel">
           <div id="chat-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;gap:10px;">
-            <div style="font-size:40px;">💬</div>
+            <div style="font-size:40px;"><svg class="icon icon-chat"><use href="#i-chat"/></svg></div>
             <div>Select a friend to start chatting</div>
           </div>
           <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
@@ -3120,7 +3120,7 @@
         </div>
         <div id="friend-req-list"></div>
         <div id="friend-req-empty" class="empty" style="display:none;padding:22px 0;">
-          <div class="empty-icon">🤝</div>
+          <div class="empty-icon"><svg class="icon icon-handshake"><use href="#i-handshake"/></svg></div>
           <h3>No friend requests</h3>
           <p>When someone adds you as a friend, it'll show here.</p>
         </div>
@@ -3129,12 +3129,12 @@
       <!-- Live game invites -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
-          <span class="card-title">⛷️ Live Game Invites</span>
+          <span class="card-title"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Live Game Invites</span>
           <span class="badge badge-accent" id="invite-count">0</span>
         </div>
         <div id="invite-list"></div>
         <div id="invite-empty" class="empty" style="display:none;padding:22px 0;">
-          <div class="empty-icon">🎿</div>
+          <div class="empty-icon"><svg class="icon icon-skis"><use href="#i-skis"/></svg></div>
           <h3>No live invites</h3>
           <p>When someone challenges you to a live game, it'll show here.</p>
         </div>
@@ -3143,12 +3143,12 @@
       <!-- Match Challenges -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
-          <span class="card-title">⚡ Match Challenges</span>
+          <span class="card-title"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Match Challenges</span>
           <span class="badge badge-accent" id="challenge-count">0</span>
         </div>
         <div id="challenge-list"></div>
         <div id="challenge-empty" class="empty" style="display:none;padding:22px 0;">
-          <div class="empty-icon">⚡</div>
+          <div class="empty-icon"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></div>
           <h3>No challenges</h3>
           <p>When someone challenges you to a scheduled match, it'll show here.</p>
         </div>
@@ -3157,7 +3157,7 @@
       <!-- Awaiting my confirmation -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
-          <span class="card-title">📬 Awaiting Your Confirmation</span>
+          <span class="card-title"><svg class="icon icon-inbox"><use href="#i-inbox"/></svg> Awaiting Your Confirmation</span>
           <span class="badge badge-primary" id="inbox-count">0</span>
         </div>
         <div id="inbox-list"></div>
@@ -3171,12 +3171,12 @@
       <!-- Games I submitted, pending opponent -->
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">✉️ Submitted by You</span>
+          <span class="card-title"><svg class="icon icon-mail"><use href="#i-mail"/></svg> Submitted by You</span>
           <span class="badge badge-muted" id="sent-count">0</span>
         </div>
         <div id="sent-list"></div>
         <div id="sent-empty" class="empty" style="display:none;padding:28px 0;">
-          <div class="empty-icon">🎿</div>
+          <div class="empty-icon"><svg class="icon icon-skis"><use href="#i-skis"/></svg></div>
           <h3>No pending submissions</h3>
           <p>Your submitted games will appear here until your opponent confirms.</p>
         </div>
@@ -3190,12 +3190,12 @@
           <h2>Tournaments</h2>
           <p>Create and run single-elimination or round-robin brackets with your crew</p>
         </div>
-        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="openCreateTournamentModal()">🏆 Create</button>
+        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="openCreateTournamentModal()"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Create</button>
       </div>
       <!-- Tournament invites (incoming) -->
       <div class="card" id="tourney-invites-card" style="margin-bottom:20px;display:none;">
         <div class="card-hdr">
-          <span class="card-title">📬 Tournament Invites</span>
+          <span class="card-title"><svg class="icon icon-inbox"><use href="#i-inbox"/></svg> Tournament Invites</span>
           <span class="badge badge-accent" id="tourney-invite-count">0</span>
         </div>
         <div id="tourney-invite-list"></div>
@@ -3203,11 +3203,11 @@
       <!-- Active / upcoming tournaments -->
       <div class="card" style="margin-bottom:20px;">
         <div class="card-hdr">
-          <span class="card-title">🏔 My Tournaments</span>
+          <span class="card-title"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> My Tournaments</span>
         </div>
         <div id="tourney-list"></div>
         <div id="tourney-empty" class="empty" style="padding:32px 0;display:none;">
-          <div class="empty-icon">🏆</div>
+          <div class="empty-icon"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></div>
           <h3>No tournaments yet</h3>
           <p>Create a tournament and invite your friends to compete.</p>
         </div>
@@ -3225,7 +3225,7 @@
       <div class="profile-hero" id="prof-hero">
         <div class="profile-avatar-wrap" onclick="document.getElementById('prof-pic-input').click()" title="Change photo">
           <div id="prof-avatar-display"></div>
-          <div class="profile-avatar-overlay">📷</div>
+          <div class="profile-avatar-overlay"><svg class="icon icon-camera"><use href="#i-camera"/></svg></div>
         </div>
         <input type="file" id="prof-pic-input" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
         <div class="profile-hero-info">
@@ -3255,9 +3255,9 @@
 
           <div class="form-group">
             <label class="form-label">Profile Photo</label>
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('prof-pic-input').click()">📷 Upload Photo</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('prof-pic-input').click()"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Upload Photo</button>
             <span id="prof-pic-clear-btn" style="display:none;">
-              &nbsp;<button class="btn btn-ghost btn-sm" onclick="clearAvatar()">✕ Remove</button>
+              &nbsp;<button class="btn btn-ghost btn-sm" onclick="clearAvatar()"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove</button>
             </span>
             <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">JPG / PNG / WEBP · max 3 MB</div>
           </div>
@@ -3268,7 +3268,7 @@
           </div>
 
           <div class="form-group" style="margin-top:14px;">
-            <label class="form-label">🏔 Home Mountain / Resort</label>
+            <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Home Mountain / Resort</label>
             <div class="resort-wrap">
               <input type="text" class="form-input" id="prof-resort"
                 placeholder="e.g. Whistler, Park City, Mammoth…"
@@ -3282,7 +3282,7 @@
           </div>
 
           <div class="form-group" style="margin-top:14px;">
-            <label class="form-label">📸 Instagram</label>
+            <label class="form-label"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Instagram</label>
             <div style="position:relative;">
               <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">@</span>
               <input type="text" class="form-input" id="prof-instagram"
@@ -3301,7 +3301,7 @@
           <div class="profile-section-label">Recent Games</div>
           <div id="prof-games-list"></div>
           <div id="prof-games-empty" style="display:none;text-align:center;padding:28px 0;color:var(--text-muted);font-size:13px;">
-            <div style="font-size:32px;margin-bottom:8px;">🎿</div>
+            <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg></div>
             No games yet — get out there and ride!
           </div>
         </div>
@@ -3339,7 +3339,7 @@
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
           Permanently delete your account and remove yourself from the leaderboard. Your logged games will remain in the history but your profile will be gone. <strong style="color:var(--danger);">This cannot be undone.</strong>
         </p>
-        <button class="btn btn-danger" onclick="deleteAccount()">🗑 Delete My Account</button>
+        <button class="btn btn-danger" onclick="deleteAccount()"><svg class="icon icon-trash"><use href="#i-trash"/></svg> Delete My Account</button>
       </div>
 
 
@@ -3351,7 +3351,7 @@
        animation (which leaves a residual transform on its containing block
        via fill-mode "both") can't turn this fixed button into something that
        scrolls with page content. -->
-  <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(255,62,127,0.45);letter-spacing:.3px;">📷 Post Clip</button>
+  <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(255,62,127,0.45);letter-spacing:.3px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Post Clip</button>
 </div>
 
 <!-- Profile Modal -->
@@ -3359,7 +3359,7 @@
   <div class="modal" style="max-width:580px;">
     <div class="modal-hdr">
       <span class="modal-title">Skier Profile</span>
-      <button class="modal-close" onclick="closeModal('profile-modal')">✕</button>
+      <button class="modal-close" onclick="closeModal('profile-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div id="profile-content"></div>
   </div>
@@ -3370,11 +3370,11 @@
   <div class="modal" style="max-width:440px;">
     <div class="modal-hdr">
       <span class="modal-title" id="stat-list-title">Friends</span>
-      <button class="modal-close" onclick="closeModal('stat-list-modal')">✕</button>
+      <button class="modal-close" onclick="closeModal('stat-list-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div id="stat-list-content"></div>
     <div id="stat-list-empty" style="display:none;text-align:center;padding:22px 0;color:var(--text-muted);font-size:13px;">
-      <div style="font-size:32px;margin-bottom:8px;" id="stat-list-empty-icon">🤝</div>
+      <div style="font-size:32px;margin-bottom:8px;" id="stat-list-empty-icon"><svg class="icon icon-handshake"><use href="#i-handshake"/></svg></div>
       <span id="stat-list-empty-text"></span>
     </div>
   </div>
@@ -3385,7 +3385,7 @@
   <div class="modal" style="max-width:380px;">
     <div class="modal-hdr">
       <span class="modal-title" id="confirm-title">Confirm</span>
-      <button class="modal-close" onclick="closeModal('confirm-modal')">✕</button>
+      <button class="modal-close" onclick="closeModal('confirm-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <p id="confirm-msg" style="color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;"></p>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -3400,7 +3400,7 @@
   <div class="modal" style="max-width:500px;">
     <div class="modal-hdr">
       <span class="modal-title">Game Details</span>
-      <button class="modal-close" onclick="closeModal('game-detail-modal')">✕</button>
+      <button class="modal-close" onclick="closeModal('game-detail-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div id="game-detail-content"></div>
   </div>
@@ -3425,18 +3425,18 @@
   <div id="admin-dashboard" style="display:none;max-width:960px;margin:0 auto;padding:28px 20px 60px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--primary);">⚙️ ADMIN CONSOLE</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--primary);"><svg class="icon icon-gear"><use href="#i-gear"/></svg> ADMIN CONSOLE</div>
         <div style="font-size:12px;color:var(--text-muted);">Slope Battles · Restricted</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">✕ Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdmin()"><svg class="icon icon-close"><use href="#i-close"/></svg> Close</button>
     </div>
     <!-- Stat cards -->
     <div id="admin-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;"></div>
     <!-- Tabs -->
     <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;width:fit-content;margin-bottom:20px;flex-wrap:wrap;">
-      <button id="atab-users"   onclick="adminTab('users')"   class="admin-tab active">👥 Users</button>
-      <button id="atab-games"   onclick="adminTab('games')"   class="admin-tab">🎿 Games</button>
-      <button id="atab-ratings" onclick="adminTab('ratings')" class="admin-tab">⭐ Ratings</button>
+      <button id="atab-users"   onclick="adminTab('users')"   class="admin-tab active"><svg class="icon icon-users"><use href="#i-users"/></svg> Users</button>
+      <button id="atab-games"   onclick="adminTab('games')"   class="admin-tab"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Games</button>
+      <button id="atab-ratings" onclick="adminTab('ratings')" class="admin-tab"><svg class="icon icon-star"><use href="#i-star"/></svg> Ratings</button>
       <button id="atab-data"    onclick="adminTab('data')"    class="admin-tab">🗄️ Data</button>
     </div>
     <div id="admin-panel"></div>
@@ -3447,8 +3447,8 @@
 <div class="modal-overlay hidden" id="create-tourney-modal">
   <div class="modal" style="max-width:500px;">
     <div class="modal-hdr">
-      <span class="modal-title">🏆 Create Tournament</span>
-      <button class="modal-close" onclick="closeModal('create-tourney-modal')">✕</button>
+      <span class="modal-title"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Create Tournament</span>
+      <button class="modal-close" onclick="closeModal('create-tourney-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div class="form-group">
       <label class="form-label">Tournament Name</label>
@@ -3474,11 +3474,11 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">📅 Date <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <label class="form-label"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> Date <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
       <input type="date" class="form-input" id="tourney-date">
     </div>
     <div class="form-group">
-      <label class="form-label">🏔 Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
       <div class="resort-wrap">
         <input type="text" class="form-input" id="tourney-resort" placeholder="e.g. Whistler…" maxlength="80" autocomplete="off"
           oninput="resortInput(this,'tourney-resort-dropdown')"
@@ -3503,7 +3503,7 @@
       </div>
       <div id="tourney-invite-picker" style="max-height:210px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);"></div>
     </div>
-    <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="createTournament()">🏆 Create Tournament</button>
+    <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="createTournament()"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Create Tournament</button>
   </div>
 </div>
 
@@ -3512,7 +3512,7 @@
   <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto;">
     <div class="modal-hdr">
       <span class="modal-title" id="tourney-detail-title">Tournament</span>
-      <button class="modal-close" onclick="closeModal('tourney-detail-modal')">✕</button>
+      <button class="modal-close" onclick="closeModal('tourney-detail-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div id="tourney-detail-body"></div>
   </div>
@@ -3522,13 +3522,13 @@
 <div class="modal-overlay hidden" id="challenge-modal">
   <div class="modal" style="max-width:440px;">
     <div class="modal-hdr">
-      <span class="modal-title">⚡ Challenge</span>
-      <button class="modal-close" onclick="closeModal('challenge-modal')">✕</button>
+      <span class="modal-title"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge</span>
+      <button class="modal-close" onclick="closeModal('challenge-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div id="challenge-modal-body">
       <div style="margin-bottom:16px;font-size:14px;font-weight:600;" id="challenge-modal-to"></div>
       <div class="form-group">
-        <label class="form-label">📅 Date</label>
+        <label class="form-label"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> Date</label>
         <input type="date" class="form-input" id="challenge-date">
       </div>
       <div class="form-group">
@@ -3536,11 +3536,11 @@
         <input type="time" class="form-input" id="challenge-time">
       </div>
       <div class="form-group">
-        <label class="form-label">🏔 Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <input type="text" class="form-input" id="challenge-resort" placeholder="e.g. Whistler, Park City…" autocomplete="off">
       </div>
       <div class="form-group">
-        <label class="form-label">⚖️ Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <label class="form-label"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Neutral Judge <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">A third person who will call all tricks — neither player can judge</div>
         <div class="pp-wrap" id="pp-challenge-judge">
           <input type="hidden" id="challenge-judge">
@@ -3555,10 +3555,10 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">💬 Message <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <label class="form-label"><svg class="icon icon-chat"><use href="#i-chat"/></svg> Message <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <input type="text" class="form-input" id="challenge-message" placeholder="Let's run it on the big kicker…" maxlength="120">
       </div>
-      <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="sendChallenge()">⚡ Send Challenge</button>
+      <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="sendChallenge()"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Send Challenge</button>
     </div>
   </div>
 </div>
@@ -3718,7 +3718,7 @@ async function _saveToFirestore(pendingCopy) {
       const remotePlayers = (remote.players || []).length;
       if (copy.games.length < remoteGames || copy.players.length < remotePlayers - 1) {
         console.warn(`[save guard] Blocked overwrite — local has ${copy.games.length} games / ${copy.players.length} players, remote has ${remoteGames} / ${remotePlayers}. Aborting save.`);
-        toast('⚠️ Sync conflict detected — save blocked to protect data', 'err');
+        toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Sync conflict detected — save blocked to protect data', 'err');
         return;
       }
 
@@ -3776,7 +3776,7 @@ async function _saveToFirestore(pendingCopy) {
 
   } catch(e) {
     console.warn('Firestore save error:', e);
-    toast('⚠️ Cloud sync failed – changes saved locally', 'err');
+    toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Cloud sync failed – changes saved locally', 'err');
   }
 }
 
@@ -3867,7 +3867,7 @@ function startFirestoreSync() {
             Object.assign(S, fresh);
             try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
             checkNotifications();
-            toast(`${accepted.toName} accepted! Game starting ⛷️`, 'ok');
+            toast(`${accepted.toName} accepted! Game starting <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
             subscribeLiveGame(accepted.gameId || accepted.id);
             nav('live-game');
             return;
@@ -4197,7 +4197,7 @@ async function resolveAbandonIfStillPending(gameId, abId) {
 
   if (isJudgeLeaving) {
     const judgeName = byId(abId)?.name || 'The judge';
-    addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
+    addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${judgeName} left — match cancelled. No result recorded.`);
     S.live.over = true;
     S.live.cancelled = true;
     S.live.cancelledByJudge = abId;
@@ -4210,7 +4210,7 @@ async function resolveAbandonIfStillPending(gameId, abId) {
     const loserName = byId(loserId)?.name || 'Opponent';
     S.live.letters[loserId] = 3; // full SKI = forfeit
     S.live.forfeitBy = loserId;
-    addLog('🏳️', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
+    addLog('<svg class="icon icon-flag"><use href="#i-flag"/></svg>', `${loserName} left the app — forfeit! ${currentUser.name} wins.`);
     finishLive(winnerId, loserId);
   }
 }
@@ -4346,7 +4346,7 @@ async function doSignup() {
   const showErr  = m => {
     errEl.textContent = m; errEl.classList.add('visible');
     // Re-enable button on validation error
-    if (btn) { btn.disabled = false; btn.textContent = 'Create Account 🔥'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg>'; }
   };
   errEl.classList.remove('visible');
 
@@ -4439,7 +4439,7 @@ async function doLogin() {
 
   const loginBtn = document.querySelector('#form-login .auth-btn');
   if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
-  const resetBtn = () => { if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In ⛷️'; } };
+  const resetBtn = () => { if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'Sign In <svg class="icon icon-skier"><use href="#i-skier"/></svg>'; } };
 
   if (!db) { resetBtn(); return showErr('Unable to connect. Please try again.'); }
 
@@ -4490,7 +4490,7 @@ async function doLogin() {
             firebaseUid:  cred.user.uid,
             passwordHash: firebase.firestore.FieldValue.delete()
           });
-          toast('Account upgraded to secure sign-in 🔒', 'ok');
+          toast('Account upgraded to secure sign-in <svg class="icon icon-lock"><use href="#i-lock"/></svg>', 'ok');
           // onAuthStateChanged will fire and call launchApp()
         })
         .catch(e => {
@@ -4573,9 +4573,9 @@ function showAuthScreen(hint='') {
   // Reset submit buttons — a previous submission may have left them disabled
   // with "Signing in…"/"Creating account…" text if the screen was closed mid-request.
   const loginBtn = document.querySelector('#form-login .auth-btn');
-  if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In ⛷️'; }
+  if (loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'Sign In <svg class="icon icon-skier"><use href="#i-skier"/></svg>'; }
   const signupBtn = document.querySelector('#form-signup .auth-btn');
-  if (signupBtn) { signupBtn.disabled = false; signupBtn.textContent = 'Create Account 🔥'; }
+  if (signupBtn) { signupBtn.disabled = false; signupBtn.innerHTML = 'Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg>'; }
   // Show back button only when coming from preview mode (app already loaded, no session)
   const backRow = document.getElementById('auth-back-row');
   if (backRow) backRow.style.display = !currentUser && document.getElementById('app').style.display !== 'none' ? 'block' : 'none';
@@ -4850,7 +4850,7 @@ function _filteredLibrary() {
 function openTrickLib(target) {
   _trickLibTarget = target;
   const sport = _trickSport();
-  document.querySelector('.trick-lib-sport-label').textContent = sport === 'snowboard' ? '🏂 Snowboard Tricks' : '⛷️ Ski Tricks';
+  document.querySelector('.trick-lib-sport-label').innerHTML = sport === 'snowboard' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboard Tricks' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks';
   // Both sports use the component builder
   document.getElementById('trick-lib-list-controls').style.display = 'none';
   document.getElementById('trick-lib-builder-tabs').style.display  = 'block';
@@ -5194,42 +5194,42 @@ function selectTrick(name) {
 // ═══════════════════════════════════════════════════════
 const ONBOARDING_STEPS = [
   {
-    icon: '🎿',
+    icon: '<svg class="icon icon-skis"><use href="#i-skis"/></svg>',
     title: 'Welcome to Slope Battles',
     body: `Slope Battles is trick duels for the mountain. Challenge any rider, set tricks, and see who folds first. No rating needed — just find someone and play.`,
     cta: 'How do I play? →'
   },
   {
-    icon: '🎯',
+    icon: '<svg class="icon icon-target"><use href="#i-target"/></svg>',
     title: 'How It Works',
-    body: `One rider sets a trick — the other must match it. Miss it and you collect a letter: <strong style="color:var(--ice);">S → K → I</strong>. Collect all three and you lose.<br><br>Challenge someone right now with <strong>⚡ Play</strong> — they get an invite on their phone and you\'re in a live game.`,
+    body: `One rider sets a trick — the other must match it. Miss it and you collect a letter: <strong style="color:var(--ice);">S → K → I</strong>. Collect all three and you lose.<br><br>Challenge someone right now with <strong><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Play</strong> — they get an invite on their phone and you\'re in a live game.`,
     cta: 'Next →'
   },
   {
-    icon: '📈',
+    icon: '<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>',
     title: 'Ratings (Optional)',
     body: `After a few games, you\'ll unlock a rating. Beat higher-rated riders and you climb. Lose to lower-ranked riders and you drop.`,
     cta: 'Next →'
   },
   {
-    icon: '🏆',
+    icon: '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>',
     title: 'Rank Tiers',
     body: `Your rating places you in a tier:<br><br>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;text-align:left;">
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;">🔥 Elite</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;">⭐ Expert</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;">💪 Advanced</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;">📈 Intermediate</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;">🎿 Developing</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;">🏔️ Beginner</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Elite</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Expert</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Advanced</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Intermediate</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Developing</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Beginner</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
       </div>`,
     cta: 'Next →'
   },
   {
     icon: '🚀',
     title: 'You\'re All Set!',
-    body: `Add friends, send challenges, and start playing. The leaderboard updates in real time — every win moves you up.<br><br>Head to <strong>Log Game</strong> to record your first game, or tap <strong>Live Game</strong> to play in real time. Good luck! 🏔`,
-    cta: 'Start Riding 🎿'
+    body: `Add friends, send challenges, and start playing. The leaderboard updates in real time — every win moves you up.<br><br>Head to <strong>Log Game</strong> to record your first game, or tap <strong>Live Game</strong> to play in real time. Good luck! <svg class="icon icon-mountain"><use href="#i-mountain"/></svg>`,
+    cta: 'Start Riding <svg class="icon icon-skis"><use href="#i-skis"/></svg>'
   }
 ];
 
@@ -5251,7 +5251,7 @@ function _renderOnboardStep() {
   card.style.animation = 'none';
   void card.offsetWidth;
   // Populate
-  document.getElementById('onboard-icon').textContent = step.icon;
+  document.getElementById('onboard-icon').innerHTML = step.icon;
   document.getElementById('onboard-title').textContent = step.title;
   document.getElementById('onboard-body').innerHTML = step.body;
   document.getElementById('onboard-cta').textContent = step.cta;
@@ -5468,16 +5468,16 @@ function countUp(el, target, format = (v) => String(v), duration = 900) {
 }
 
 function tier(raw, gamesPlayed) {
-  if (raw == null) return { label:'Unrated', color:'#64748b', icon:'❔' };
+  if (raw == null) return { label:'Unrated', color:'#64748b', icon:'<svg class="icon icon-question"><use href="#i-question"/></svg>' };
   if (gamesPlayed != null && gamesPlayed < RATED_THRESHOLD)
-    return { label:'Provisional', color:'#94a3b8', icon:'⏳', provisional: true };
+    return { label:'Provisional', color:'#94a3b8', icon:'<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg>', provisional: true };
   const r = raw / 100;
-  if (r >= 14) return { label:'Elite',        color:'#f97316', icon:'🔥' };
-  if (r >= 12) return { label:'Expert',       color:'#60a5fa', icon:'⭐' };
-  if (r >= 10) return { label:'Advanced',     color:'#a78bfa', icon:'💪' };
-  if (r >=  7) return { label:'Intermediate', color:'#34d399', icon:'📈' };
-  if (r >=  4) return { label:'Developing',   color:'#fbbf24', icon:'🎿' };
-  return              { label:'Beginner',      color:'#64748b', icon:'🏔️' };
+  if (r >= 14) return { label:'Elite',        color:'#f97316', icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>' };
+  if (r >= 12) return { label:'Expert',       color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
+  if (r >= 10) return { label:'Advanced',     color:'#a78bfa', icon:'<svg class="icon icon-strength"><use href="#i-strength"/></svg>' };
+  if (r >=  7) return { label:'Intermediate', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
+  if (r >=  4) return { label:'Developing',   color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
+  return              { label:'Beginner',      color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
 }
 
 // Null-safe rating formatter — shows 'Unrated', 'Provisional', or the numeric rating
@@ -5606,12 +5606,12 @@ function confirm_(title, msg, fn) {
 // ═══════════════════════════════════════════════════════
 const AUTH_REQUIRED_VIEWS = ['log-game','friends','profile','confirmations','tournaments'];
 const AUTH_HINTS = {
-  'log-game':      '⛷️ Sign in to log a game and track your rating.',
-  'live-game':     '⛷️ Sign in to challenge someone to a live game.',
-  'friends':       '👥 Sign in to add friends and chat.',
-  'profile':       '🏔 Sign in to view your profile and stats.',
-  'confirmations': '📬 Sign in to manage your game inbox.',
-  'tournaments':   '🏆 Sign in to create and join tournaments.',
+  'log-game':      '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Sign in to log a game and track your rating.',
+  'live-game':     '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Sign in to challenge someone to a live game.',
+  'friends':       '<svg class="icon icon-users"><use href="#i-users"/></svg> Sign in to add friends and chat.',
+  'profile':       '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Sign in to view your profile and stats.',
+  'confirmations': '<svg class="icon icon-inbox"><use href="#i-inbox"/></svg> Sign in to manage your game inbox.',
+  'tournaments':   '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Sign in to create and join tournaments.',
 };
 
 let _activeSection = 'leaderboard'; // tracked so Firestore sync can refresh the right view
@@ -5642,12 +5642,12 @@ function nav(view, _force) {
         const winnerId = currentUser.id === g.p1 ? g.p2 : g.p1;
         g.letters[loserId] = 3;
         g.forfeitBy = loserId;
-        addLog('🏳️', `${currentUser.name} left — forfeit! ${byId(winnerId)?.name} wins.`);
+        addLog('<svg class="icon icon-flag"><use href="#i-flag"/></svg>', `${currentUser.name} left — forfeit! ${byId(winnerId)?.name} wins.`);
         finishLive(winnerId, loserId);
         _gameOverDismissed = true;
         _resetLiveUI();
       } else {
-        addLog('⚖️', `${currentUser.name} left — match cancelled. No result recorded.`);
+        addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${currentUser.name} left — match cancelled. No result recorded.`);
         S.live.over = true;
         S.live.cancelled = true;
         S.live.cancelledByJudge = currentUser.id;
@@ -5913,8 +5913,8 @@ function filterLeaderboard() {
       const isOfficial = row.dataset.official === 'true';
       if (isOfficial) {
         filteredRank++;
-        const medals = ['🥇','🥈','🥉'];
-        rankCell.textContent = medals[filteredRank - 1] || filteredRank;
+        const medals = ['<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-silver"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-bronze"><use href="#i-medal"/></svg>'];
+        rankCell.innerHTML = medals[filteredRank - 1] || filteredRank;
         rankCell.className = `td-rank${filteredRank <= 3 ? ' gold' : ''}`;
       } else {
         rankCell.textContent = '—';
@@ -5938,7 +5938,7 @@ function filterLeaderboard() {
   if (pill && label) {
     if (mtn) {
       const display = document.getElementById('lb-mountain')?.options[document.getElementById('lb-mountain')?.selectedIndex]?.text || mtn;
-      label.textContent = '🏔 ' + display;
+      label.innerHTML = '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ' + display;
       pill.style.display = 'block';
     } else {
       pill.style.display = 'none';
@@ -6106,16 +6106,16 @@ function renderLeaderboard() {
     const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
     const delta = lastDelta(p.id);
     const sk = calcStreaks(p.id);
-    const medal = isOfficial ? (['🥇','🥈','🥉'][ratedRank-1] || ratedRank) : '—';
+    const medal = isOfficial ? (['<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-silver"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-bronze"><use href="#i-medal"/></svg>'][ratedRank-1] || ratedRank) : '—';
     return `
-      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${medal}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
+      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${isOfficial ? ratedRank : ''}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
         <td class="td-rank ${isOfficial && ratedRank<=3?'gold':''}">${medal}</td>
         <td>
           <div style="display:flex;align-items:center;gap:11px;">
             ${avatarHtml(p, 'avatar-sm')}
             <div>
               <div class="td-name">${p.name}</div>
-              ${p.homeResort?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)">🏔 ${p.homeResort}</div>`:p.location?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)">📍 ${p.location}</div>`:''}
+              ${p.homeResort?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}</div>`:p.location?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-pin"><use href="#i-pin"/></svg> ${p.location}</div>`:''}
             </div>
           </div>
         </td>
@@ -6125,7 +6125,7 @@ function renderLeaderboard() {
             : isProvisional
               ? `<div style="display:flex;align-items:center;gap:8px;">
                    <span class="td-rating" style="color:var(--text-muted);">${fmt(p.rating)}<span style="font-size:10px;color:var(--text-muted);margin-left:2px;" title="Provisional — play ${RATED_THRESHOLD - p.gamesPlayed} more games for an official rating">*</span></span>
-                   <span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;font-size:10px;">⏳ ${p.gamesPlayed}/${RATED_THRESHOLD}</span>
+                   <span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;font-size:10px;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> ${p.gamesPlayed}/${RATED_THRESHOLD}</span>
                  </div>`
               : `<div style="display:flex;align-items:center;gap:8px;">
                    <span class="td-rating">${fmt(p.rating)}</span>
@@ -6146,7 +6146,7 @@ function renderLeaderboard() {
           ${!sk.current
             ? `<span style="color:var(--text-muted);font-size:12px;">—</span>`
             : sk.type==='W'
-              ? `<span style="background:rgba(34,197,94,0.12);color:var(--success);border:1px solid rgba(34,197,94,0.25);padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">${sk.current>=3?'🔥 ':''}W${sk.current}</span>`
+              ? `<span style="background:rgba(34,197,94,0.12);color:var(--success);border:1px solid rgba(34,197,94,0.25);padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">${sk.current>=3?'<svg class="icon icon-fire"><use href="#i-fire"/></svg> ':''}W${sk.current}</span>`
               : `<span style="background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.25);padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">L${sk.current}</span>`}
         </td>
         <td class="lb-col-games" style="color:var(--text-muted);font-size:12.5px;">${p.gamesPlayed || 0}</td>
@@ -6220,23 +6220,23 @@ function calcStreaks(id) {
 //  BADGES / ACHIEVEMENTS
 // ═══════════════════════════════════════════════════════
 const BADGE_DEFS = [
-  { id:'first_game',    icon:'🎿', label:'First Run',      desc:'Play your first game' },
-  { id:'first_win',     icon:'🏆', label:'First Blood',    desc:'Win your first game' },
-  { id:'clean_sweep',   icon:'💨', label:'Clean Sweep',    desc:'Win without collecting any letters' },
-  { id:'streak_3',      icon:'🔥', label:'On Fire',        desc:'Win 3 games in a row' },
-  { id:'streak_5',      icon:'🌋', label:'Unstoppable',    desc:'Win 5 games in a row' },
-  { id:'streak_10',     icon:'⚡', label:'Legendary',      desc:'Win 10 games in a row' },
-  { id:'wins_10',       icon:'🎯', label:'Sharp Shooter',  desc:'Win 10 games total' },
-  { id:'wins_25',       icon:'👑', label:'Dominant',       desc:'Win 25 games total' },
-  { id:'games_25',      icon:'💯', label:'Veteran',        desc:'Play 25 games total' },
-  { id:'tier_developing',   icon:'📈', label:'Developing', desc:'Reach Developing tier' },
-  { id:'tier_intermediate', icon:'💪', label:'Intermediate',desc:'Reach Intermediate tier' },
-  { id:'tier_advanced',     icon:'⭐', label:'Advanced',   desc:'Reach Advanced tier' },
-  { id:'tier_expert',       icon:'🔵', label:'Expert',     desc:'Reach Expert tier' },
-  { id:'tier_elite',        icon:'🔥', label:'Elite',      desc:'Reach Elite tier' },
-  { id:'with_clip',     icon:'🎬', label:'Filmmaker',      desc:'Log a game with a video clip' },
-  { id:'resort_rat',    icon:'🏔', label:'Resort Rat',     desc:'Log a game at a named resort' },
-  { id:'tourney_champ', icon:'🥇', label:'Tournament Champion', desc:'Win a tournament' },
+  { id:'first_game',    icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>', label:'First Run',      desc:'Play your first game' },
+  { id:'first_win',     icon:'<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>', label:'First Blood',    desc:'Win your first game' },
+  { id:'clean_sweep',   icon:'<svg class="icon icon-wind"><use href="#i-wind"/></svg>', label:'Clean Sweep',    desc:'Win without collecting any letters' },
+  { id:'streak_3',      icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>', label:'On Fire',        desc:'Win 3 games in a row' },
+  { id:'streak_5',      icon:'<svg class="icon icon-volcano"><use href="#i-volcano"/></svg>', label:'Unstoppable',    desc:'Win 5 games in a row' },
+  { id:'streak_10',     icon:'<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>', label:'Legendary',      desc:'Win 10 games in a row' },
+  { id:'wins_10',       icon:'<svg class="icon icon-target"><use href="#i-target"/></svg>', label:'Sharp Shooter',  desc:'Win 10 games total' },
+  { id:'wins_25',       icon:'<svg class="icon icon-crown"><use href="#i-crown"/></svg>', label:'Dominant',       desc:'Win 25 games total' },
+  { id:'games_25',      icon:'<svg class="icon icon-ribbon"><use href="#i-ribbon"/></svg>', label:'Veteran',        desc:'Play 25 games total' },
+  { id:'tier_developing',   icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>', label:'Developing', desc:'Reach Developing tier' },
+  { id:'tier_intermediate', icon:'<svg class="icon icon-strength"><use href="#i-strength"/></svg>', label:'Intermediate',desc:'Reach Intermediate tier' },
+  { id:'tier_advanced',     icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>', label:'Advanced',   desc:'Reach Advanced tier' },
+  { id:'tier_expert',       icon:'<svg class="icon icon-dot"><use href="#i-dot"/></svg>', label:'Expert',     desc:'Reach Expert tier' },
+  { id:'tier_elite',        icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>', label:'Elite',      desc:'Reach Elite tier' },
+  { id:'with_clip',     icon:'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>', label:'Filmmaker',      desc:'Log a game with a video clip' },
+  { id:'resort_rat',    icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>', label:'Resort Rat',     desc:'Log a game at a named resort' },
+  { id:'tourney_champ', icon:'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>', label:'Tournament Champion', desc:'Win a tournament' },
 ];
 
 function checkBadges(playerId, game) {
@@ -6405,7 +6405,7 @@ function refreshRatingPreview() {
   const winnerExpected = expected(winner.rating ?? START_RATING, loser.rating ?? START_RATING);
   const isUpset = winnerExpected < 0.5;
   const resultLabel = isUpset
-    ? `<span style="color:var(--warning);font-size:10.5px;font-weight:700;margin-left:6px;">⚡ Upset — bonus elo</span>`
+    ? `<span style="color:var(--warning);font-size:10.5px;font-weight:700;margin-left:6px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Upset — bonus elo</span>`
     : `<span style="color:var(--text-muted);font-size:10.5px;margin-left:6px;">Expected result — reduced elo</span>`;
   const mLabel = c.scoreMultiplier !== 1.0
     ? `<span style="color:var(--ice);font-size:10.5px;font-weight:700;margin-left:6px;">×${c.scoreMultiplier} score bonus</span>`
@@ -6542,7 +6542,7 @@ function submitLog() {
   if (lgResort) lgResort.value = '';
 
   checkNotifications();
-  toast(`Result sent to ${opponent?.name || 'opponent'} for confirmation ✉️`, 'ok');
+  toast(`Result sent to ${opponent?.name || 'opponent'} for confirmation <svg class="icon icon-mail"><use href="#i-mail"/></svg>`, 'ok');
   nav('profile');
 }
 
@@ -6614,7 +6614,7 @@ function refreshHandicapPreview() {
   box.style.display = 'block';
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:15px;">⚡</span>
+      <span style="font-size:15px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
       <span><strong>${highP?.name}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
       <span style="color:var(--text-muted);font-size:12px;">(${Math.round(diff/100).toFixed(1)} pt gap · ${hcap === 1 ? '1 letter' : '2 letters'} head start)</span>
     </div>
@@ -6681,7 +6681,7 @@ function renderLiveSetup() {
       document.getElementById('live-invite-form').style.display    = 'none';
       document.getElementById('live-invite-waiting').style.display = 'block';
       document.getElementById('live-invite-waiting').innerHTML = `
-        <div style="display:inline-block;font-size:44px;animation:spin 2.5s linear infinite;margin-bottom:14px;">⚖️</div>
+        <div style="display:inline-block;font-size:44px;animation:spin 2.5s linear infinite;margin-bottom:14px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg></div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:4px;">YOU'RE THE JUDGE</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">
           <strong style="color:var(--text-primary);">${p1Name}</strong> vs <strong style="color:var(--text-primary);">${p2Name}</strong>
@@ -6751,9 +6751,9 @@ function startLive() {
   document.getElementById('live-active').style.display='block';
   document.getElementById('live-over-section').style.display='none';
   document.getElementById('live-log').innerHTML='';
-  const judgeNote = judge ? ` · ⚖️ ${byId(judge).name} is the judge` : '';
-  const hcapInfo  = S.live.handicap ? ` · ⚡ Handicap: ${byId(S.live.handicap.higherId)?.name} starts with ${LETTERS.slice(0,S.live.handicap.hcap).join('')}` : '';
-  addLog('🎿', `Game started! ${byId(p1).name} sets first.${judgeNote}${hcapInfo}`);
+  const judgeNote = judge ? ` · <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${byId(judge).name} is the judge` : '';
+  const hcapInfo  = S.live.handicap ? ` · <svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Handicap: ${byId(S.live.handicap.higherId)?.name} starts with ${LETTERS.slice(0,S.live.handicap.hcap).join('')}` : '';
+  addLog('<svg class="icon icon-skis"><use href="#i-skis"/></svg>', `Game started! ${byId(p1).name} sets first.${judgeNote}${hcapInfo}`);
   drawBoard();
 }
 
@@ -6777,11 +6777,11 @@ function drawBoard() {
     ${judgePlayer ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       ${avatarHtml(judgePlayer, 'avatar-sm')}
-      <span style="font-size:13px;color:var(--text-muted);">⚖️ <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
+      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
     </div>` : ''}
     ${g.handicap ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
-      <span style="font-size:13px;">⚡</span>
+      <span style="font-size:13px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
       <span style="font-size:12px;color:#ffd700;font-weight:600;">Handicap Mode</span>
       <span style="font-size:12px;color:var(--text-muted);">— ${byId(g.handicap.higherId)?.name} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
     </div>` : ''}
@@ -6797,7 +6797,7 @@ function drawBoard() {
       const judgeName = g.judgeId ? (byId(g.judgeId)?.name || 'the judge') : 'the judge';
       document.getElementById('phase-wait').style.display = 'block';
       document.getElementById('phase-wait-msg').innerHTML =
-        `⚖️ Waiting for <strong style="color:var(--primary);">${judgeName}</strong> to join…<br>
+        `<svg class="icon icon-scale"><use href="#i-scale"/></svg> Waiting for <strong style="color:var(--primary);">${judgeName}</strong> to join…<br>
          <span style="font-size:12px;color:var(--text-muted);">The judge needs to accept their invite in their inbox</span>`;
 
     } else if (g.phase === 'judge-pick-setter') {
@@ -6806,7 +6806,7 @@ function drawBoard() {
         const p1 = byId(g.p1), p2 = byId(g.p2);
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML = `
-          <div style="font-size:14px;font-weight:700;margin-bottom:14px;">⚖️ Who sets first?</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Who sets first?</div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="judgePickSetter('${p1.id}')">
               ${avatarHtml(p1,'avatar-sm')} <span style="margin-left:6px;">${p1.name}</span>
@@ -6818,7 +6818,7 @@ function drawBoard() {
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
-          `⚖️ Waiting for the judge to pick who sets first…`;
+          `<svg class="icon icon-scale"><use href="#i-scale"/></svg> Waiting for the judge to pick who sets first…`;
       }
 
     } else if (g.phase === 'pick-setter') {
@@ -6837,13 +6837,13 @@ function drawBoard() {
             <button class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px;" onclick="voteForSetter('${p2p.id}')">
               ${avatarHtml(p2p,'avatar-sm')} ${p2p.name}
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="voteForSetter('random')">🎲 Random</button>
+            <button class="btn btn-ghost btn-sm" onclick="voteForSetter('random')"><svg class="icon icon-dice"><use href="#i-dice"/></svg> Random</button>
           </div>`;
       } else {
-        const voteLabel = myVote === 'random' ? '🎲 Random' : byId(myVote)?.name;
+        const voteLabel = myVote === 'random' ? '<svg class="icon icon-dice"><use href="#i-dice"/></svg> Random' : byId(myVote)?.name;
         document.getElementById('phase-wait-msg').innerHTML = `
           <div style="font-size:13px;margin-bottom:4px;">You voted: <strong style="color:var(--primary);">${voteLabel}</strong></div>
-          <div style="font-size:12px;color:var(--text-muted);">⏳ Waiting for ${byId(otherId)?.name} to vote…</div>`;
+          <div style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(otherId)?.name} to vote…</div>`;
       }
 
     } else if (g.phase === 'setting') {
@@ -6853,7 +6853,7 @@ function drawBoard() {
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').textContent =
-          `⏳ Waiting for ${byId(g.setterId).name} to name and attempt their trick…`;
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(g.setterId).name} to name and attempt their trick…`;
       }
 
     } else if (g.phase === 'judging-setter') {
@@ -6865,7 +6865,7 @@ function drawBoard() {
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').textContent =
-          `⏳ Waiting for ${judgeLabel} to judge the trick…`;
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${judgeLabel} to judge the trick…`;
       }
 
     } else if (g.phase === 'copying') {
@@ -6877,12 +6877,12 @@ function drawBoard() {
       } else if (amICopier) {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
-          `🎿 Your turn — go attempt: <strong style="color:var(--primary);">${g.trick || '—'}</strong><br>
+          `<svg class="icon icon-skis"><use href="#i-skis"/></svg> Your turn — go attempt: <strong style="color:var(--primary);">${g.trick || '—'}</strong><br>
            <span style="font-size:12px;color:var(--text-muted);">${callerName} will judge whether you land it</span>`;
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').textContent =
-          `⏳ Waiting for ${byId(copierId).name} to attempt the copy…`;
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(copierId).name} to attempt the copy…`;
       }
 
     } else if (g.phase === 'revenge') {
@@ -6894,12 +6894,12 @@ function drawBoard() {
       } else if (amICopier) {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').innerHTML =
-          `🔥 Revenge time! Go land: <strong style="color:var(--fire);">${g.trick || '—'}</strong><br>
+          `<svg class="icon icon-fire"><use href="#i-fire"/></svg> Revenge time! Go land: <strong style="color:var(--fire);">${g.trick || '—'}</strong><br>
            <span style="font-size:12px;color:var(--text-muted);">Land it and ${byId(g.setterId).name} takes the letter. ${callerName} will call it.</span>`;
       } else {
         document.getElementById('phase-wait').style.display = 'block';
         document.getElementById('phase-wait-msg').textContent =
-          `⏳ Waiting for ${byId(copierId).name}'s revenge attempt…`;
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(copierId).name}'s revenge attempt…`;
       }
 
     } else if (g.phase === 'dispute') {
@@ -6916,14 +6916,14 @@ function drawBoard() {
         document.getElementById('dispute-vote-btns').style.display = 'none';
         document.getElementById('dispute-voted-msg').style.display = 'block';
         document.getElementById('dispute-voted-msg').innerHTML = myVote
-          ? `You voted <strong>${myVote === 'confirm' ? '✅ Confirm' : '❌ Deny'}</strong> — waiting for the other player…`
-          : `⏳ Both players are voting…`;
+          ? `You voted <strong>${myVote === 'confirm' ? '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Confirm' : '<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> Deny'}</strong> — waiting for the other player…`
+          : `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Both players are voting…`;
       }
       // Strike tracker
       const strikes = g.strikes || {};
       const strikeHtml = [g.p1, g.p2].map(pid => {
         const s = strikes[pid] || 0;
-        const dots = '⚡'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
+        const dots = '<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
         return `<div style="text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${byId(pid)?.name}</div>
           <div style="font-size:18px;letter-spacing:3px;">${dots}</div>
@@ -6949,13 +6949,13 @@ function playerPanel(player, g, role) {
         ${avatarHtml(player, 'avatar-lg')}
       </div>
       <div class="pp-name">${player.name}</div>
-      <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} · <span onclick="showTierModal()" style="cursor:pointer;" title="View all tiers">${t.provisional ? `⏳ Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}` : `${t.icon} ${t.label}`}</span></div>
+      <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} · <span onclick="showTierModal()" style="cursor:pointer;" title="View all tiers">${t.provisional ? `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}` : `${t.icon} ${t.label}`}</span></div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
       </div>
-      ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;">🎯 SETTER</div>' : ''}
-      ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;">🎿 COPYING</div>' : ''}
-      ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);">⚡ ${g.strikes[player.id]}/3 strikes</div>` : ''}
+      ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;"><svg class="icon icon-target"><use href="#i-target"/></svg> SETTER</div>' : ''}
+      ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> COPYING</div>' : ''}
+      ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> ${g.strikes[player.id]}/3 strikes</div>` : ''}
     </div>`;
 }
 
@@ -6967,7 +6967,7 @@ function setterSubmitTrick() {
   document.getElementById('trick-input').value = '';
   g.trick = trick;
   g.phase = 'judging-setter';
-  addLog('🎯', `${byId(g.setterId).name} is attempting: ${trick} — waiting for verdict…`);
+  addLog('<svg class="icon icon-target"><use href="#i-target"/></svg>', `${byId(g.setterId).name} is attempting: ${trick} — waiting for verdict…`);
   save(); drawBoard();
 }
 
@@ -7011,11 +7011,11 @@ function resolveSetterVoteIfReady() {
   if (v1 !== 'random' && v2 !== 'random' && v1 === v2) {
     // Both picked the same player
     starterId = v1;
-    addLog('🤝', `Both players agreed — ${byId(starterId).name} sets first!`);
+    addLog('<svg class="icon icon-handshake"><use href="#i-handshake"/></svg>', `Both players agreed — ${byId(starterId).name} sets first!`);
   } else {
     // Different votes or random involved — pick randomly
     starterId = Math.random() < 0.5 ? g.p1 : g.p2;
-    addLog('🎲', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
+    addLog('<svg class="icon icon-dice"><use href="#i-dice"/></svg>', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
   }
   g.setterId    = starterId;
   g.phase       = 'setting';
@@ -7029,7 +7029,7 @@ function judgePickSetter(playerId) {
   if (!g || g.phase !== 'judge-pick-setter') return;
   g.setterId = playerId;
   g.phase    = 'setting';
-  addLog('⚖️', `Judge chose ${byId(playerId).name} to set first.`);
+  addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `Judge chose ${byId(playerId).name} to set first.`);
   save(); drawBoard();
 }
 
@@ -7039,7 +7039,7 @@ function judgeSetterLanded() {
   // No judge → enter dispute phase so both players confirm/deny
   if (!g.judgeId) { enterDisputePhase('setterLanded'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
-  addLog('✅', `${byId(g.setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
+  addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(g.setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
   g.phase = 'copying';
   save(); drawBoard();
 }
@@ -7051,7 +7051,7 @@ function judgeSetterBailed() {
   if (!g.judgeId) { enterDisputePhase('setterBailed'); return; }
   const setterName = byId(g.setterId).name;
   const copierId   = g.setterId === g.p1 ? g.p2 : g.p1;
-  addLog('💨', `${setterName} bailed! ${byId(copierId).name} gets a revenge attempt…`);
+  addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${setterName} bailed! ${byId(copierId).name} gets a revenge attempt…`);
   g.phase = 'revenge';
   save(); drawBoard();
 }
@@ -7061,7 +7061,7 @@ function copierLand() {
   const g = S.live;
   if (!g.judgeId) { enterDisputePhase('copierLand'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
-  addLog('✅', `${byId(copierId).name} landed the copy! ${byId(g.setterId).name} keeps setting.`);
+  addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(copierId).name} landed the copy! ${byId(g.setterId).name} keeps setting.`);
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
 }
@@ -7073,7 +7073,7 @@ function copierMiss() {
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   g.letters[copierId] = (g.letters[copierId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[copierId]).join('');
-  addLog('❌', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}. ${byId(g.setterId).name} keeps setting.`);
+  addLog('<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}. ${byId(g.setterId).name} keeps setting.`);
   if (g.letters[copierId] >= 3) { finishLive(g.setterId, copierId); return; }
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
@@ -7088,7 +7088,7 @@ function revengeAttemptLanded() {
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
   g.letters[setterId] = (g.letters[setterId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[setterId]).join('');
-  addLog('🔥', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
+  addLog('<svg class="icon icon-fire"><use href="#i-fire"/></svg>', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
   if (g.letters[setterId] >= 3) { finishLive(copierId, setterId); return; }
   g.setterId = copierId;
   g.trick = null; g.phase = 'setting';
@@ -7101,7 +7101,7 @@ function revengeAttemptMissed() {
   if (!g || g.phase !== 'revenge') return;
   if (!g.judgeId) { enterDisputePhase('revengeMissed'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
-  addLog('💨', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
+  addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
   g.setterId = copierId;
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
@@ -7122,7 +7122,7 @@ function enterDisputePhase(callType) {
   const callerName = (callType === 'setterLanded' || callType === 'setterBailed')
     ? byId(copierId).name
     : byId(g.setterId).name;
-  addLog('⚖️', `${callerName} made a call — both players must confirm or deny.`);
+  addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${callerName} made a call — both players must confirm or deny.`);
   save(); drawBoard();
 }
 
@@ -7166,14 +7166,14 @@ function resolveDisputeIfReady() {
   _disputeResolved = true;
   if (v1 === v2) {
     const upheld = v1 === 'confirm';
-    addLog(upheld ? '✅' : '🔄', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
+    addLog(upheld ? '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>' : '<svg class="icon icon-refresh"><use href="#i-refresh"/></svg>', upheld ? 'Both agreed — call upheld!' : 'Both agreed — call reversed!');
     applyPendingCall(!upheld);
   } else {
     g.strikes = g.strikes || {};
     g.strikes[g.p1] = (g.strikes[g.p1] || 0) + 1;
     g.strikes[g.p2] = (g.strikes[g.p2] || 0) + 1;
     const s1 = g.strikes[g.p1], s2 = g.strikes[g.p2];
-    addLog('⚡', `Disagreement! Both players get a strike. ${byId(g.p1).name}: ${s1}/3 · ${byId(g.p2).name}: ${s2}/3. Call stands.`);
+    addLog('<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>', `Disagreement! Both players get a strike. ${byId(g.p1).name}: ${s1}/3 · ${byId(g.p2).name}: ${s2}/3. Call stands.`);
     applyPendingCall(false);
   }
 }
@@ -7190,29 +7190,29 @@ function applyPendingCall(reversed) {
   const copierId = setterId === g.p1 ? g.p2 : g.p1;
 
   if (type === 'setterLanded') {
-    addLog('✅', `${byId(setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
+    addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
     g.phase = 'copying';
   } else if (type === 'setterBailed') {
-    addLog('💨', `${byId(setterId).name} bailed! ${byId(copierId).name} gets a revenge attempt…`);
+    addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${byId(setterId).name} bailed! ${byId(copierId).name} gets a revenge attempt…`);
     g.phase = 'revenge';
   } else if (type === 'copierLand') {
-    addLog('✅', `${byId(copierId).name} landed the copy! ${byId(setterId).name} keeps setting.`);
+    addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(copierId).name} landed the copy! ${byId(setterId).name} keeps setting.`);
     g.trick = null; g.phase = 'setting';
   } else if (type === 'copierMiss') {
     g.letters[copierId] = (g.letters[copierId] || 0) + 1;
     const earned = LETTERS.slice(0, g.letters[copierId]).join('');
-    addLog('❌', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}.`);
+    addLog('<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}.`);
     if (g.letters[copierId] >= 3) { finishLive(setterId, copierId); return; }
     g.trick = null; g.phase = 'setting';
   } else if (type === 'revengeLanded') {
     g.letters[setterId] = (g.letters[setterId] || 0) + 1;
     const earned = LETTERS.slice(0, g.letters[setterId]).join('');
-    addLog('🔥', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
+    addLog('<svg class="icon icon-fire"><use href="#i-fire"/></svg>', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
     if (g.letters[setterId] >= 3) { finishLive(copierId, setterId); return; }
     g.setterId = copierId;
     g.trick = null; g.phase = 'setting';
   } else if (type === 'revengeMissed') {
-    addLog('💨', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
+    addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
     g.setterId = copierId;
     g.trick = null; g.phase = 'setting';
   }
@@ -7232,12 +7232,12 @@ function callDesc(type, g) {
   const setterId = g.setterId, copierId = setterId === g.p1 ? g.p2 : g.p1;
   const sName = byId(setterId)?.name, cName = byId(copierId)?.name;
   return {
-    setterLanded:  `${sName} landed "${g.trick || 'the trick'}" ✅`,
-    setterBailed:  `${sName} bailed on "${g.trick || 'the trick'}" 💨`,
-    copierLand:    `${cName} landed the copy ✅`,
-    copierMiss:    `${cName} missed the copy ❌`,
-    revengeLanded: `${cName} landed the revenge ✅`,
-    revengeMissed: `${cName} missed the revenge 💨`,
+    setterLanded:  `${sName} landed "${g.trick || 'the trick'}" <svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>`,
+    setterBailed:  `${sName} bailed on "${g.trick || 'the trick'}" <svg class="icon icon-wind"><use href="#i-wind"/></svg>`,
+    copierLand:    `${cName} landed the copy <svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>`,
+    copierMiss:    `${cName} missed the copy <svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>`,
+    revengeLanded: `${cName} landed the revenge <svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>`,
+    revengeMissed: `${cName} missed the revenge <svg class="icon icon-wind"><use href="#i-wind"/></svg>`,
   }[type] || type;
 }
 
@@ -7250,11 +7250,11 @@ function finishLive(winnerId, loserId) {
       const p = byId(pid);
       if (p) {
         p.rating = Math.max(0, (p.rating || 0) - 1);
-        addLog('⚡', `${p.name} hit 3 strikes — loses 1 rating point!`);
+        addLog('<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>', `${p.name} hit 3 strikes — loses 1 rating point!`);
       }
     }
   });
-  addLog('🏆', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
+  addLog('<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '', g.handicap || null);
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
   // Store rating deltas as plain fields so both players receive them via Firestore snapshot
@@ -7275,9 +7275,9 @@ function finishLive(winnerId, loserId) {
           tourney.winnerId  = finalRound[0].winnerId;
           const fp = finalRound[0];
           tourney.winnerName = fp.p1?.id === fp.winnerId ? fp.p1.name : fp.p2?.name;
-          toast('🏆 Tournament complete! ' + tourney.winnerName + ' wins!', 'ok');
+          toast('<svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Tournament complete! ' + tourney.winnerName + ' wins!', 'ok');
         } else {
-          toast('Match recorded in tournament bracket ✓', 'ok');
+          toast('Match recorded in tournament bracket <svg class="icon icon-check"><use href="#i-check"/></svg>', 'ok');
         }
       }
     }
@@ -7298,7 +7298,7 @@ function finishLive(winnerId, loserId) {
 }
 
 function shareGameResult(winnerName, loserName) {
-  const text = `🎿 ${winnerName} just beat ${loserName} in a game of S-K-I on Slope Battles! Challenge them at slopebattles.app`;
+  const text = `<svg class="icon icon-skis"><use href="#i-skis"/></svg> ${winnerName} just beat ${loserName} in a game of S-K-I on Slope Battles! Challenge them at slopebattles.app`;
   if (navigator.share) {
     navigator.share({ title: 'Slope Battles Result', text }).catch(() => {});
   } else {
@@ -7315,7 +7315,7 @@ function showMatchCancelled() {
   const isRefresh = g.cancelledReason === 'refresh';
   const leaverId = g.cancelledByJudge || g.cancelledBy;
   const leaverName = byId(leaverId)?.name || (isJudgeLeft ? 'The judge' : 'A player');
-  const icon = isJudgeLeft ? '⚖️' : '🏃';
+  const icon = isJudgeLeft ? '<svg class="icon icon-scale"><use href="#i-scale"/></svg>' : '🏃';
   const heading = isJudgeLeft
     ? (isRefresh ? 'JUDGE DISCONNECTED' : 'JUDGE LEFT')
     : (isRefresh ? 'PLAYER DISCONNECTED' : 'PLAYER LEFT');
@@ -7327,7 +7327,7 @@ function showMatchCancelled() {
   if (abandonBtn) abandonBtn.style.display = 'none';
   document.getElementById('live-over-section').innerHTML = `
     <div class="game-over-banner" style="position:relative;">
-      <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+      <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
       <h2 style="color:var(--danger);">${icon} ${heading}</h2>
       <p style="font-size:17px;font-weight:700;margin-bottom:4px;">${leaverName} ${isRefresh ? 'disconnected' : 'left the match'}</p>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${subline} Ratings are unchanged.</p>
@@ -7372,19 +7372,19 @@ function showGameOver(winnerId, loserId, game) {
   if (abandonBtn) abandonBtn.style.display = 'none';
   document.getElementById('live-over-section').innerHTML = `
     <div class="game-over-banner" style="position:relative;">
-      <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
-      <h2>🏆 GAME OVER!</h2>
+      <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+      <h2><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> GAME OVER!</h2>
       <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${winner.name} wins!</p>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${loser.name} abandoned the game` : `${loser.name} spells S·K·I`}</p>
       ${ratingLine}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="shareGameResult('${winner.name.replace(/'/g,"\\'")}','${loser.name.replace(/'/g,"\\'")}')">
-          📤 Share Result
+          <svg class="icon icon-upload"><use href="#i-upload"/></svg> Share Result
         </button>
         <button class="btn btn-ghost btn-sm" onclick="submitLiveClipAndReset()">New Game</button>
       </div>
       <div style="margin-top:20px;text-align:left;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">🎥 Attach a Video Clip</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;"><svg class="icon icon-video"><use href="#i-video"/></svg> Attach a Video Clip</div>
         <div class="clip-box" id="lv-clip-box" style="background:rgba(0,0,0,0.2);">
           <div class="clip-box-inner">
               <input type="hidden" id="lv-clip-url">
@@ -7477,7 +7477,7 @@ function abandonGame() {
     // Judge leaving — mark game as cancelled so players see a screen
     confirm_('Leave game?', 'The match will be cancelled and no result will be recorded.', () => {
       const judgeName = currentUser.name;
-      addLog('⚖️', `${judgeName} left — match cancelled. No result recorded.`);
+      addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${judgeName} left — match cancelled. No result recorded.`);
       S.live.over = true;
       S.live.cancelled = true;
       S.live.cancelledByJudge = currentUser.id;
@@ -7501,7 +7501,7 @@ function abandonGame() {
     () => {
       g.letters[loserId] = 3; // complete SKI = forfeit
       g.forfeitBy = loserId;
-      addLog('🏳️', `${currentUser.name} abandoned the game — forfeit! ${winner.name} wins.`);
+      addLog('<svg class="icon icon-flag"><use href="#i-flag"/></svg>', `${currentUser.name} abandoned the game — forfeit! ${winner.name} wins.`);
       finishLive(winnerId, loserId);
     }
   );
@@ -7550,13 +7550,13 @@ function renderPlayers() {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${p.name}</span>
             ${t.provisional
-              ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;">⏳ Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
+              ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
               : `<span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>`}
           </div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
             Rating: <strong style="color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};">${ratingDisplay(p.rating, p.gamesPlayed)}</strong>
             ${p.gamesPlayed ? `&nbsp;·&nbsp;${p.wins}W ${p.losses}L&nbsp;·&nbsp;${p.gamesPlayed} games&nbsp;·&nbsp;Win% ${wpct}%` : `&nbsp;·&nbsp;<em style="color:var(--text-muted);">No games yet</em>`}
-            ${p.homeResort ? `&nbsp;·&nbsp;🏔 ${p.homeResort}` : (p.location ? `&nbsp;·&nbsp;📍${p.location}` : '')}
+            ${p.homeResort ? `&nbsp;·&nbsp;<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}` : (p.location ? `&nbsp;·&nbsp;<svg class="icon icon-pin"><use href="#i-pin"/></svg>${p.location}` : '')}
           </div>
         </div>
         <div style="display:flex;gap:7px;align-items:center;">
@@ -7612,18 +7612,18 @@ function friendBtn(otherId, modal=false) {
   if (modal) {
     // Larger, more prominent version for the profile modal
     if (status === 'friends')
-      return `<button class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.4);cursor:default;padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;">✓ Friends</button>`;
+      return `<button class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.4);cursor:default;padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Friends</button>`;
     if (status === 'pending_sent')
-      return `<button class="btn btn-ghost" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);padding:10px 22px;font-size:14px;border-radius:10px;">Requested ✕</button>`;
+      return `<button class="btn btn-ghost" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);padding:10px 22px;font-size:14px;border-radius:10px;">Requested <svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
     if (status === 'pending_received')
-      return `<button class="btn btn-primary" onclick="acceptFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;">✓ Accept Request</button>`;
+      return `<button class="btn btn-primary" onclick="acceptFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Accept Request</button>`;
     return `<button class="btn btn-primary" onclick="sendFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--ice),#a81f52);border:none;">+ Add Friend</button>`;
   }
   // Compact version for the riders list
   if (status === 'friends')
-    return `<button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);cursor:default;">✓ Friends</button>`;
+    return `<button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);cursor:default;"><svg class="icon icon-check"><use href="#i-check"/></svg> Friends</button>`;
   if (status === 'pending_sent')
-    return `<button class="btn btn-ghost btn-sm" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);">Requested ✕</button>`;
+    return `<button class="btn btn-ghost btn-sm" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);">Requested <svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
   if (status === 'pending_received')
     return `<button class="btn btn-primary btn-sm" onclick="acceptFriendRequest('${otherId}')">Accept</button><button class="btn btn-ghost btn-sm" onclick="declineFriendRequest('${otherId}')" style="color:var(--text-muted);">Decline</button>`;
   return `<button class="btn btn-outline btn-sm" onclick="sendFriendRequest('${otherId}')">+ Add</button>`;
@@ -7691,7 +7691,7 @@ function acceptFriendRequest(fromId) {
   checkNotifications();
   renderConfirmations();
   refreshModalFriendBtn(fromId);
-  toast(`You and ${req.fromName} are now friends! 🤝`, 'ok');
+  toast(`You and ${req.fromName} are now friends! <svg class="icon icon-handshake"><use href="#i-handshake"/></svg>`, 'ok');
 }
 
 function declineFriendRequest(fromId) {
@@ -7765,11 +7765,11 @@ function followBtn(otherId, modal=false) {
   const following = isFollowing(otherId);
   if (modal) {
     return following
-      ? `<button class="btn btn-ghost" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;color:var(--text-secondary);">✓ Following</button>`
+      ? `<button class="btn btn-ghost" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;color:var(--text-secondary);"><svg class="icon icon-check"><use href="#i-check"/></svg> Following</button>`
       : `<button class="btn btn-outline" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;">+ Follow</button>`;
   }
   return following
-    ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${otherId}')" style="color:var(--text-secondary);">✓ Following</button>`
+    ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${otherId}')" style="color:var(--text-secondary);"><svg class="icon icon-check"><use href="#i-check"/></svg> Following</button>`
     : `<button class="btn btn-outline btn-sm" onclick="toggleFollow('${otherId}')">+ Follow</button>`;
 }
 function refreshModalFollowBtn(playerId) {
@@ -7890,9 +7890,9 @@ function renderExplore() {
             ${pLink(poster.id, poster.name, 'color:var(--ice);')}
           </div>
           <div class="reel-meta">
-            ${item.resort ? `<span class="reel-chip">🏔 ${item.resort}</span>` : ''}
+            ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${item.resort}</span>` : ''}
             <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
-            ${canDelete ? `<span class="reel-chip" onclick="deleteClip('${item.id}')" style="cursor:pointer;color:var(--danger);border-color:var(--danger);">✕ Delete</span>` : ''}
+            ${canDelete ? `<span class="reel-chip" onclick="deleteClip('${item.id}')" style="cursor:pointer;color:var(--danger);border-color:var(--danger);"><svg class="icon icon-close"><use href="#i-close"/></svg> Delete</span>` : ''}
           </div>
           ${item.caption ? `<div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:600;">${item.caption}</div>` : ''}
         </div>`;
@@ -7912,11 +7912,11 @@ function renderExplore() {
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
           </div>
           <div class="reel-action-btn" onclick="openComments('${item.id}')">
-            <div class="reel-action-icon">💬</div>
+            <div class="reel-action-icon"><svg class="icon icon-chat"><use href="#i-chat"/></svg></div>
             <div class="reel-action-label" id="comment-count-${item.id}">${getCommentCount(item.id) || ''}</div>
           </div>
           <div class="reel-action-btn" onclick="shareReel('${item.id}')">
-            <div class="reel-action-icon">🔗</div>
+            <div class="reel-action-icon"><svg class="icon icon-link"><use href="#i-link"/></svg></div>
             <div class="reel-action-label">Share</div>
           </div>
         </div>`;
@@ -7926,7 +7926,7 @@ function renderExplore() {
           <div class="reel-overlay-top"></div>
           <div class="reel-overlay"></div>
           <div class="reel-controls">
-            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '🔇' : '🔊'}</div>` : ''}
+            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '<svg class="icon icon-mute"><use href="#i-mute"/></svg>' : '<svg class="icon icon-volume"><use href="#i-volume"/></svg>'}</div>` : ''}
           </div>
           ${infoHtml}
           ${actionsHtml}
@@ -7944,7 +7944,7 @@ function renderExplore() {
           <div class="reel-overlay-top"></div>
           <div class="reel-overlay"></div>
           <div class="reel-controls">
-            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '🔇' : '🔊'}</div>` : ''}
+            ${!isYt && !isVimeo ? `<div class="reel-ctrl-btn" onclick="toggleMute()" id="mute-btn-${i}" title="Mute / Unmute">${_reelMuted ? '<svg class="icon icon-mute"><use href="#i-mute"/></svg>' : '<svg class="icon icon-volume"><use href="#i-volume"/></svg>'}</div>` : ''}
           </div>
           <div class="reel-info">
             <div class="reel-players">
@@ -7954,9 +7954,9 @@ function renderExplore() {
             </div>
             <div class="reel-meta">
               <span class="reel-chip win">+${item.winnerDelta} pts</span>
-              ${item.score ? `<span class="reel-chip ice">⛷ ${item.score}</span>` : ''}
-              ${tricks     ? `<span class="reel-chip">🎿 ${tricks}</span>` : ''}
-              ${item.resort ? `<span class="reel-chip">🏔 ${item.resort}</span>` : (winner.homeResort ? `<span class="reel-chip">🏔 ${winner.homeResort}</span>` : '')}
+              ${item.score ? `<span class="reel-chip ice"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${item.score}</span>` : ''}
+              ${tricks     ? `<span class="reel-chip"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${tricks}</span>` : ''}
+              ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${item.resort}</span>` : (winner.homeResort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${winner.homeResort}</span>` : '')}
               <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
             </div>
             ${item.notes ? `<div style="font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:8px;font-style:italic;">"${item.notes}"</div>` : ''}
@@ -7975,11 +7975,11 @@ function renderExplore() {
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
             </div>
             <div class="reel-action-btn" onclick="openComments('${item.id}')">
-              <div class="reel-action-icon">💬</div>
+              <div class="reel-action-icon"><svg class="icon icon-chat"><use href="#i-chat"/></svg></div>
               <div class="reel-action-label" id="comment-count-${item.id}">${getCommentCount(item.id) || ''}</div>
             </div>
             <div class="reel-action-btn" onclick="shareReel('${item.id}')">
-              <div class="reel-action-icon">🔗</div>
+              <div class="reel-action-icon"><svg class="icon icon-link"><use href="#i-link"/></svg></div>
               <div class="reel-action-label">Share</div>
             </div>
           </div>
@@ -8085,7 +8085,7 @@ function toggleMute() {
 
 function updateMuteIcons() {
   document.querySelectorAll('[id^="mute-btn-"]').forEach(btn => {
-    btn.textContent = _reelMuted ? '🔇' : '🔊';
+    btn.innerHTML = _reelMuted ? '<svg class="icon icon-mute"><use href="#i-mute"/></svg>' : '<svg class="icon icon-volume"><use href="#i-volume"/></svg>';
   });
 }
 
@@ -8240,7 +8240,7 @@ function shareReel(itemId) {
   if (navigator.share) {
     navigator.share({ title:'SKI Rank Clip', text, url }).catch(()=>{});
   } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(text + ' ' + url).then(() => toast('Link copied! 🔗', 'ok')).catch(() => toast('Could not copy link.', 'err'));
+    navigator.clipboard.writeText(text + ' ' + url).then(() => toast('Link copied! <svg class="icon icon-link"><use href="#i-link"/></svg>', 'ok')).catch(() => toast('Could not copy link.', 'err'));
   } else {
     toast('Share not supported on this device.', 'err');
   }
@@ -8287,7 +8287,7 @@ function pcHandleFile(file) {
   document.getElementById('pc-drop-label').style.display   = 'none';
   document.getElementById('pc-drop-preview').style.display = 'block';
   document.getElementById('pc-drop-preview').innerHTML =
-    `✅ <strong>${file.name}</strong><br><span style="color:var(--text-muted);font-weight:400;">${(file.size/1048576).toFixed(1)} MB — tap to change</span>`;
+    `<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> <strong>${file.name}</strong><br><span style="color:var(--text-muted);font-weight:400;">${(file.size/1048576).toFixed(1)} MB — tap to change</span>`;
 }
 
 function pcHandleDrop(e) {
@@ -8336,7 +8336,7 @@ async function submitPostClip() {
     S.clips.push(clip);
     save();
     closePostClip();
-    toast('Clip posted! 🎿', 'ok');
+    toast('Clip posted! <svg class="icon icon-skis"><use href="#i-skis"/></svg>', 'ok');
     renderExplore();
   } catch(err) {
     console.error('Clip upload failed:', err);
@@ -8481,7 +8481,7 @@ function openChat(friendId, scrollToBottom=true) {
     ${avatarHtml(friend, 'avatar-sm')}
     <div style="flex:1;">
       <div style="font-weight:700;font-size:14px;">${friend.name}</div>
-      <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '🏔 ' + friend.homeResort : 'Skier'}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ' + friend.homeResort : 'Skier'}</div>
     </div>`;
 
   // Messages
@@ -8584,10 +8584,10 @@ function parseClipUrl(raw) {
   };
 
   // TikTok
-  if (/tiktok\.com/.test(url)) return { type:'link', url, label:'TikTok', icon:'🎵' };
+  if (/tiktok\.com/.test(url)) return { type:'link', url, label:'TikTok', icon:'<svg class="icon icon-music"><use href="#i-music"/></svg>' };
 
   // Instagram
-  if (/instagram\.com/.test(url)) return { type:'link', url, label:'Instagram', icon:'📸' };
+  if (/instagram\.com/.test(url)) return { type:'link', url, label:'Instagram', icon:'<svg class="icon icon-camera"><use href="#i-camera"/></svg>' };
 
   // Vimeo
   const vm = url.match(/vimeo\.com\/(\d+)/);
@@ -8598,7 +8598,7 @@ function parseClipUrl(raw) {
   };
 
   // Plain URL (assume it's a direct video link or anything else)
-  if (/^https?:\/\//.test(url)) return { type:'link', url, label:'View Clip', icon:'🎬' };
+  if (/^https?:\/\//.test(url)) return { type:'link', url, label:'View Clip', icon:'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>' };
 
   return null;
 }
@@ -8611,26 +8611,26 @@ function clipPreviewHtml(clip, prefix) {
       <img src="${clip.thumb}" alt="YouTube thumbnail">
       <div class="clip-play-overlay">▶</div>
     </div>
-    <div class="clip-clear" onclick="clearClip('${prefix}')">✕ Remove clip</div>`;
+    <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'vimeo') return `
     <div class="clip-thumb" onclick="this.innerHTML='<iframe src=\\'${clip.embed}\\' frameborder=\\'0\\' allow=\\'autoplay;fullscreen\\' allowfullscreen style=\\'width:100%;height:100%;position:absolute;inset:0;\\'></iframe>'" style="cursor:pointer;">
       <div style="width:100%;height:100%;background:rgba(26,183,234,0.12);display:flex;align-items:center;justify-content:center;font-size:48px;">▶</div>
     </div>
-    <div class="clip-clear" onclick="clearClip('${prefix}')">✕ Remove clip</div>`;
+    <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'file') return `
     <div class="clip-thumb">
       <video src="${clip.url}" controls style="width:100%;height:100%;object-fit:contain;"></video>
     </div>
-    <div class="clip-clear" onclick="clearClip('${prefix}')">✕ Remove clip</div>`;
+    <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   // Generic link
   return `
     <a href="${clip.url}" target="_blank" rel="noopener"
       style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,0.05);border-radius:8px;border:1px solid var(--border);color:var(--ice);font-size:13px;text-decoration:none;">
-      <span style="font-size:22px;">${clip.icon||'🎬'}</span>
+      <span style="font-size:22px;">${clip.icon||'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>'}</span>
       <span style="flex:1;">${clip.label||'View Clip'}</span>
       <span style="font-size:11px;color:var(--text-muted);">↗</span>
     </a>
-    <div class="clip-clear" onclick="clearClip('${prefix}')">✕ Remove clip</div>`;
+    <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
 }
 
 // Called when the URL input changes
@@ -8706,7 +8706,7 @@ function renderStoredClip(clipUrl) {
     </div>`;
   }
   if (clipUrl.startsWith('blob:')) return ''; // expired blob — omit silently
-  const clip = parseClipUrl(clipUrl) || { type:'link', url:clipUrl, label:'View Clip', icon:'🎬' };
+  const clip = parseClipUrl(clipUrl) || { type:'link', url:clipUrl, label:'View Clip', icon:'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>' };
   if (clip.type === 'youtube') return `
     <div style="margin-top:8px;">
       <div class="clip-thumb" onclick="this.innerHTML='<iframe src=\\'${clip.embed}\\' frameborder=\\'0\\' allow=\\'autoplay;fullscreen\\' allowfullscreen style=\\'width:100%;height:100%;position:absolute;inset:0;\\'></iframe>'" style="cursor:pointer;max-height:160px;">
@@ -8722,7 +8722,7 @@ function renderStoredClip(clipUrl) {
     <div style="margin-top:8px;">
       <a href="${clipUrl}" target="_blank" rel="noopener"
         style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:rgba(255,62,127,0.08);border-radius:7px;border:1px solid rgba(255,62,127,0.2);color:var(--ice);font-size:12.5px;text-decoration:none;">
-        ${clip.icon||'🎬'} ${clip.label||'View Clip'} ↗
+        ${clip.icon||'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>'} ${clip.label||'View Clip'} ↗
       </a>
     </div>`;
 }
@@ -8757,7 +8757,7 @@ function renderHistory() {
   // Pending entries (shown at top with a yellow PENDING badge)
   const pendingHtml = pending.map(r => `
     <div class="hist-entry" style="border-color:rgba(255,196,0,0.18);background:rgba(255,196,0,0.03);">
-      <div style="font-size:22px;">⏳</div>
+      <div style="font-size:22px;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg></div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
           <span class="badge badge-success">W</span>
@@ -8768,9 +8768,9 @@ function renderHistory() {
           <span class="badge badge-danger">L</span>
           ${pLink(r.loserId, r.loserName, 'font-weight:600;color:var(--text-secondary);')}
         </div>
-        ${r.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;">🏔 ${r.resort}</div>` : ''}
-        ${r.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;">⛷ ${r.score}</div>` : ''}
-        ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">🎿 ${r.tricks.join(', ')}</div>` : ''}
+        ${r.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${r.resort}</div>` : ''}
+        ${r.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${r.score}</div>` : ''}
+        ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${r.tricks.join(', ')}</div>` : ''}
         ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${r.notes}</div>` : ''}
         ${r.clipUrl ? renderStoredClip(r.clipUrl) : ''}
         <div style="font-size:11.5px;color:var(--warning);margin-top:4px;">
@@ -8797,7 +8797,7 @@ function renderHistory() {
     if (!winner||!loser) return '';
     return `
       <div class="hist-entry">
-        <div style="font-size:22px;">🎿</div>
+        <div style="font-size:22px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg></div>
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
             <span class="badge badge-success">W</span>
@@ -8811,16 +8811,16 @@ function renderHistory() {
             <span class="rc-neg" style="font-size:12px;">${game.loserDelta}</span>
             <span style="font-size:11px;color:var(--text-muted);">${fmt(game.player2StartRating)} → ${fmt(game.player2EndRating)}</span>
           </div>
-          ${game.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;">🏔 ${game.resort}</div>` : ''}
-          ${game.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;">⛷ ${game.score}</div>` : ''}
-          ${game.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">🎿 ${game.tricks.join(', ')}</div>` : ''}
+          ${game.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${game.resort}</div>` : ''}
+          ${game.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${game.score}</div>` : ''}
+          ${game.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${game.tricks.join(', ')}</div>` : ''}
           ${game.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${game.notes}</div>` : ''}
           ${game.clipUrl ? renderStoredClip(game.clipUrl) : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:11.5px;color:var(--text-muted);">${dateFmt(game.date)}</div>
           ${game.liveLog?.length ? `<div style="margin-top:4px;"><span class="badge badge-primary">Live</span></div>` : ''}
-          <div style="margin-top:4px;"><span class="badge badge-success" style="font-size:9px;">✓ Confirmed</span></div>
+          <div style="margin-top:4px;"><span class="badge badge-success" style="font-size:9px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Confirmed</span></div>
         </div>
       </div>`;
   }).join('');
@@ -8873,9 +8873,9 @@ function showGameDetail(gameId) {
 
     <!-- Meta row -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;justify-content:center;">
-      <span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-muted);">📅 ${dateFmt(game.date)}</span>
-      ${game.resort ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--ice);">🏔 ${game.resort}</span>` : ''}
-      ${game.score  ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-secondary);font-weight:700;">⛷ ${game.score}</span>` : ''}
+      <span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-muted);"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(game.date)}</span>
+      ${game.resort ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--ice);"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${game.resort}</span>` : ''}
+      ${game.score  ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-secondary);font-weight:700;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${game.score}</span>` : ''}
       ${game.liveLog?.length ? `<span class="badge badge-primary" style="padding:4px 12px;">Live Game</span>` : ''}
     </div>
 
@@ -8935,8 +8935,8 @@ function renderProfileGames(games, id) {
           <div onclick="showGameDetail('${game.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
             <span class="badge ${isWin?'badge-success':'badge-danger'}">${isWin?'W':'L'}</span>
             <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${opp.name}</span></span>
-            ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);">🎿</span>` : ''}
-            ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);">🎬</span>` : ''}
+            ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-skis"><use href="#i-skis"/></svg></span>` : ''}
+            ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></span>` : ''}
             <span class="${delta>=0?'rc-pos':'rc-neg'}" style="font-size:12.5px;">${delta>=0?'+':''}${delta}</span>
             <span style="font-size:11.5px;color:var(--text-muted);">${dateFmt(game.date)}</span>
             <span style="color:var(--text-muted);font-size:12px;">›</span>
@@ -8959,7 +8959,7 @@ function renderProfileGames(games, id) {
 
 function showProfile(id) {
   if (!currentUser) {
-    showAuthScreen('👤 Sign in to view player profiles and stats.');
+    showAuthScreen('<svg class="icon icon-user"><use href="#i-user"/></svg> Sign in to view player profiles and stats.');
     return;
   }
   _profileId = id;
@@ -9014,11 +9014,11 @@ function showProfile(id) {
         <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;margin-top:${p.rating == null ? '6px' : '0'};">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
         <div style="display:flex;gap:7px;align-items:center;margin-top:5px;flex-wrap:wrap;">
           ${t.provisional
-            ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;">⏳ Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
+            ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
             : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`}
-          <span style="font-size:12px;color:var(--text-muted);">${p.riderType === 'boarder' ? '🏂 Snowboarder' : '⛷️ Skier'}</span>
-          ${p.homeResort ? `<span style="font-size:12px;color:var(--text-muted);">🏔 ${p.homeResort}</span>` : p.location ? `<span style="font-size:12px;color:var(--text-muted);">📍 ${p.location}</span>` : ''}
-          ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;">📸 @${p.instagram}</a>` : ''}
+          <span style="font-size:12px;color:var(--text-muted);">${p.riderType === 'boarder' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboarder' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier'}</span>
+          ${p.homeResort ? `<span style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}</span>` : p.location ? `<span style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-pin"><use href="#i-pin"/></svg> ${p.location}</span>` : ''}
+          ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> @${p.instagram}</a>` : ''}
         </div>
         <div style="display:flex;gap:14px;align-items:center;margin-top:7px;font-size:12.5px;flex-wrap:wrap;" id="modal-follow-counts">
           <span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-primary);">${followers}</strong> <span style="color:var(--text-muted);">Followers</span></span>
@@ -9082,7 +9082,7 @@ function showProfile(id) {
           <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:${!streaks.current?'var(--text-muted)':streaks.type==='W'?'var(--success)':'var(--danger)'};">
             ${!streaks.current ? '—' : `${streaks.type}${streaks.current}`}
           </div>
-          ${streaks.current >= 3 && streaks.type==='W' ? `<span style="font-size:22px;line-height:1;">🔥</span>` : ''}
+          ${streaks.current >= 3 && streaks.type==='W' ? `<span style="font-size:22px;line-height:1;"><svg class="icon icon-fire"><use href="#i-fire"/></svg></span>` : ''}
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
           ${!streaks.current ? 'no games yet' : streaks.type==='W' ? 'wins in a row' : 'losses in a row'}
@@ -9094,7 +9094,7 @@ function showProfile(id) {
           <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:${streaks.best?'var(--success)':'var(--text-muted)'};">
             ${streaks.best || '—'}
           </div>
-          ${streaks.best >= 5 ? `<span style="font-size:22px;line-height:1;">🔥</span>` : ''}
+          ${streaks.best >= 5 ? `<span style="font-size:22px;line-height:1;"><svg class="icon icon-fire"><use href="#i-fire"/></svg></span>` : ''}
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
           ${streaks.best ? 'all‑time best' : 'no wins yet'}
@@ -9178,7 +9178,7 @@ function showProfile(id) {
       ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')">⚡ Challenge ${p.name}</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${p.name}</button>` : ''}
     </div>`;
 
   openModal('profile-modal');
@@ -9253,8 +9253,8 @@ function sendChallenge() {
   checkNotifications();
   closeModal('challenge-modal');
   const dateStr = new Date(dateVal + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-  const judgeNote = judgeId ? ` · ⚖️ ${byId(judgeId)?.name} judging` : '';
-  toast(`Challenge sent to ${toPlayer?.name} for ${dateStr}${judgeNote} ⚡`, 'ok');
+  const judgeNote = judgeId ? ` · <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${byId(judgeId)?.name} judging` : '';
+  toast(`Challenge sent to ${toPlayer?.name} for ${dateStr}${judgeNote} <svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`, 'ok');
 }
 
 function acceptChallenge(id) {
@@ -9265,7 +9265,7 @@ function acceptChallenge(id) {
   checkNotifications();
   renderConfirmations();
   const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
-  toast(`Challenge accepted! See you ${dateStr} ⚡`, 'ok');
+  toast(`Challenge accepted! See you ${dateStr} <svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`, 'ok');
 }
 
 function declineChallenge(id) {
@@ -9339,25 +9339,25 @@ function renderChallenges() {
                   ? `${pLink(c.fromId, c.fromName)} <span style="color:var(--text-muted);font-weight:400;">challenged you</span>`
                   : `<span style="color:var(--text-muted);font-weight:400;">You challenged</span> ${pLink(c.toId, c.toName)}`}
               </div>
-              <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;">📅 ${dateStr}${timeStr}</div>
-              ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">🏔 ${c.resort}</div>`  : ''}
-              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">⚖️ Judge: <strong style="color:var(--text-secondary);">${c.judgeName}</strong></div>` : ''}
+              <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateStr}${timeStr}</div>
+              ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${c.resort}</div>`  : ''}
+              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Judge: <strong style="color:var(--text-secondary);">${c.judgeName}</strong></div>` : ''}
               ${c.message    ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${c.message}"</div>` : ''}
             </div>
           </div>
           <span class="badge ${isAccepted ? 'badge-success' : isIncoming ? 'badge-accent' : 'badge-muted'}" style="font-size:9px;flex-shrink:0;">
-            ${isAccepted ? '✓ ACCEPTED' : isIncoming ? '⚡ INCOMING' : '📤 SENT'}
+            ${isAccepted ? '<svg class="icon icon-check"><use href="#i-check"/></svg> ACCEPTED' : isIncoming ? '<svg class="icon icon-bolt"><use href="#i-bolt"/></svg> INCOMING' : '<svg class="icon icon-upload"><use href="#i-upload"/></svg> SENT'}
           </span>
         </div>
         ${isAccepted ? `
-          <div style="font-size:12px;color:var(--success);padding:6px 0 4px;">✓ Challenge accepted — see you on the mountain!</div>
+          <div style="font-size:12px;color:var(--success);padding:6px 0 4px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Challenge accepted — see you on the mountain!</div>
           <div class="pending-card-actions">
-            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="startChallengeGame('${c.id}')">🎿 Start Live Game</button>
+            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="startChallengeGame('${c.id}')"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Start Live Game</button>
             <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="cancelChallenge('${c.id}')">Remove</button>
           </div>` :
         isIncoming ? `
           <div class="pending-card-actions">
-            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="acceptChallenge('${c.id}')">⚡ Accept</button>
+            <button class="btn btn-accent btn-sm" style="flex:1;justify-content:center;" onclick="acceptChallenge('${c.id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Accept</button>
             <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;" onclick="declineChallenge('${c.id}')">Decline</button>
           </div>` : `
           <div class="pending-card-actions">
@@ -9560,10 +9560,10 @@ function renderInvitePicker(query) {
     <div class="invite-pick-item" style="opacity:.7;cursor:default;border-bottom:1px solid var(--border);">
       ${avatarHtml(me, 'avatar-sm')}
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;">${me.name} <span style="font-size:10px;color:var(--ice);">★ You</span></div>
+        <div style="font-size:13px;font-weight:600;">${me.name} <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> You</span></div>
         <div style="font-size:11px;color:var(--text-muted);">Creator — already in</div>
       </div>
-      <span style="font-size:16px;color:var(--success);">✓</span>
+      <span style="font-size:16px;color:var(--success);"><svg class="icon icon-check"><use href="#i-check"/></svg></span>
     </div>` : '';
 
   list.innerHTML = youRow + candidates.map(p => {
@@ -9578,7 +9578,7 @@ function renderInvitePicker(query) {
         ${isChecked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
       ${avatarHtml(p, 'avatar-sm')}
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;">${p.name}${isFriend ? ' <span style="font-size:10px;color:var(--ice);">★ Friend</span>' : ''}</div>
+        <div style="font-size:13px;font-weight:600;">${p.name}${isFriend ? ' <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> Friend</span>' : ''}</div>
         <div style="font-size:11px;color:var(--text-muted);">${p.rating ? '#'+ranked(p.id) : 'Unrated'}</div>
       </div>
     </div>`;
@@ -9633,7 +9633,7 @@ function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
   nav('live-game');
   setTimeout(() => {
     showInviteWaiting(invite);
-    toast(`Challenge sent to ${opponent.name} for your tournament match! ⛷️`, 'ok');
+    toast(`Challenge sent to ${opponent.name} for your tournament match! <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
   }, 80);
 }
 
@@ -9711,7 +9711,7 @@ function acceptTourneyInvite(tourneyId) {
   save();
   checkNotifications();
   renderTournaments();
-  toast('You joined the tournament! 🏆', 'ok');
+  toast('You joined the tournament! <svg class="icon icon-trophy"><use href="#i-trophy"/></svg>', 'ok');
 }
 
 function declineTourneyInvite(tourneyId) {
@@ -9747,7 +9747,7 @@ function startTournament(tourneyId) {
   save();
   renderTournaments();
   openTourneyDetail(tourneyId);
-  toast('Tournament started! Bracket is live. 🏆', 'ok');
+  toast('Tournament started! Bracket is live. <svg class="icon icon-trophy"><use href="#i-trophy"/></svg>', 'ok');
 }
 
 // ── Delete tournament (creator only) ─────────────────────
@@ -9775,23 +9775,23 @@ function showTourneyWin(tourneyName) {
       if (!me.badges.includes('tourney_champ')) {
         me.badges.push('tourney_champ');
         save();
-        setTimeout(() => toast('🥇 Badge unlocked: Tournament Champion!', 'ok'), 1200);
+        setTimeout(() => toast('<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> Badge unlocked: Tournament Champion!', 'ok'), 1200);
       }
     }
   }
   inn.innerHTML = `
-    <div style="font-size:72px;line-height:1;margin-bottom:12px;">🏆</div>
+    <div style="font-size:72px;line-height:1;margin-bottom:12px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:4px;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
     <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
     <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:99px;padding:6px 16px;margin-bottom:24px;">
-      <span style="font-size:16px;">🥇</span>
+      <span style="font-size:16px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></span>
       <span style="font-size:12px;font-weight:700;color:#ffd700;letter-spacing:.5px;">TOURNAMENT CHAMPION</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
       <button class="btn btn-primary" style="width:200px;justify-content:center;font-size:15px;padding:13px 0;"
         onclick="document.getElementById('tourney-win-overlay').style.pointerEvents='none';document.getElementById('tourney-win-overlay').style.opacity='0';setTimeout(()=>{document.getElementById('tourney-win-overlay').style.display='none';},400);">
-        🎿 Let's Go
+        <svg class="icon icon-skis"><use href="#i-skis"/></svg> Let's Go
       </button>
     </div>
     <div style="margin-top:20px;font-size:11px;color:rgba(255,255,255,0.25);">Tap anywhere to dismiss</div>
@@ -9872,7 +9872,7 @@ function renderTournaments() {
         <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
           <div class="pending-card-header">
             <div>
-              <div style="font-size:13px;font-weight:700;">🏆 <strong>${t.name}</strong></div>
+              <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${t.name}</strong></div>
               <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">
                 Created by ${t.creatorName}
                 · ${t.format === 'single-elim' ? 'Single Elimination' : 'Round Robin'}
@@ -9881,7 +9881,7 @@ function renderTournaments() {
             </div>
           </div>
           <div class="pending-card-actions">
-            <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="acceptTourneyInvite('${t.id}')">✓ Join</button>
+            <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="acceptTourneyInvite('${t.id}')"><svg class="icon icon-check"><use href="#i-check"/></svg> Join</button>
             <button class="btn btn-ghost btn-sm"   style="flex:1;justify-content:center;" onclick="declineTourneyInvite('${t.id}')">Decline</button>
           </div>
         </div>`).join('');
@@ -9911,15 +9911,15 @@ function renderTournaments() {
     return `
     <div class="tourney-card" onclick="openTourneyDetail('${t.id}')">
       <div class="tourney-card-hdr">
-        <span class="tourney-card-name">🏆 ${t.name}</span>
+        <span class="tourney-card-name"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${t.name}</span>
         <span class="tourney-badge ${status}">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
       </div>
       <div class="tourney-meta">
-        <span>${t.format === 'single-elim' ? '🔥 Single Elimination' : '🔄 Round Robin'}</span>
-        <span>👥 ${(t.participants||[]).length} riders</span>
-        ${t.resort ? `<span>🏔 ${t.resort}</span>` : ''}
-        ${t.dateVal ? `<span>📅 ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
-        ${status === 'complete' ? `<span style="color:var(--warning);">🥇 ${t.winnerName||'TBD'}</span>` : ''}
+        <span>${t.format === 'single-elim' ? '<svg class="icon icon-fire"><use href="#i-fire"/></svg> Single Elimination' : '<svg class="icon icon-refresh"><use href="#i-refresh"/></svg> Round Robin'}</span>
+        <span><svg class="icon icon-users"><use href="#i-users"/></svg> ${(t.participants||[]).length} riders</span>
+        ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${t.resort}</span>` : ''}
+        ${t.dateVal ? `<span><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
+        ${status === 'complete' ? `<span style="color:var(--warning);"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ${t.winnerName||'TBD'}</span>` : ''}
       </div>
       <div style="margin-top:8px;font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${participantNames}</div>
     </div>`;
@@ -9931,7 +9931,7 @@ function openTourneyDetail(tourneyId) {
   const t = getTourney(tourneyId);
   if (!t) return;
   _openTourneyId = tourneyId;
-  document.getElementById('tourney-detail-title').textContent = '🏆 ' + t.name;
+  document.getElementById('tourney-detail-title').innerHTML = '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ' + t.name;
   const body = document.getElementById('tourney-detail-body');
   const isCreator = t.creatorId === currentUser?.id;
   const status = tourneyStatus(t);
@@ -9940,16 +9940,16 @@ function openTourneyDetail(tourneyId) {
 
   // Meta row
   html += `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--text-muted);">
-    <span>${t.format === 'single-elim' ? '🔥 Single Elimination' : '🔄 Round Robin'}</span>
+    <span>${t.format === 'single-elim' ? '<svg class="icon icon-fire"><use href="#i-fire"/></svg> Single Elimination' : '<svg class="icon icon-refresh"><use href="#i-refresh"/></svg> Round Robin'}</span>
     <span class="tourney-badge ${status}" style="align-self:center;">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
-    ${t.resort ? `<span>🏔 ${t.resort}</span>` : ''}
-    ${t.dateVal ? `<span>📅 ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
+    ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${t.resort}</span>` : ''}
+    ${t.dateVal ? `<span><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
   </div>`;
 
   // Complete banner
   if (status === 'complete' && t.winnerName) {
     html += `<div style="text-align:center;padding:18px;background:linear-gradient(135deg,rgba(255,196,0,.15),rgba(34,224,194,.08));border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
-      <div style="font-size:28px;margin-bottom:4px;">🥇</div>
+      <div style="font-size:28px;margin-bottom:4px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></div>
       <div style="font-size:18px;font-weight:800;">${t.winnerName}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Tournament Champion</div>
     </div>`;
@@ -9969,7 +9969,7 @@ function openTourneyDetail(tourneyId) {
   // Pending invites
   const pendingInvs = (t.invitees||[]).filter(i => i.status === 'pending');
   if (pendingInvs.length) {
-    html += `<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);">⏳ Waiting for: ${pendingInvs.map(i=>i.name).join(', ')}</div>`;
+    html += `<div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for: ${pendingInvs.map(i=>i.name).join(', ')}</div>`;
   }
 
   // Setup controls (creator only, status=setup)
@@ -9991,7 +9991,7 @@ function openTourneyDetail(tourneyId) {
   // Delete (creator only)
   if (isCreator) {
     html += `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteTournament('${t.id}')">🗑 Delete Tournament</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteTournament('${t.id}')"><svg class="icon icon-trash"><use href="#i-trash"/></svg> Delete Tournament</button>
     </div>`;
   }
 
@@ -10121,14 +10121,14 @@ function renderBracketHTML(t) {
     const p1w = p1Won ? 'bold' : 'normal';
     boxes += `<text x="${x+7}" y="${y+SH-8}" fill="${p1c}" font-size="11"
       font-family="Inter,sans-serif" font-weight="${p1w}" style="cursor:${cursor};"
-      ${clickFn ? `onclick="${clickFn}"` : ''}>${p1Won?'✓ ':''}${p1Name}</text>`;
+      ${clickFn ? `onclick="${clickFn}"` : ''}>${p1Won?'<svg class="icon icon-check"><use href="#i-check"/></svg> ':''}${p1Name}</text>`;
 
     // P2 text
     const p2c = p2Won ? C_WIN : p2Lost ? C_LOSE : isBye ? C_MUTED : C_TEXT;
     const p2w = p2Won ? 'bold' : 'normal';
     boxes += `<text x="${x+7}" y="${y+MH-8}" fill="${p2c}" font-size="11"
       font-family="Inter,sans-serif" font-weight="${p2w}" font-style="${isBye?'italic':'normal'}"
-      style="cursor:${cursor};" ${clickFn ? `onclick="${clickFn}"` : ''}>${p2Won?'✓ ':''}${p2Name}</text>`;
+      style="cursor:${cursor};" ${clickFn ? `onclick="${clickFn}"` : ''}>${p2Won?'<svg class="icon icon-check"><use href="#i-check"/></svg> ':''}${p2Name}</text>`;
 
     // "▶ Play" badge for playable matches
     if (canPlay) {
@@ -10252,7 +10252,7 @@ function renderBracketHTML(t) {
         padding:5px 32px;margin-top:4px;">
         <span style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;
           color:${champName ? 'var(--warning)' : 'var(--text-muted)'};">
-          ${champName ? '🥇 ' + champName : 'Champion'}
+          ${champName ? '<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ' + champName : 'Champion'}
         </span>
       </div>
     </div>`;
@@ -10319,7 +10319,7 @@ function renderRRHTML(t) {
   standings.forEach((p, i) => {
     html += `<tr>
       <td style="color:var(--text-muted);font-weight:700;">${i+1}</td>
-      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'🥇 ':''}${p.name}</td>
+      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ':''}${p.name}</td>
       <td style="color:var(--success);font-weight:600;">${wins[p.id]||0}</td>
       <td style="color:var(--text-muted);">${played[p.id]||0}</td>
     </tr>`;
@@ -10434,7 +10434,7 @@ function renderConfirmations() {
           </div>
         </div>
         <div class="pending-card-actions">
-          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="acceptFriendRequest('${r.fromId}')">✓ Accept</button>
+          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="acceptFriendRequest('${r.fromId}')"><svg class="icon icon-check"><use href="#i-check"/></svg> Accept</button>
           <button class="btn btn-ghost btn-sm"   style="flex:1;justify-content:center;" onclick="declineFriendRequest('${r.fromId}')">Decline</button>
         </div>
       </div>`).join('');
@@ -10466,7 +10466,7 @@ function renderConfirmations() {
               <div style="font-size:11.5px;color:var(--text-muted);">${dateFmt(inv.createdAt)}</div>
             </div>
           </div>
-          <span class="badge ${isJudge ? 'badge-primary' : 'badge-accent'}" style="font-size:9px;">${isJudge ? '⚖️ JUDGE' : 'LIVE'}</span>
+          <span class="badge ${isJudge ? 'badge-primary' : 'badge-accent'}" style="font-size:9px;">${isJudge ? '<svg class="icon icon-scale"><use href="#i-scale"/></svg> JUDGE' : 'LIVE'}</span>
         </div>
         <div style="background:rgba(0,0,0,0.25);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:12px;font-size:13px;">
           ${pLink(inv.p1Id, byId(inv.p1Id)?.name || inv.fromName, 'font-weight:700;')}
@@ -10476,11 +10476,11 @@ function renderConfirmations() {
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
           ${isJudge
             ? 'You\'ve been asked to be the neutral judge — you\'ll call all tricks.'
-            : `Accept to start the live SKI game — ratings update when it ends.${inv.judgeId ? ` ⚖️ ${inv.judgeName || byId(inv.judgeId)?.name || 'A judge'} will call tricks.` : ''}${inv.handicap ? ' 🎿 Handicap mode.' : ''}`}
+            : `Accept to start the live SKI game — ratings update when it ends.${inv.judgeId ? ` <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${inv.judgeName || byId(inv.judgeId)?.name || 'A judge'} will call tricks.` : ''}${inv.handicap ? ' <svg class="icon icon-skis"><use href="#i-skis"/></svg> Handicap mode.' : ''}`}
         </div>
         <div class="pending-card-actions">
           <button class="btn ${isJudge ? 'btn-primary' : 'btn-accent'} btn-sm" style="flex:1;justify-content:center;"
-            onclick="acceptLiveInvite('${inv.id}')">${isJudge ? '⚖️ Accept — I\'ll Judge' : '⛷️ Accept &amp; Play'}</button>
+            onclick="acceptLiveInvite('${inv.id}')">${isJudge ? '<svg class="icon icon-scale"><use href="#i-scale"/></svg> Accept — I\'ll Judge' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Accept &amp; Play'}</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;"
             onclick="declineLiveInvite('${inv.id}')">Decline</button>
         </div>
@@ -10527,8 +10527,8 @@ function renderConfirmations() {
             ${pLink(r.loserId, r.loserName, 'font-weight:600;font-size:14px;color:var(--text-secondary);')}
             ${r.loserId === currentUser.id ? '<span style="font-size:11px;color:var(--danger);">(you)</span>' : ''}
           </div>
-          ${r.score ? `<div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-top:8px;letter-spacing:.5px;">⛷ ${r.score}</div>` : ''}
-          ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">🎿 Tricks: ${r.tricks.join(', ')}</div>` : ''}
+          ${r.score ? `<div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-top:8px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${r.score}</div>` : ''}
+          ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Tricks: ${r.tricks.join(', ')}</div>` : ''}
           ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;font-style:italic;">${r.notes}</div>` : ''}
           ${r.clipUrl ? renderStoredClip(r.clipUrl) : ''}
         </div>
@@ -10542,13 +10542,13 @@ function renderConfirmations() {
           const reporterStrikes = byId(r.reporterId)?.logStrikes || 0;
           if (!myStrikes && !reporterStrikes) return '';
           return `<div style="display:flex;gap:12px;font-size:11.5px;color:var(--warning);margin-bottom:10px;padding:7px 10px;background:rgba(255,196,0,0.06);border-radius:6px;border:1px solid rgba(255,196,0,0.18);">
-            ⚡ Dispute strikes — You: ${myStrikes}/3 · ${r.reporterName}: ${reporterStrikes}/3
+            <svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Dispute strikes — You: ${myStrikes}/3 · ${r.reporterName}: ${reporterStrikes}/3
           </div>`;
         })()}
 
         <div class="pending-card-actions">
-          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="confirmGame('${r.id}')">✅ Confirm Result</button>
-          <button class="btn btn-danger btn-sm"  style="flex:1;justify-content:center;" onclick="disputeGame('${r.id}')">⚡ Dispute</button>
+          <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="confirmGame('${r.id}')"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Confirm Result</button>
+          <button class="btn btn-danger btn-sm"  style="flex:1;justify-content:center;" onclick="disputeGame('${r.id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Dispute</button>
         </div>
       </div>`;
     }).join('');
@@ -10579,7 +10579,7 @@ function renderConfirmations() {
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
           <span class="badge-pending">PENDING</span>
-          <button class="btn btn-ghost btn-sm" onclick="cancelPending('${r.id}')" title="Cancel submission">✕ Cancel</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelPending('${r.id}')" title="Cancel submission"><svg class="icon icon-close"><use href="#i-close"/></svg> Cancel</button>
         </div>
       </div>`;
     }).join('');
@@ -10600,7 +10600,7 @@ function confirmGame(id) {
   }
 
   showRatingAnim(byId(req.winnerId), byId(req.loserId), game);
-  toast('Confirmed! Ratings updated ✅', 'ok');
+  toast('Confirmed! Ratings updated <svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', 'ok');
   checkNotifications();
   renderConfirmations();
 }
@@ -10612,11 +10612,11 @@ function disputeGame(id) {
   const denier   = currentUser;
   const rs = reporter?.logStrikes || 0;
   const ds = denier?.logStrikes   || 0;
-  const rWarn = rs >= 2 ? ` ⚠️ ${reporter?.name} is at ${rs}/3 strikes — this will cost them a rating point!` : '';
-  const dWarn = ds >= 2 ? ` ⚠️ You are at ${ds}/3 strikes — this will cost you a rating point!` : '';
+  const rWarn = rs >= 2 ? ` <svg class="icon icon-warning"><use href="#i-warning"/></svg> ${reporter?.name} is at ${rs}/3 strikes — this will cost them a rating point!` : '';
+  const dWarn = ds >= 2 ? ` <svg class="icon icon-warning"><use href="#i-warning"/></svg> You are at ${ds}/3 strikes — this will cost you a rating point!` : '';
 
   confirm_('Dispute this result?',
-    `Both you and ${reporter?.name || 'the reporter'} will each receive a ⚡ strike. At 3 strikes you lose 1 rating point.${rWarn}${dWarn}\n\nThe game will be removed and no ratings will change.`,
+    `Both you and ${reporter?.name || 'the reporter'} will each receive a <svg class="icon icon-bolt"><use href="#i-bolt"/></svg> strike. At 3 strikes you lose 1 rating point.${rWarn}${dWarn}\n\nThe game will be removed and no ratings will change.`,
     () => {
       // Apply a strike to both players
       applyLogStrike(req.reporterId);
@@ -10629,7 +10629,7 @@ function disputeGame(id) {
           pending: firebase.firestore.FieldValue.arrayRemove(req)
         }).catch(e => console.warn('Pending removal sync failed:', e));
       }
-      toast('Result disputed — both players received a ⚡ strike.', 'ok');
+      toast('Result disputed — both players received a <svg class="icon icon-bolt"><use href="#i-bolt"/></svg> strike.', 'ok');
       checkNotifications();
       renderConfirmations();
     }
@@ -10643,7 +10643,7 @@ function applyLogStrike(playerId) {
   if (p.logStrikes >= 3) {
     p.rating = Math.max(0, (p.rating || 0) - 1);
     p.logStrikes = 0; // reset after penalty
-    toast(`${p.name} hit 3 dispute strikes — lost 1 rating point! ⚡`, p.id === currentUser?.id ? 'err' : 'ok');
+    toast(`${p.name} hit 3 dispute strikes — lost 1 rating point! <svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`, p.id === currentUser?.id ? 'err' : 'ok');
   }
 }
 
@@ -10670,7 +10670,7 @@ function cancelPending(id) {
 //  LIVE GAME INVITES
 // ═══════════════════════════════════════════════════════
 function sendLiveInvite() {
-  if (!currentUser) { showAuthScreen('⛷️ Sign in to challenge someone to a live game.'); return; }
+  if (!currentUser) { showAuthScreen('<svg class="icon icon-skier"><use href="#i-skier"/></svg> Sign in to challenge someone to a live game.'); return; }
   const p1      = document.getElementById('lv-p1').value;
   const p2      = document.getElementById('lv-p2').value;
   const judgeId = document.getElementById('lv-judge').value || null;
@@ -10719,7 +10719,7 @@ function sendLiveInvite() {
   save();
   checkNotifications();
   showInviteWaiting(invite);
-  toast(`Invite sent to ${opponent.name}${judgeId ? ` + ⚖️ ${byId(judgeId).name}` : ''} ⛷️`, 'ok');
+  toast(`Invite sent to ${opponent.name}${judgeId ? ` + <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${byId(judgeId).name}` : ''} <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
 }
 
 function showInviteWaiting(invite) {
@@ -10770,7 +10770,7 @@ function acceptLiveInvite(inviteId) {
     _saveToFirestore();
 
     checkNotifications();
-    toast(`You're the judge! ⚖️`, 'ok');
+    toast(`You're the judge! <svg class="icon icon-scale"><use href="#i-scale"/></svg>`, 'ok');
     nav('live-game');
     return;
   }
@@ -10794,7 +10794,7 @@ function acceptLiveInvite(inviteId) {
     save(); // persists the liveInvites status change to the global doc
     startLiveGamePoll();
     checkNotifications();
-    toast(`Game on! ⛷️`, 'ok');
+    toast(`Game on! <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
     nav('live-game');
   };
 
@@ -10822,7 +10822,7 @@ function acceptLiveInvite(inviteId) {
       disputeVotes: {},
       phase:    initialPhase,
       log:      judgeAlreadyAccepted
-        ? [{ icon: '⚖️', msg: `${byId(inv.judgeId)?.name || 'Judge'} has joined as judge — pick who sets first!` }]
+        ? [{ icon: '<svg class="icon icon-scale"><use href="#i-scale"/></svg>', msg: `${byId(inv.judgeId)?.name || 'Judge'} has joined as judge — pick who sets first!` }]
         : [],
       over:     false,
       resort:   inv.resort || '',
@@ -10882,7 +10882,7 @@ function startPolling() {
         if (!Array.isArray(S.pending))     S.pending = [];
         if (!Array.isArray(S.liveInvites)) S.liveInvites = [];
         checkNotifications();
-        toast(`${accepted.toName} accepted! Game starting ⛷️`, 'ok');
+        toast(`${accepted.toName} accepted! Game starting <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
         nav('live-game');
         return;
       }
@@ -11161,7 +11161,7 @@ function resortInput(el, ddId='resort-dropdown') {
       ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(30,130,230,0.18);color:#5aaff0;font-weight:800;letter-spacing:.5px;flex-shrink:0;">EPIC</span>`
       : '';
     return `<div class="resort-item" data-idx="${i}" onmousedown="pickResort('${r.name.replace(/'/g,"\\'")}','${ddId}')">
-      <span class="resort-item-icon">🏔</span>
+      <span class="resort-item-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span>
       <div style="flex:1;min-width:0;">
         <div class="resort-item-main">${hl(r.name)}</div>
         <div class="resort-item-sub">${hl(r.region)}</div>
@@ -11225,7 +11225,7 @@ function renderRatingHistory(playerId, container, countEl) {
     .sort((a, b) => a.date - b.date);
 
   if (!playerGames.length) {
-    container.innerHTML = `<div class="rh-empty">🎿 No games yet — rating graph will appear after the first game.</div>`;
+    container.innerHTML = `<div class="rh-empty"><svg class="icon icon-skis"><use href="#i-skis"/></svg> No games yet — rating graph will appear after the first game.</div>`;
     if (countEl) countEl.textContent = '';
     const card = document.getElementById('rating-history-card');
     if (card) card.style.display = 'none';
@@ -11349,7 +11349,7 @@ function renderRatingHistory(playerId, container, countEl) {
     const sign = pt.delta >= 0 ? '+' : '';
     tooltip.innerHTML = `
       <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${fmt(pt.rating)}</div>
-      <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '✓ Win' : '✗ Loss'} vs ${pt.oppName}</div>
+      <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '<svg class="icon icon-check"><use href="#i-check"/></svg> Win' : '<svg class="icon icon-close"><use href="#i-close"/></svg> Loss'} vs ${pt.oppName}</div>
       <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${pt.delta} pts · ${dateStr}</div>`;
     // Position relative to the dot element so it works on mobile without needing clientX/Y
     const rect = anchorEl.getBoundingClientRect();
@@ -11433,17 +11433,17 @@ function renderMyProfile() {
     countUp(document.getElementById('prof-hero-rating'), p.rating, v => fmt(v) + (provisional ? '*' : ''));
   }
   document.getElementById('prof-hero-tier').innerHTML = t.provisional
-    ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;">⏳ Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games</span>`
+    ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games</span>`
     : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`;
   document.getElementById('prof-hero-rank').textContent   = rank ? `#${rank} Overall` : (p.rating == null ? 'Unrated — play a game to get ranked!' : '');
   document.getElementById('prof-hero-resort').innerHTML   = p.homeResort
-    ? `🏔 ${p.homeResort}`
+    ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}`
     : '<span style="color:var(--text-muted);">No home mountain set</span>';
   document.getElementById('prof-hero-bio').textContent    = p.bio || '';
   const igEl = document.getElementById('prof-hero-instagram');
   if (igEl) igEl.innerHTML = p.instagram
     ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener"
-        style="color:var(--ice);text-decoration:none;font-size:12.5px;">📸 @${p.instagram}</a>`
+        style="color:var(--ice);text-decoration:none;font-size:12.5px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> @${p.instagram}</a>`
     : '';
   document.getElementById('prof-hero-followers').textContent = followerCount(p.id);
   document.getElementById('prof-hero-following').textContent = followingCount(p.id);
@@ -11528,27 +11528,27 @@ function openStatListModal(kind, id) {
 
   if (kind === 'friends') {
     title = 'Friends';
-    icon = '🤝';
+    icon = '<svg class="icon icon-handshake"><use href="#i-handshake"/></svg>';
     emptyMsg = 'No friends yet — add riders from the Riders tab!';
     people = (p.friends || []).map(id => byId(id)).filter(Boolean);
     rowHtml = f => {
       const ft = tier(f.rating, f.gamesPlayed);
       const ftBadge = ft.provisional
-        ? `<span onclick="showTierModal()" style="color:#94a3b8;cursor:pointer;" title="View all tiers">⏳ Provisional · ${f.gamesPlayed}/${RATED_THRESHOLD}</span>`
+        ? `<span onclick="showTierModal()" style="color:#94a3b8;cursor:pointer;" title="View all tiers"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${f.gamesPlayed}/${RATED_THRESHOLD}</span>`
         : `<span onclick="showTierModal()" style="color:${ft.color};cursor:pointer;" title="View all tiers">${ft.icon} ${ft.label}</span>`;
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
           ${avatarHtml(f, 'avatar-sm')}
           <div style="flex:1;min-width:0;">
             <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
           </div>
-          ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>` : ''}
+          ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>` : ''}
         </div>`;
     };
   } else if (kind === 'followers') {
     title = 'Followers';
-    icon = '👥';
+    icon = '<svg class="icon icon-users"><use href="#i-users"/></svg>';
     emptyMsg = 'No followers yet.';
     people = S.players.filter(x => Array.isArray(x.following) && x.following.includes(p.id));
     rowHtml = f => `
@@ -11556,7 +11556,7 @@ function openStatListModal(kind, id) {
         ${avatarHtml(f, 'avatar-sm')}
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
         </div>
         ${followBtn(f.id)}
       </div>`;
@@ -11570,16 +11570,16 @@ function openStatListModal(kind, id) {
         ${avatarHtml(f, 'avatar-sm')}
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
         </div>
-        ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>` : followBtn(f.id)}
+        ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>` : followBtn(f.id)}
       </div>`;
   }
 
   titleEl.textContent = title;
   if (!people.length) {
     listEl.innerHTML = '';
-    emptyIcon.textContent = icon;
+    emptyIcon.innerHTML = icon;
     emptyText.textContent = emptyMsg;
     emptyEl.style.display = 'block';
   } else {
@@ -11601,7 +11601,7 @@ function saveProfileData() {
   p.instagram  = document.getElementById('prof-instagram').value.trim().replace(/^@/, '');
   _profileFormDirty = false;
   save();
-  toast('Profile saved! 🎿', 'ok');
+  toast('Profile saved! <svg class="icon icon-skis"><use href="#i-skis"/></svg>', 'ok');
   renderMyProfile();
 }
 
@@ -11639,7 +11639,7 @@ function handleAvatarUpload(e) {
     _avatarCache[currentUser.id] = compressed;
     _dirtyAvatars.add(currentUser.id);
     save();
-    toast('Photo updated! 📸', 'ok');
+    toast('Photo updated! <svg class="icon icon-camera"><use href="#i-camera"/></svg>', 'ok');
     renderMyProfile();
     updateSidebarAvatar();
   };
@@ -11698,7 +11698,7 @@ function showBadgeModal(badgeId) {
   const def = BADGE_DEFS.find(b => b.id === badgeId);
   if (!def) return;
   const overlay = document.getElementById('badge-modal-overlay');
-  document.getElementById('badge-modal-icon').textContent  = def.icon;
+  document.getElementById('badge-modal-icon').innerHTML  = def.icon;
   document.getElementById('badge-modal-label').textContent = def.label;
   document.getElementById('badge-modal-desc').textContent  = def.desc;
   overlay.style.display = 'flex';
@@ -11768,8 +11768,8 @@ function showRatingAnim(winner, loser, game) {
       <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:4px;color:var(--text-muted);">RATINGS UPDATED</div>
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div class="ra-card">
-          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">🏆 ${winner.name}</div>
-          <div class="ra-delta win">+${wD}${wD>=15?' 🔥':''}</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${winner.name}</div>
+          <div class="ra-delta win">+${wD}${wD>=15?' <svg class="icon icon-fire"><use href="#i-fire"/></svg>':''}</div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--primary);font-weight:700;">${wNew}</span></div>
         </div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--border);">VS</div>
@@ -11912,7 +11912,7 @@ function renderAdminUsers(panel) {
             return `<tr>
               <td style="font-weight:600;">${escHtml(p.name||'')}</td>
               <td style="color:var(--text-muted);font-size:12px;">${escHtml(p.email||'')}</td>
-              <td>${p.riderType === 'boarder' ? '🏂' : '⛷️'}</td>
+              <td>${p.riderType === 'boarder' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg>' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg>'}</td>
               <td>${p.gamesPlayed || 0}</td>
               <td style="color:var(--primary);">${p.rating ? fmt(p.rating) : '—'}</td>
               <td style="color:var(--text-muted);font-size:12px;">${new Date(p.createdAt||0).toLocaleDateString()}</td>
@@ -12048,7 +12048,7 @@ function renderAdminData(panel) {
           <button class="btn btn-outline" onclick="adminExportJSON()">⬇️ Export JSON</button>
           ${backupGames > (S.games||[]).length
             ? `<button class="btn btn-primary" onclick="adminRestoreFromBackup()">⬆️ Restore from Backup (${backupGames} games)</button>`
-            : `<span style="font-size:12px;color:var(--text-muted);align-self:center;">✅ Live data is up to date</span>`}
+            : `<span style="font-size:12px;color:var(--text-muted);align-self:center;"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Live data is up to date</span>`}
         </div>
       </div>
 
@@ -12062,12 +12062,12 @@ function renderAdminData(panel) {
       <div class="admin-card" style="padding:20px;">
         <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🧹 Remove Duplicate Accounts</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
-          ${dupCount > 0 ? `<span style="color:var(--danger);">⚠️ ${dupCount} duplicate record${dupCount>1?'s':''} detected.</span> Keeps the record with the most games (or most recent) for each email.` : '✅ No duplicates found.'}
+          ${dupCount > 0 ? `<span style="color:var(--danger);"><svg class="icon icon-warning"><use href="#i-warning"/></svg> ${dupCount} duplicate record${dupCount>1?'s':''} detected.</span> Keeps the record with the most games (or most recent) for each email.` : '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> No duplicates found.'}
         </div>
         <button class="btn btn-outline" onclick="adminDeduplicatePlayers()" ${dupCount===0?'disabled':''}>Remove Duplicates</button>
       </div>
       <div class="admin-card" style="padding:20px;">
-        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🗑️ Wipe All Game Data</div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;"><svg class="icon icon-trash"><use href="#i-trash"/></svg> Wipe All Game Data</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Deletes all games, ratings, and players from Firestore. Accounts are kept.</div>
         <button class="btn btn-danger" onclick="adminWipeGameData()">Wipe Game Data</button>
       </div>
@@ -12212,12 +12212,12 @@ async function adminWipeEverything() {
   <div style="background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:520px;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(0,0,0,0.55);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <h3 style="font-size:16px;font-weight:800;color:var(--text-primary);margin:0;">📹 Post a Clip</h3>
-      <button onclick="closePostClip()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;">✕</button>
+      <button onclick="closePostClip()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     </div>
     <div style="display:flex;flex-direction:column;gap:14px;">
       <!-- Tab switcher: URL vs File -->
       <div style="display:flex;background:rgba(255,255,255,0.06);border-radius:var(--radius-sm);padding:3px;gap:3px;">
-        <button id="pc-tab-url"  onclick="pcSwitchTab('url')"  style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--ice);color:#14171b;">🔗 Paste Link</button>
+        <button id="pc-tab-url"  onclick="pcSwitchTab('url')"  style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:var(--ice);color:#14171b;"><svg class="icon icon-link"><use href="#i-link"/></svg> Paste Link</button>
         <button id="pc-tab-file" onclick="pcSwitchTab('file')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--text-muted);">📁 Upload File</button>
       </div>
 
@@ -12238,7 +12238,7 @@ async function adminWipeEverything() {
              style="border:2px dashed rgba(255,62,127,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,62,127,0.04);">
           <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
           <div id="pc-drop-label">
-            <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+            <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
             <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Tap to choose a video</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">or drag &amp; drop here</div>
           </div>
@@ -12266,31 +12266,31 @@ async function adminWipeEverything() {
 <!-- Tier info modal -->
 <div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
   <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
-    <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
-    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;">🏆 Rank Tiers</div>
+    <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Rank Tiers</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.22);">
-        <span style="font-weight:700;color:#f97316;">🔥 Elite</span>
+        <span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Elite</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">14.00+</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.22);">
-        <span style="font-weight:700;color:#60a5fa;">⭐ Expert</span>
+        <span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Expert</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">12.00 – 13.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.22);">
-        <span style="font-weight:700;color:#a78bfa;">💪 Advanced</span>
+        <span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Advanced</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">10.00 – 11.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.22);">
-        <span style="font-weight:700;color:#34d399;">📈 Intermediate</span>
+        <span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Intermediate</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">7.00 – 9.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);">
-        <span style="font-weight:700;color:#fbbf24;">🎿 Developing</span>
+        <span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Developing</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">4.00 – 6.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.22);">
-        <span style="font-weight:700;color:#94a3b8;">🏔️ Beginner</span>
+        <span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Beginner</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">0.00 – 3.99</span>
       </div>
     </div>
@@ -12304,8 +12304,8 @@ async function adminWipeEverything() {
     <div id="trick-lib-header">
       <div id="trick-lib-drag"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;" class="trick-lib-sport-label">⛷️ Ski Tricks</div>
-        <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;">✕</button>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;" class="trick-lib-sport-label"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks</div>
+        <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
       </div>
       <!-- List mode (snowboard) -->
       <div id="trick-lib-list-controls">
@@ -12315,9 +12315,9 @@ async function adminWipeEverything() {
       <!-- Builder mode (ski) -->
       <div id="trick-lib-builder-tabs" style="display:none;">
         <div class="builder-mode-tabs">
-          <button class="builder-mode-tab active" onclick="setBuilderMode('jump')">🏔 Jumps</button>
+          <button class="builder-mode-tab active" onclick="setBuilderMode('jump')"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Jumps</button>
           <button class="builder-mode-tab" onclick="setBuilderMode('rail')">🛤 Rails</button>
-          <button class="builder-mode-tab" onclick="setBuilderMode('unique')">⚡ Unique</button>
+          <button class="builder-mode-tab" onclick="setBuilderMode('unique')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Unique</button>
         </div>
       </div>
     </div>
@@ -12357,7 +12357,7 @@ async function adminWipeEverything() {
 <!-- Badge detail modal -->
 <div id="badge-modal-overlay" onclick="closeBadgeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10001;align-items:center;justify-content:center;padding:20px;">
   <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
-    <button onclick="closeBadgeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    <button onclick="closeBadgeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div id="badge-modal-icon" style="font-size:52px;line-height:1;margin-bottom:14px;"></div>
     <div id="badge-modal-label" style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;"></div>
     <div id="badge-modal-desc" style="font-size:14px;color:var(--text-secondary);line-height:1.5;"></div>
