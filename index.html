@@ -2529,7 +2529,7 @@
         <span class="nav-icon"><svg class="icon icon-bell"><use href="#i-bell"/></svg></span><span style="flex:1;">Inbox</span><span class="nav-badge" id="inbox-badge" style="display:none;">0</span>
       </button>
       <button class="nav-btn" data-view="players" onclick="nav('players');closeMoreSheet()">
-        <span class="nav-icon"><svg class="icon icon-skis"><use href="#i-skis"/></svg></span><span style="flex:1;">Riders</span>
+        <span class="nav-icon"><svg class="icon icon-skier"><use href="#i-skier"/></svg></span><span style="flex:1;">Riders</span>
       </button>
       <button class="nav-btn" data-view="log-game" onclick="nav('log-game');closeMoreSheet()">
         <span class="nav-icon"><svg class="icon icon-edit"><use href="#i-edit"/></svg></span><span style="flex:1;">Log a Game</span>
@@ -5236,8 +5236,7 @@ const ONBOARDING_STEPS = [
     body: `Your rating places you in a tier:<br><br>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;text-align:left;">
         <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Legend</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span><span style="color:var(--text-muted);font-size:12px;">12.00–13.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);"><span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Charger</span><span style="color:var(--text-muted);font-size:12px;">10.00–11.99</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span><span style="color:var(--text-muted);font-size:12px;">10.00–13.99</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Shredder</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Park Rat</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
         <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Rookie</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
@@ -5492,8 +5491,7 @@ function tier(raw, gamesPlayed) {
     return { label:'Provisional', color:'#94a3b8', icon:'<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg>', provisional: true };
   const r = raw / 100;
   if (r >= 14) return { label:'Legend',   color:'#f97316', icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>' };
-  if (r >= 12) return { label:'Sender',   color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
-  if (r >= 10) return { label:'Charger',  color:'#a78bfa', icon:'<svg class="icon icon-strength"><use href="#i-strength"/></svg>' };
+  if (r >= 10) return { label:'Sender',   color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
   if (r >=  7) return { label:'Shredder', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
   if (r >=  4) return { label:'Park Rat', color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
   return              { label:'Rookie',   color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
@@ -12285,11 +12283,7 @@ async function adminWipeEverything() {
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.22);">
         <span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span>
-        <span style="font-size:12.5px;color:var(--text-secondary);">12.00 – 13.99</span>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.22);">
-        <span style="font-weight:700;color:#a78bfa;"><svg class="icon icon-strength"><use href="#i-strength"/></svg> Charger</span>
-        <span style="font-size:12.5px;color:var(--text-secondary);">10.00 – 11.99</span>
+        <span style="font-size:12.5px;color:var(--text-secondary);">10.00 – 13.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.22);">
         <span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Shredder</span>
