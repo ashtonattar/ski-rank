@@ -1508,7 +1508,7 @@
     }
     .action-shot::before {
       content:''; position:absolute; inset:0;
-      background:linear-gradient(180deg,rgba(2,12,30,0.45) 0%,rgba(2,12,30,0.25) 50%,rgba(2,12,30,0.72) 100%);
+      background:linear-gradient(180deg,rgba(2,12,30,0.72) 0%,rgba(2,12,30,0.55) 50%,rgba(2,12,30,0.85) 100%);
     }
     .action-shot-label {
       position:absolute; bottom:9px; left:12px;
@@ -2433,20 +2433,6 @@
     <button class="nav-btn" data-view="profile" onclick="nav('profile');closeMoreSheet()">
       <span class="nav-icon">👤</span><span style="flex:1;">Profile</span>
     </button>
-    <hr>
-    <!-- Signed-in account row -->
-    <div class="sidebar-user" id="sb-user-footer" onclick="nav('profile');closeMoreSheet()" style="cursor:pointer;" title="View my profile">
-      <div style="flex:1;min-width:0;">
-        <div id="sb-display-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
-        <div id="sb-username" style="font-size:10.5px;color:var(--text-muted);">—</div>
-      </div>
-      <button class="btn-logout" onclick="event.stopPropagation();logout();closeMoreSheet()" title="Sign out">⏻</button>
-    </div>
-    <!-- Guest account row (shown when browsing without an account) -->
-    <div class="sidebar-user" id="sb-guest-footer" style="display:none;gap:8px;flex-direction:column;align-items:stretch;">
-      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('signup');closeMoreSheet()">Join Free</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="showAuthScreen();switchAuthTab('login');closeMoreSheet()">Sign In</button>
-    </div>
   </div>
 
   <!-- ═══ Main ═══ -->
@@ -4430,8 +4416,6 @@ function logout() {
     if (_fbAuth) _fbAuth.signOut().catch(()=>{});
     S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
     load(); // reload public data so preview is still populated
-    document.getElementById('sb-user-footer').style.display  = 'none';
-    document.getElementById('sb-guest-footer').style.display = 'flex';
     _setFabVisible(false);
     nav('leaderboard');
   });
@@ -4468,8 +4452,6 @@ function deleteAccount() {
       if (_fbAuth) _fbAuth.signOut().catch(()=>{});
       S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
       load();
-      document.getElementById('sb-user-footer').style.display  = 'none';
-      document.getElementById('sb-guest-footer').style.display = 'flex';
       _setFabVisible(false);
       nav('leaderboard');
       toast('Account deleted.', 'ok');
@@ -4514,8 +4496,6 @@ function dismissAuthScreen() {
 function launchPreview() {
   _animateAuthOut(() => {
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('sb-user-footer').style.display  = 'none';
-  document.getElementById('sb-guest-footer').style.display = 'flex';
   _setFabVisible(false);
   // Always start empty — Firestore is the source of truth.
   // Don't call load() here or stale localStorage data would show up.
@@ -5200,13 +5180,8 @@ function closeOnboarding() {
 function launchApp() {
   _animateAuthOut(() => {
   document.getElementById('app').style.display = 'flex';
-  // Show the signed-in footer, hide the guest footer
-  document.getElementById('sb-user-footer').style.display  = 'flex';
-  document.getElementById('sb-guest-footer').style.display = 'none';
   _setFabVisible(true);
   if (currentUser) {
-    document.getElementById('sb-display-name').textContent = currentUser.name;
-    document.getElementById('sb-username').textContent = currentUser.email;
     updateSidebarAvatar();
   }
   // Start with empty state — Firestore is the sole source of truth.
