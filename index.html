@@ -1489,8 +1489,6 @@
     }
     .action-shot {
       height:110px;
-      background-size:cover;
-      background-position:center;
       border-radius:var(--radius);
       position:relative;
       overflow:hidden;
@@ -1502,9 +1500,15 @@
       box-shadow:0 8px 30px rgba(0,0,0,0.5);
       z-index:1;
     }
+    .action-shot-bg {
+      position:absolute; inset:0;
+      background-size:cover;
+      background-position:center;
+      filter:brightness(.55) saturate(1.1);
+    }
     .action-shot::before {
       content:''; position:absolute; inset:0;
-      background:linear-gradient(180deg,rgba(0,0,0,0.45) 0%,rgba(0,0,0,0.25) 50%,rgba(0,0,0,0.72) 100%);
+      background:linear-gradient(180deg,rgba(2,12,30,0.45) 0%,rgba(2,12,30,0.25) 50%,rgba(2,12,30,0.72) 100%);
     }
     .action-shot-label {
       position:absolute; bottom:9px; left:12px;
@@ -1933,7 +1937,7 @@
         margin-left:0 !important; max-width:100% !important;
         margin-bottom:0; padding:14px 12px; width:100%;
         box-sizing:border-box; min-width:0;
-        padding-top:max(14px, env(safe-area-inset-top)) !important;
+        padding-top:calc(64px + env(safe-area-inset-top)) !important;
         padding-bottom:calc(140px + env(safe-area-inset-bottom)) !important;
       }
       /* Fix flex overflow */
@@ -2701,10 +2705,12 @@
 
       <!-- Action shots strip -->
       <div class="action-strip" id="play-action-strip" style="margin-bottom:22px;">
-        <div class="action-shot" style="background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=600&auto=format&fit=crop&q=75');background-position:center 30%;">
+        <div class="action-shot">
+          <div class="action-shot-bg" style="background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=600&auto=format&fit=crop&q=75');background-position:center 30%;"></div>
           <div class="action-shot-label">Set Tricks</div>
         </div>
-        <div class="action-shot" style="background-image:url('https://images.unsplash.com/photo-1776789472329-2766e6f4ee17?w=600&auto=format&fit=crop&q=75');background-position:40% center;">
+        <div class="action-shot">
+          <div class="action-shot-bg" style="background-image:url('https://images.unsplash.com/photo-1776789472329-2766e6f4ee17?w=600&auto=format&fit=crop&q=75');background-position:40% center;"></div>
           <div class="action-shot-label">Collect Letters</div>
         </div>
       </div>
