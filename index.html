@@ -773,10 +773,13 @@
     .form-input, .form-select, .form-textarea {
       background:rgba(0,12,28,0.85); border:1px solid var(--border);
       border-radius:var(--radius-sm); color:var(--text-primary);
-      font-family:'Inter',sans-serif; font-size:13.5px;
+      font-family:'Inter',sans-serif; font-size:16px;
       padding:10px 13px;
       transition:border-color .2s, box-shadow .2s;
       width:100%;
+    }
+    @media (min-width:768px) {
+      .form-input, .form-select, .form-textarea { font-size:13.5px; }
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       outline:none; border-color:var(--ice);
@@ -2120,7 +2123,7 @@
     #trick-lib-search {
       width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06);
       border:1px solid rgba(255,62,127,0.2); border-radius:12px;
-      padding:10px 14px; color:var(--text-primary); font-size:15px;
+      padding:10px 14px; color:var(--text-primary); font-size:16px;
       outline:none; margin-bottom:10px;
     }
     #trick-lib-search:focus { border-color:rgba(255,62,127,0.5); }
@@ -2490,13 +2493,13 @@
           <div style="position:relative;flex:1;min-width:140px;box-sizing:border-box;">
             <input type="text" id="lb-search" class="form-input"
               placeholder="Search riders…"
-              style="padding-left:32px;height:36px;font-size:13px;width:100%;box-sizing:border-box;"
+              style="padding-left:32px;height:36px;font-size:16px;width:100%;box-sizing:border-box;"
               oninput="filterLeaderboard()">
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">⌕</span>
           </div>
           <div style="position:relative;flex:1;min-width:140px;">
             <select id="lb-mountain" onchange="filterLeaderboard()"
-              style="width:100%;height:36px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0 32px 0 32px;font-size:13px;font-family:inherit;appearance:none;cursor:pointer;outline:none;">
+              style="width:100%;height:36px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0 32px 0 32px;font-size:16px;font-family:inherit;appearance:none;cursor:pointer;outline:none;">
               <option value="">All Mountains</option>
             </select>
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🏔</span>
@@ -11914,7 +11917,7 @@ function renderAdminRatings(panel) {
             <td style="color:var(--primary);">${p.rating ? fmt(p.rating) : 'Unranked'}</td>
             <td><input type="number" step="0.01" min="1" max="20" value="${p.rating ? (p.rating/100).toFixed(2) : ''}"
               placeholder="e.g. 8.50"
-              style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);padding:5px 8px;width:100px;font-family:inherit;font-size:13px;"
+              style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);padding:5px 8px;width:100px;font-family:inherit;font-size:16px;"
               id="rating-input-${p.id}"></td>
             <td><button class="btn btn-primary btn-sm" onclick="adminSetRating('${p.id}')">Set</button>
                 <button class="btn btn-ghost btn-sm" onclick="adminResetRating('${p.id}')">Reset</button></td>
