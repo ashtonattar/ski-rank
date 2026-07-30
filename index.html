@@ -328,8 +328,16 @@
     body.light .topbar { background:rgba(255,253,248,0.9); }
     .topbar-brand { display:flex; align-items:center; gap:9px; }
     .topbar-brand .logo-title { font-size:15px; letter-spacing:2px; }
-    .topbar-account { background:none; border:none; cursor:pointer; padding:0; border-radius:50%; line-height:0; }
-    .topbar-account:active { transform:scale(0.92); }
+    .topbar-account {
+      display:flex; align-items:center; gap:7px;
+      background:var(--bg-elevated,rgba(255,255,255,0.06)); border:1px solid var(--border);
+      cursor:pointer; padding:4px 12px 4px 4px; border-radius:999px; line-height:0;
+    }
+    .topbar-account:active { transform:scale(0.96); }
+    .topbar-account-name {
+      font-size:12.5px; font-weight:700; line-height:normal; max-width:100px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
 
     /* ── NATIVE SHELL: bottom tab bar ── */
     .tabbar {
@@ -2377,8 +2385,9 @@
       </svg>
       <span class="logo-title">SLOPE BATTLES</span>
     </div>
-    <button class="topbar-account" onclick="openMoreSheet()" title="Account & more" id="topbar-account">
+    <button class="topbar-account" onclick="nav('profile');closeMoreSheet()" title="My Profile" id="topbar-account">
       <span class="avatar avatar-sm" id="sb-avatar" style="background:linear-gradient(135deg,#cc2f63,#22e0c2);">?</span>
+      <span class="topbar-account-name" id="sb-name"></span>
     </button>
   </header>
 
@@ -11404,6 +11413,8 @@ function updateSidebarAvatar() {
       el.style.background = avatarGrad(currentUser.id);
     }
   }
+  const nameEl = document.getElementById('sb-name');
+  if (nameEl) nameEl.textContent = (currentUser.name || '').split(' ')[0];
 }
 
 function handleAvatarUpload(e) {
