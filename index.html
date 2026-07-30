@@ -8953,8 +8953,8 @@ function showProfile(id) {
           ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;">📸 @${p.instagram}</a>` : ''}
         </div>
         <div style="display:flex;gap:14px;align-items:center;margin-top:7px;font-size:12.5px;" id="modal-follow-counts">
-          <span><strong id="modal-follower-count" style="color:var(--text-primary);">${followers}</strong> <span style="color:var(--text-muted);">Followers</span></span>
-          <span><strong id="modal-following-count" style="color:var(--text-primary);">${followingN}</strong> <span style="color:var(--text-muted);">Following</span></span>
+          <span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-primary);">${followers}</strong> <span style="color:var(--text-muted);">Followers</span></span>
+          <span style="cursor:pointer;" onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count" style="color:var(--text-primary);">${followingN}</strong> <span style="color:var(--text-muted);">Following</span></span>
         </div>
         ${p.bio ? `<div style="font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.55;">${p.bio}</div>` : ''}
       </div>
@@ -11444,9 +11444,9 @@ function renderMyProfile() {
 }
 
 // ── Friends / Followers / Following popup (click a stat on the profile hero) ──
-function openStatListModal(kind) {
+function openStatListModal(kind, id) {
   if (!currentUser) return;
-  const p = S.players.find(x => x.id === currentUser.id);
+  const p = S.players.find(x => x.id === (id || currentUser.id));
   if (!p) return;
 
   const titleEl = document.getElementById('stat-list-title');
@@ -11474,7 +11474,7 @@ function openStatListModal(kind) {
             <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
             <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>
+          ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;">✕</button>` : ''}
         </div>`;
     };
   } else if (kind === 'followers') {
@@ -11503,7 +11503,7 @@ function openStatListModal(kind) {
           <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
           <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · 🏔 ${f.homeResort}` : ''}</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>
+        ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;">✕</button>` : followBtn(f.id)}
       </div>`;
   }
 
