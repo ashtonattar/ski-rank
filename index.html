@@ -360,19 +360,6 @@
     .tabbar .nav-btn.active .nav-icon { filter:drop-shadow(0 0 6px rgba(255,62,127,0.5)); }
     .tabbar .nav-btn:hover { transform:none; background:rgba(255,62,127,0.06); }
 
-    /* Floating action button — always-available shortcut into a new duel */
-    .fab {
-      position:absolute; right:14px; top:-26px;
-      width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
-      background:linear-gradient(135deg, var(--ice), var(--ice-dark));
-      color:#14171b; font-size:22px;
-      display:flex; align-items:center; justify-content:center;
-      box-shadow:0 8px 22px rgba(255,62,127,0.45), 0 0 0 4px var(--bg-base);
-      transition:transform .18s;
-    }
-    .fab:hover { transform:scale(1.06) translateY(-1px); }
-    .fab:active { transform:scale(0.94); }
-
     /* More sheet (slide-up overflow: Riders, Log, Tourneys, Inbox, account) */
     .more-sheet-overlay {
       position:fixed; inset:0; z-index:150; background:rgba(0,0,0,0.55);
@@ -2412,7 +2399,6 @@
     <button class="nav-btn" id="nav-more" onclick="openMoreSheet()">
       <span class="nav-icon">☰</span><span style="flex:1;">More</span><span class="nav-badge" id="more-badge" style="display:none;">0</span>
     </button>
-    <button class="fab" onclick="nav('live-game')" title="New Duel">⚡</button>
   </nav>
 
   <!-- ═══ More sheet (overflow nav + account) ═══ -->
