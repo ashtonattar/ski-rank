@@ -2254,7 +2254,7 @@
 </head>
 <body>
 <style>
-  .icon{width:1em;height:1em;display:inline-block;vertical-align:-0.15em;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .icon{width:1em;height:1em;display:inline-block;vertical-align:-0.15em;flex-shrink:0;fill:none;color:var(--primary);stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
   .icon-fill{fill:currentColor;stroke:none;}
   .icon-success{color:var(--success,#22c55e);}
   .icon-danger{color:var(--danger,#ef4444);}
@@ -9050,12 +9050,22 @@ function showProfile(id) {
       </div>
     </div>` : ''}
 
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
-      ${[['Wins',actualWins,'var(--success)'],['Losses',actualLosses,'var(--danger)'],['Win %',wpct+'%','var(--primary)'],['Games',actualGames,'var(--text-primary)']].map(([l,v,c])=>`
-        <div class="stat-card" style="padding:14px;min-width:0;overflow:hidden;">
-          <div class="stat-label">${l}</div>
-          <div style="font-size:clamp(16px,4vw,26px);font-weight:800;color:${c};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v}</div>
-        </div>`).join('')}
+    <!-- ── Stats (combined) ── -->
+    <div class="stat-card" style="padding:16px 18px;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px 10px;">
+        ${[
+          ['Wins', actualWins, 'var(--success)'],
+          ['Losses', actualLosses, 'var(--danger)'],
+          ['Win %', wpct+'%', 'var(--primary)'],
+          ['Games', actualGames, 'var(--text-primary)'],
+          ['Streak', !streaks.current ? '—' : `${streaks.type}${streaks.current}`, !streaks.current?'var(--text-muted)':streaks.type==='W'?'var(--success)':'var(--danger)'],
+          ['Best Streak', streaks.best || '—', streaks.best?'var(--success)':'var(--text-muted)']
+        ].map(([l,v,c])=>`
+          <div style="min-width:0;">
+            <div class="stat-label" style="margin-bottom:4px;">${l}</div>
+            <div style="font-size:clamp(15px,3.6vw,22px);font-weight:800;color:${c};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v}</div>
+          </div>`).join('')}
+      </div>
     </div>
 
     <!-- ── Badges ── -->
@@ -9073,34 +9083,6 @@ function showProfile(id) {
         </div>
       </div>`;
     })()}
-
-    <!-- ── Streak cards ── -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-      <div class="stat-card" style="padding:14px 16px;border-left:3px solid ${!streaks.current?'var(--border)':streaks.type==='W'?'var(--success)':'var(--danger)'};position:relative;overflow:hidden;">
-        <div class="stat-label" style="margin-bottom:6px;">Current Streak</div>
-        <div style="display:flex;align-items:baseline;gap:7px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:${!streaks.current?'var(--text-muted)':streaks.type==='W'?'var(--success)':'var(--danger)'};">
-            ${!streaks.current ? '—' : `${streaks.type}${streaks.current}`}
-          </div>
-          ${streaks.current >= 3 && streaks.type==='W' ? `<span style="font-size:22px;line-height:1;"><svg class="icon icon-fire"><use href="#i-fire"/></svg></span>` : ''}
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
-          ${!streaks.current ? 'no games yet' : streaks.type==='W' ? 'wins in a row' : 'losses in a row'}
-        </div>
-      </div>
-      <div class="stat-card" style="padding:14px 16px;border-left:3px solid var(--success);position:relative;overflow:hidden;">
-        <div class="stat-label" style="margin-bottom:6px;">Best Win Streak</div>
-        <div style="display:flex;align-items:baseline;gap:7px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:${streaks.best?'var(--success)':'var(--text-muted)'};">
-            ${streaks.best || '—'}
-          </div>
-          ${streaks.best >= 5 ? `<span style="font-size:22px;line-height:1;"><svg class="icon icon-fire"><use href="#i-fire"/></svg></span>` : ''}
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
-          ${streaks.best ? 'all‑time best' : 'no wins yet'}
-        </div>
-      </div>
-    </div>
 
     <!-- ── Head-to-head ── -->
     ${h2h.length ? `
