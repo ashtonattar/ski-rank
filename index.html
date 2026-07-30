@@ -9007,26 +9007,30 @@ function showProfile(id) {
     : `<div class="avatar avatar-lg" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
 
   document.getElementById('profile-content').innerHTML = `
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
       ${avatarHtml}
       <div style="flex:1;min-width:0;">
         <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${p.name}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:14px;font-weight:400;color:var(--accent);background:${'var(--accent)'}1a;border:1px solid ${'var(--accent)'}44;border-radius:99px;padding:1px 8px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;margin-top:${p.rating == null ? '6px' : '0'};">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
-        <div style="display:flex;gap:7px;align-items:center;margin-top:5px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:${p.rating == null ? '6px' : '0'};">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
           ${t.provisional
             ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
             : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`}
-          <span style="font-size:12px;color:var(--text-muted);">${p.riderType === 'boarder' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboarder' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier'}</span>
-          ${p.homeResort ? `<span style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}</span>` : p.location ? `<span style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-pin"><use href="#i-pin"/></svg> ${p.location}</span>` : ''}
-          ${p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ice);text-decoration:none;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> @${p.instagram}</a>` : ''}
         </div>
-        <div style="display:flex;gap:14px;align-items:center;margin-top:7px;font-size:12.5px;flex-wrap:wrap;" id="modal-follow-counts">
-          <span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-primary);">${followers}</strong> <span style="color:var(--text-muted);">Followers</span></span>
-          <span style="cursor:pointer;" onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count" style="color:var(--text-primary);">${followingN}</strong> <span style="color:var(--text-muted);">Following</span></span>
-          <span style="cursor:pointer;" onclick="openStatListModal('friends','${p.id}')"><strong id="modal-friends-count" style="color:var(--text-primary);">${(p.friends || []).length}</strong> <span style="color:var(--text-muted);">Friends</span></span>
-        </div>
-        ${p.bio ? `<div style="font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.55;">${p.bio}</div>` : ''}
       </div>
+    </div>
+
+    <!-- ── About (quiet metadata line) ── -->
+    <div style="margin-bottom:18px;padding:0 2px;font-size:12px;color:var(--text-muted);line-height:1.7;">
+      ${[
+        p.riderType === 'boarder' ? 'Snowboarder' : 'Skier',
+        p.homeResort || p.location || '',
+        p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="color:var(--ice);text-decoration:none;">@${p.instagram}</a>` : '',
+        `<span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-secondary);">${followers}</strong> Followers</span>`,
+        `<span style="cursor:pointer;" onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count" style="color:var(--text-secondary);">${followingN}</strong> Following</span>`,
+        `<span style="cursor:pointer;" onclick="openStatListModal('friends','${p.id}')"><strong id="modal-friends-count" style="color:var(--text-secondary);">${(p.friends || []).length}</strong> Friends</span>`
+      ].filter(Boolean).join(' · ')}
+      ${p.bio ? `<div style="color:var(--text-secondary);margin-top:6px;">${p.bio}</div>` : ''}
     </div>
 
     <!-- ── Mutual friends ── -->
