@@ -1712,7 +1712,7 @@
       display:grid;
       grid-template-columns:220px 1fr;
       gap:16px;
-      height:calc(100vh - 200px);
+      height:calc(100dvh - 230px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
       min-height:420px;
     }
     .friends-sidebar {
