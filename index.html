@@ -3445,6 +3445,7 @@
       <button id="atab-users"   onclick="adminTab('users')"   class="admin-tab active"><svg class="icon icon-users"><use href="#i-users"/></svg> Users</button>
       <button id="atab-games"   onclick="adminTab('games')"   class="admin-tab"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Games</button>
       <button id="atab-ratings" onclick="adminTab('ratings')" class="admin-tab"><svg class="icon icon-star"><use href="#i-star"/></svg> Ratings</button>
+      <button id="atab-reports" onclick="adminTab('reports')" class="admin-tab"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Reports</button>
       <button id="atab-data"    onclick="adminTab('data')"    class="admin-tab">🗄️ Data</button>
     </div>
     <div id="admin-panel"></div>
@@ -3567,6 +3568,34 @@
         <input type="text" class="form-input" id="challenge-message" placeholder="Let's run it on the big kicker…" maxlength="120">
       </div>
       <button class="btn btn-accent btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="sendChallenge()"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Send Challenge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Report User Modal ─── -->
+<div class="modal-overlay hidden" id="report-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-hdr">
+      <span class="modal-title"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report Player</span>
+      <button class="modal-close" onclick="closeModal('report-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+    </div>
+    <div id="report-modal-body">
+      <div style="margin-bottom:16px;font-size:14px;font-weight:600;" id="report-modal-to"></div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <select class="form-select" id="report-reason">
+          <option value="Harassment">Harassment or abuse</option>
+          <option value="Cheating">Cheating / disputed results</option>
+          <option value="Inappropriate content">Inappropriate content or clip</option>
+          <option value="Fake account">Fake or impersonation account</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Details <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <textarea class="form-textarea" id="report-details" maxlength="500" placeholder="What happened?" rows="4"></textarea>
+      </div>
+      <button class="btn btn-danger btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="submitReport()"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Submit Report</button>
     </div>
   </div>
 </div>
@@ -3715,6 +3744,9 @@ async function _saveToFirestore(pendingCopy) {
     // two people logging or resolving games within the same debounce window would
     // otherwise silently drop each other's pending request, same class of bug as messages.
     delete copy.pending;
+    // Reports are appended via a targeted arrayUnion update (see submitReport) —
+    // same reasoning as messages/pending above.
+    delete copy.reports;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -3847,7 +3879,7 @@ function startFirestoreSync() {
         });
 
         // Ensure all arrays exist
-        ['pending','liveInvites','friendRequests','messages','challenges','tournaments'].forEach(k => {
+        ['pending','liveInvites','friendRequests','messages','challenges','tournaments','reports'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
         });
 
@@ -5339,7 +5371,7 @@ function _animateAuthOut(cb) {
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[], clips:[], likes:{} };
+let S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[], clips:[], likes:{}, reports:[] };
 
 function load() {
   try {
@@ -9175,6 +9207,7 @@ function showProfile(id) {
       ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${p.name}</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>` : ''}
     </div>`;
 
   openModal('profile-modal');
@@ -9251,6 +9284,56 @@ function sendChallenge() {
   const dateStr = new Date(dateVal + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
   const judgeNote = judgeId ? ` · <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${byId(judgeId)?.name} judging` : '';
   toast(`Challenge sent to ${toPlayer?.name} for ${dateStr}${judgeNote} <svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`, 'ok');
+}
+
+// ═══════════════════════════════════════════════════════
+//  REPORT PLAYER
+// ═══════════════════════════════════════════════════════
+let _reportTargetId = null;
+
+function openReportModal(toId) {
+  if (!currentUser) return;
+  _reportTargetId = toId;
+  const p = byId(toId);
+  closeModal('profile-modal');
+  document.getElementById('report-modal-to').innerHTML =
+    `Reporting <strong style="color:var(--danger);">${p?.name || 'Unknown'}</strong>`;
+  document.getElementById('report-reason').value  = 'Harassment';
+  document.getElementById('report-details').value = '';
+  openModal('report-modal');
+}
+
+function submitReport() {
+  if (!_reportTargetId || !currentUser) return;
+  const target  = byId(_reportTargetId);
+  const reason  = document.getElementById('report-reason').value;
+  const details = document.getElementById('report-details').value.trim();
+
+  const report = {
+    id: uid(),
+    reportedId:   _reportTargetId,
+    reportedName: target?.name || 'Unknown',
+    reporterId:   currentUser.id,
+    reporterName: currentUser.name,
+    reason,
+    details:  details || null,
+    status:   'open',
+    createdAt: Date.now()
+  };
+
+  if (!Array.isArray(S.reports)) S.reports = [];
+  S.reports.push(report);
+  save();
+  // Persist via an atomic arrayUnion, same pattern as sendMessage/challenges —
+  // two people filing reports in the same debounce window shouldn't be able
+  // to drop each other's report.
+  if (db) {
+    db.collection('state').doc('global').update({
+      reports: firebase.firestore.FieldValue.arrayUnion(report)
+    }).catch(e => console.warn('Report submit failed:', e));
+  }
+  closeModal('report-modal');
+  toast(`Report submitted. Thanks for helping keep Slope Battles safe.`, 'ok');
 }
 
 function acceptChallenge(id) {
@@ -11890,6 +11973,7 @@ function adminTab(tab) {
   if      (tab === 'users')   renderAdminUsers(panel);
   else if (tab === 'games')   renderAdminGames(panel);
   else if (tab === 'ratings') renderAdminRatings(panel);
+  else if (tab === 'reports') renderAdminReports(panel);
   else if (tab === 'data')    renderAdminData(panel);
 }
 
@@ -11967,6 +12051,50 @@ function adminDeleteGame(id) {
     toast('Game deleted.', 'ok');
     renderAdminStats();
     adminTab('games');
+  });
+}
+
+function renderAdminReports(panel) {
+  const reports = [...(S.reports || [])].sort((a,b) => b.createdAt - a.createdAt);
+  panel.innerHTML = `
+    <div class="admin-card">
+      <table class="admin-table">
+        <thead><tr><th>Date</th><th>Reported</th><th>Reported By</th><th>Reason</th><th>Details</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${reports.length ? reports.map(r => `<tr>
+              <td style="color:var(--text-muted);font-size:12px;">${new Date(r.createdAt).toLocaleDateString()}</td>
+              <td style="font-weight:600;">${escHtml(r.reportedName)}</td>
+              <td style="color:var(--text-muted);font-size:12px;">${escHtml(r.reporterName)}</td>
+              <td>${escHtml(r.reason)}</td>
+              <td style="color:var(--text-muted);font-size:12px;max-width:220px;">${r.details ? escHtml(r.details) : '—'}</td>
+              <td>${r.status === 'resolved'
+                ? `<span style="color:var(--success);">Resolved</span>`
+                : `<span style="color:var(--danger);">Open</span>`}</td>
+              <td style="white-space:nowrap;">
+                ${r.status !== 'resolved' ? `<button class="btn btn-primary btn-sm" onclick="adminResolveReport('${r.id}')">Resolve</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="adminDeleteReport('${r.id}')">Delete</button>
+              </td>
+            </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No reports yet</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function adminResolveReport(id) {
+  const r = (S.reports || []).find(x => x.id === id);
+  if (!r) return;
+  r.status = 'resolved';
+  save();
+  toast('Report marked resolved.', 'ok');
+  adminTab('reports');
+}
+
+function adminDeleteReport(id) {
+  confirm_('Delete Report', 'Remove this report permanently?', () => {
+    S.reports = (S.reports || []).filter(x => x.id !== id);
+    save();
+    toast('Report deleted.', 'ok');
+    adminTab('reports');
   });
 }
 
