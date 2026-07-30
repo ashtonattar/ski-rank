@@ -837,6 +837,25 @@
     .badge-primary { background:rgba(255,62,127,.1);  color:var(--ice);     border:1px solid rgba(255,62,127,.22); }
     .badge-success { background:rgba(0,230,118,.1);  color:var(--success); border:1px solid rgba(0,230,118,.22); }
     .badge-danger  { background:rgba(255,51,85,.1);  color:var(--danger);  border:1px solid rgba(255,51,85,.22); }
+
+    /* ── TIER / RATING BADGES ── */
+    .tier-badge {
+      --tc:#94a3b8;
+      gap:6px; padding:2px 11px 2px 2px; border-radius:999px;
+      color:var(--tc);
+      background:linear-gradient(135deg, color-mix(in srgb, var(--tc) 24%, transparent), color-mix(in srgb, var(--tc) 6%, transparent));
+      border:1px solid color-mix(in srgb, var(--tc) 42%, transparent);
+      box-shadow:0 0 10px color-mix(in srgb, var(--tc) 28%, transparent), inset 0 1px 0 color-mix(in srgb, var(--tc) 16%, transparent);
+      transition:transform .15s ease, box-shadow .15s ease;
+    }
+    .tier-badge[onclick] { cursor:pointer; }
+    .tier-badge[onclick]:hover { transform:translateY(-1px); box-shadow:0 0 15px color-mix(in srgb, var(--tc) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--tc) 20%, transparent); }
+    .tier-badge-icon {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:16px; height:16px; border-radius:50%; flex-shrink:0;
+      background:color-mix(in srgb, var(--tc) 30%, transparent);
+    }
+    .tier-badge-icon .icon { width:10px; height:10px; }
     .badge-accent  { background:rgba(34,224,194,.1);   color:var(--fire);   border:1px solid rgba(34,224,194,.22); animation:badgeGlow 2.2s ease-in-out infinite; }
     .badge-muted   { background:rgba(45,90,115,.1);  color:var(--text-muted); border:1px solid rgba(45,90,115,.2); }
     @keyframes badgeGlow {
@@ -5480,6 +5499,15 @@ function tier(raw, gamesPlayed) {
   return              { label:'Beginner',      color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
 }
 
+// Renders a tier/provisional pill: colored glow, icon in a tinted chip. Pass clickable:true to wire up the tier-list modal.
+function tierBadgeHTML(t, text, { clickable = false } = {}) {
+  const coloredIcon = t.icon.replace('<svg ', `<svg style="color:${t.color}" `);
+  const attrs = clickable ? ` onclick="showTierModal()" title="View all tiers" role="button" tabindex="0"` : '';
+  return `<span class="badge tier-badge"${attrs} style="--tc:${t.color};">
+    <span class="tier-badge-icon">${coloredIcon}</span><span>${text}</span>
+  </span>`;
+}
+
 // Null-safe rating formatter — shows 'Unrated', 'Provisional', or the numeric rating
 function ratingDisplay(raw, gamesPlayed) {
   if (raw == null) return 'Unrated';
@@ -6125,11 +6153,11 @@ function renderLeaderboard() {
             : isProvisional
               ? `<div style="display:flex;align-items:center;gap:8px;">
                    <span class="td-rating" style="color:var(--text-muted);">${fmt(p.rating)}<span style="font-size:10px;color:var(--text-muted);margin-left:2px;" title="Provisional — play ${RATED_THRESHOLD - p.gamesPlayed} more games for an official rating">*</span></span>
-                   <span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;font-size:10px;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> ${p.gamesPlayed}/${RATED_THRESHOLD}</span>
+                   ${tierBadgeHTML(t, `${p.gamesPlayed}/${RATED_THRESHOLD}`)}
                  </div>`
               : `<div style="display:flex;align-items:center;gap:8px;">
                    <span class="td-rating">${fmt(p.rating)}</span>
-                   <span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:10px;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>
+                   ${tierBadgeHTML(t, t.label, {clickable:true})}
                  </div>`}
         </td>
         <td class="td-win lb-col-games">${isUnrated ? '—' : p.wins}</td>
@@ -6949,7 +6977,7 @@ function playerPanel(player, g, role) {
         ${avatarHtml(player, 'avatar-lg')}
       </div>
       <div class="pp-name">${player.name}</div>
-      <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} · <span onclick="showTierModal()" style="cursor:pointer;" title="View all tiers">${t.provisional ? `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}` : `${t.icon} ${t.label}`}</span></div>
+      <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} &nbsp; ${t.provisional ? tierBadgeHTML(t, `Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}`, {clickable:true}) : tierBadgeHTML(t, t.label, {clickable:true})}</div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
       </div>
@@ -7550,8 +7578,8 @@ function renderPlayers() {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${p.name}</span>
             ${t.provisional
-              ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
-              : `<span class="badge" onclick="showTierModal()" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;cursor:pointer;" title="View all tiers">${t.icon} ${t.label}</span>`}
+              ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
+              : `${tierBadgeHTML(t, t.label, {clickable:true})}`}
           </div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
             Rating: <strong style="color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};">${ratingDisplay(p.rating, p.gamesPlayed)}</strong>
@@ -9010,12 +9038,12 @@ function showProfile(id) {
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
       ${avatarHtml}
       <div style="flex:1;min-width:0;">
-        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${p.name}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:14px;font-weight:400;color:var(--accent);background:${'var(--accent)'}1a;border:1px solid ${'var(--accent)'}44;border-radius:99px;padding:1px 8px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${p.name}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:${p.rating == null ? '6px' : '0'};">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
           ${t.provisional
-            ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}</span>`
-            : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`}
+            ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
+            : `${tierBadgeHTML(t, t.label)}`}
         </div>
       </div>
     </div>
@@ -11415,8 +11443,8 @@ function renderMyProfile() {
     countUp(document.getElementById('prof-hero-rating'), p.rating, v => fmt(v) + (provisional ? '*' : ''));
   }
   document.getElementById('prof-hero-tier').innerHTML = t.provisional
-    ? `<span class="badge" style="background:#94a3b822;color:#94a3b8;border:1px solid #94a3b844;"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games</span>`
-    : `<span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;">${t.icon} ${t.label}</span>`;
+    ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games`)}`
+    : `${tierBadgeHTML(t, t.label)}`;
   document.getElementById('prof-hero-rank').textContent   = rank ? `#${rank} Overall` : (p.rating == null ? 'Unrated — play a game to get ranked!' : '');
   document.getElementById('prof-hero-resort').innerHTML   = p.homeResort
     ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}`
