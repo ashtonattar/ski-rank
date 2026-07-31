@@ -5620,7 +5620,7 @@ function avatarHtml(player, sizeClass='avatar-sm') {
 
 // Clickable player name — opens their profile modal
 function pLink(id, name, style='') {
-  return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="showProfile('${id}')">${name}</span>`;
+  return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="showProfile('${id}')">${escHtml(name||'')}</span>`;
 }
 
 function toast(msg, type='') {
@@ -5757,7 +5757,7 @@ function fillSelect(id) {
   const sportLabel = (currentUser?.riderType === 'boarder') ? 'snowboarder' : 'skier';
   el.innerHTML = `<option value="">Select ${sportLabel}...</option>`;
   sortedSameSport().forEach(p => {
-    el.innerHTML += `<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name} (${ratingDisplay(p.rating)})</option>`;
+    el.innerHTML += `<option value="${p.id}" ${p.id===cur?'selected':''}>${escHtml(p.name)} (${ratingDisplay(p.rating)})</option>`;
   });
 }
 
@@ -5795,9 +5795,9 @@ function renderPickerList(pickerId, query) {
 
   const match = p => !excluded.has(p.id) && (!q || p.name.toLowerCase().includes(q) || (p.homeResort||'').toLowerCase().includes(q));
   const itemHtml = p => `
-    <div class="pp-item ${p.id===curVal?'selected':''}" onclick="selectPickerItem('${pickerId}','${p.id}','${p.name.replace(/'/g,"\\'")}')">
+    <div class="pp-item ${p.id===curVal?'selected':''}" onclick="selectPickerItem('${pickerId}','${p.id}','${escHtml(p.name.replace(/'/g,"\\'"))}')">
       ${avatarHtml(p,'avatar-sm')}
-      <span class="pp-item-name">${p.name}</span>
+      <span class="pp-item-name">${escHtml(p.name)}</span>
       <span class="pp-item-rating">${ratingDisplay(p.rating, p.gamesPlayed)}</span>
     </div>`;
 
@@ -6081,7 +6081,7 @@ function renderWeeklyLeaderboard() {
       <td>
         <div style="display:flex;align-items:center;gap:10px;">
           ${avatarHtml(r.player, 'avatar-sm')}
-          <span class="td-name">${r.player.name}</span>
+          <span class="td-name">${escHtml(r.player.name)}</span>
         </div>
       </td>
       <td>
@@ -6158,8 +6158,8 @@ function renderLeaderboard() {
           <div style="display:flex;align-items:center;gap:11px;">
             ${avatarHtml(p, 'avatar-sm')}
             <div>
-              <div class="td-name">${p.name}</div>
-              ${p.homeResort?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}</div>`:p.location?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-pin"><use href="#i-pin"/></svg> ${p.location}</div>`:''}
+              <div class="td-name">${escHtml(p.name)}</div>
+              ${p.homeResort?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}</div>`:p.location?`<div class="td-loc" style="font-size:11px;color:var(--text-muted)"><svg class="icon icon-pin"><use href="#i-pin"/></svg> ${escHtml(p.location)}</div>`:''}
             </div>
           </div>
         </td>
@@ -6357,8 +6357,8 @@ function renderLogForm() {
     const w  = document.getElementById('lg-winner');
 
     w.innerHTML = '<option value="">Select winner...</option>';
-    if (p1) { const pl=byId(p1); w.innerHTML+=`<option value="${p1}">${pl.name}</option>`; }
-    if (p2) { const pl=byId(p2); w.innerHTML+=`<option value="${p2}">${pl.name}</option>`; }
+    if (p1) { const pl=byId(p1); w.innerHTML+=`<option value="${p1}">${escHtml(pl.name)}</option>`; }
+    if (p2) { const pl=byId(p2); w.innerHTML+=`<option value="${p2}">${escHtml(pl.name)}</option>`; }
     w.selectedIndex = 0; // prevent browser from auto-selecting sole option on iOS
 
     refreshMatchupPreview();
@@ -6659,10 +6659,10 @@ function refreshHandicapPreview() {
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="font-size:15px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
-      <span><strong>${highP?.name}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
+      <span><strong>${escHtml(highP?.name||'')}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
       <span style="color:var(--text-muted);font-size:12px;">(${Math.round(diff/100).toFixed(1)} pt gap · ${hcap === 1 ? '1 letter' : '2 letters'} head start)</span>
     </div>
-    <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">${lowP?.name} starts clean — even the odds</div>`;
+    <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">${escHtml(lowP?.name||'')} starts clean — even the odds</div>`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6821,7 +6821,7 @@ function drawBoard() {
     ${judgePlayer ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       ${avatarHtml(judgePlayer, 'avatar-sm')}
-      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${judgePlayer.name}</strong> is the neutral judge</span>
+      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${escHtml(judgePlayer.name)}</strong> is the neutral judge</span>
     </div>` : ''}
     ${g.handicap ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
@@ -6884,10 +6884,10 @@ function drawBoard() {
             <button class="btn btn-ghost btn-sm" onclick="voteForSetter('random')"><svg class="icon icon-dice"><use href="#i-dice"/></svg> Random</button>
           </div>`;
       } else {
-        const voteLabel = myVote === 'random' ? '<svg class="icon icon-dice"><use href="#i-dice"/></svg> Random' : byId(myVote)?.name;
+        const voteLabel = myVote === 'random' ? '<svg class="icon icon-dice"><use href="#i-dice"/></svg> Random' : escHtml(byId(myVote)?.name||'');
         document.getElementById('phase-wait-msg').innerHTML = `
           <div style="font-size:13px;margin-bottom:4px;">You voted: <strong style="color:var(--primary);">${voteLabel}</strong></div>
-          <div style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(otherId)?.name} to vote…</div>`;
+          <div style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(otherId)?.name||'')} to vote…</div>`;
       }
 
     } else if (g.phase === 'setting') {
@@ -6969,7 +6969,7 @@ function drawBoard() {
         const s = strikes[pid] || 0;
         const dots = '<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
         return `<div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${byId(pid)?.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${escHtml(byId(pid)?.name||'')}</div>
           <div style="font-size:18px;letter-spacing:3px;">${dots}</div>
           <div style="font-size:10px;color:${s>=3?'var(--danger)':'var(--text-muted)'};">${s}/3 strikes</div>
         </div>`;
@@ -6992,7 +6992,7 @@ function playerPanel(player, g, role) {
       <div style="display:flex;justify-content:center;margin-bottom:10px;">
         ${avatarHtml(player, 'avatar-lg')}
       </div>
-      <div class="pp-name">${player.name}</div>
+      <div class="pp-name">${escHtml(player.name)}</div>
       <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} &nbsp; ${t.provisional ? tierBadgeHTML(t, `Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}`, {clickable:true}) : tierBadgeHTML(t, t.label, {clickable:true})}</div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
@@ -7418,11 +7418,11 @@ function showGameOver(winnerId, loserId, game) {
     <div class="game-over-banner" style="position:relative;">
       <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
       <h2><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> GAME OVER!</h2>
-      <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${winner.name} wins!</p>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${loser.name} abandoned the game` : `${loser.name} spells S·K·I`}</p>
+      <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${escHtml(winner.name)} wins!</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${escHtml(loser.name)} abandoned the game` : `${escHtml(loser.name)} spells S·K·I`}</p>
       ${ratingLine}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="shareGameResult('${winner.name.replace(/'/g,"\\'")}','${loser.name.replace(/'/g,"\\'")}')">
+        <button class="btn btn-primary" onclick="shareGameResult('${escHtml(winner.name.replace(/'/g,"\\'"))}','${escHtml(loser.name.replace(/'/g,"\\'"))}')">
           <svg class="icon icon-upload"><use href="#i-upload"/></svg> Share Result
         </button>
         <button class="btn btn-ghost btn-sm" onclick="submitLiveClipAndReset()">New Game</button>
@@ -7556,7 +7556,9 @@ function addLog(icon, msg) {
   S.live.log.push({icon,msg});
   const el = document.createElement('div');
   el.className='log-row';
-  el.innerHTML=`<span>${icon}</span><span>${msg}</span>`;
+  // icon is always a hardcoded <svg> literal from the call site; msg is plain
+  // text that may embed player/trick names, so only msg needs escaping.
+  el.innerHTML=`<span>${icon}</span><span>${escHtml(msg)}</span>`;
   const logEl = document.getElementById('live-log');
   logEl.insertBefore(el, logEl.firstChild);
 }
@@ -7565,7 +7567,7 @@ function restoreLog() {
   if (!S.live) return;
   const logEl = document.getElementById('live-log');
   logEl.innerHTML = [...S.live.log].reverse()
-    .map(e=>`<div class="log-row"><span>${e.icon}</span><span>${e.msg}</span></div>`)
+    .map(e=>`<div class="log-row"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`)
     .join('');
 }
 
@@ -7592,7 +7594,7 @@ function renderPlayers() {
         ${avatarHtml(p, 'avatar-md')}
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${p.name}</span>
+            <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${escHtml(p.name)}</span>
             ${t.provisional
               ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
               : `${tierBadgeHTML(t, t.label, {clickable:true})}`}
@@ -7600,7 +7602,7 @@ function renderPlayers() {
           <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
             Rating: <strong style="color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};">${ratingDisplay(p.rating, p.gamesPlayed)}</strong>
             ${p.gamesPlayed ? `&nbsp;·&nbsp;${p.wins}W ${p.losses}L&nbsp;·&nbsp;${p.gamesPlayed} games&nbsp;·&nbsp;Win% ${wpct}%` : `&nbsp;·&nbsp;<em style="color:var(--text-muted);">No games yet</em>`}
-            ${p.homeResort ? `&nbsp;·&nbsp;<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}` : (p.location ? `&nbsp;·&nbsp;<svg class="icon icon-pin"><use href="#i-pin"/></svg>${p.location}` : '')}
+            ${p.homeResort ? `&nbsp;·&nbsp;<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}` : (p.location ? `&nbsp;·&nbsp;<svg class="icon icon-pin"><use href="#i-pin"/></svg>${escHtml(p.location)}` : '')}
           </div>
         </div>
         <div style="display:flex;gap:7px;align-items:center;">
@@ -7934,7 +7936,7 @@ function renderExplore() {
             ${pLink(poster.id, poster.name, 'color:var(--ice);')}
           </div>
           <div class="reel-meta">
-            ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${item.resort}</span>` : ''}
+            ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(item.resort)}</span>` : ''}
             <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
             ${canDelete ? `<span class="reel-chip" onclick="deleteClip('${item.id}')" style="cursor:pointer;color:var(--danger);border-color:var(--danger);"><svg class="icon icon-close"><use href="#i-close"/></svg> Delete</span>` : ''}
           </div>
@@ -7992,12 +7994,12 @@ function renderExplore() {
             </div>
             <div class="reel-meta">
               <span class="reel-chip win">+${item.winnerDelta} pts</span>
-              ${item.score ? `<span class="reel-chip ice"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${item.score}</span>` : ''}
-              ${tricks     ? `<span class="reel-chip"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${tricks}</span>` : ''}
-              ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${item.resort}</span>` : (winner.homeResort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${winner.homeResort}</span>` : '')}
+              ${item.score ? `<span class="reel-chip ice"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${escHtml(item.score)}</span>` : ''}
+              ${tricks     ? `<span class="reel-chip"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${escHtml(tricks)}</span>` : ''}
+              ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(item.resort)}</span>` : (winner.homeResort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(winner.homeResort)}</span>` : '')}
               <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
             </div>
-            ${item.notes ? `<div style="font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:8px;font-style:italic;">"${item.notes}"</div>` : ''}
+            ${item.notes ? `<div style="font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:8px;font-style:italic;">"${escHtml(item.notes)}"</div>` : ''}
           </div>
           <div class="reel-actions">
             <div class="reel-action-btn" onclick="showProfile('${winner.id}')">
@@ -8484,13 +8486,13 @@ function renderFriendsView() {
     const msgs    = getConvo(f.id);
     const last    = msgs[msgs.length - 1];
     const preview = last
-      ? (last.fromId === currentUser.id ? 'You: ' : '') + last.text.slice(0, 28) + (last.text.length > 28 ? '…' : '')
+      ? escHtml((last.fromId === currentUser.id ? 'You: ' : '') + last.text.slice(0, 28) + (last.text.length > 28 ? '…' : ''))
       : 'No messages yet';
     return `
       <div class="friend-row ${_activeChatId === f.id ? 'active' : ''}" onclick="openChat('${f.id}')">
         ${avatarHtml(f, 'avatar-sm')}
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:${unread ? '800' : '600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+          <div style="font-size:13px;font-weight:${unread ? '800' : '600'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(f.name)}</div>
           <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${preview}</div>
         </div>
         ${unread ? `<span class="friend-unread">${unread}</span>` : ''}
@@ -8523,15 +8525,15 @@ function openChat(friendId, scrollToBottom=true) {
   document.getElementById('chat-header').innerHTML = `
     ${avatarHtml(friend, 'avatar-sm')}
     <div style="flex:1;">
-      <div style="font-weight:700;font-size:14px;">${friend.name}</div>
-      <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ' + friend.homeResort : 'Skier'}</div>
+      <div style="font-weight:700;font-size:14px;">${escHtml(friend.name)}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ' + escHtml(friend.homeResort) : 'Skier'}</div>
     </div>`;
 
   // Messages
   const msgs = getConvo(friendId);
   const msgsEl = document.getElementById('chat-messages');
   if (!msgs.length) {
-    msgsEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:12.5px;padding:20px 0;">Say hi to ${friend.name}! 👋</div>`;
+    msgsEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:12.5px;padding:20px 0;">Say hi to ${escHtml(friend.name)}! 👋</div>`;
   } else {
     msgsEl.innerHTML = msgs.map(m => {
       const mine = m.fromId === currentUser?.id;
@@ -8811,10 +8813,10 @@ function renderHistory() {
           <span class="badge badge-danger">L</span>
           ${pLink(r.loserId, r.loserName, 'font-weight:600;color:var(--text-secondary);')}
         </div>
-        ${r.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${r.resort}</div>` : ''}
-        ${r.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${r.score}</div>` : ''}
-        ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${r.tricks.join(', ')}</div>` : ''}
-        ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${r.notes}</div>` : ''}
+        ${r.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(r.resort)}</div>` : ''}
+        ${r.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${escHtml(r.score)}</div>` : ''}
+        ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${escHtml(r.tricks.join(', '))}</div>` : ''}
+        ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${escHtml(r.notes)}</div>` : ''}
         ${r.clipUrl ? renderStoredClip(r.clipUrl) : ''}
         <div style="font-size:11.5px;color:var(--warning);margin-top:4px;">
           Awaiting confirmation from ${byId(r.opponentId)?.name || 'opponent'}
@@ -8844,20 +8846,20 @@ function renderHistory() {
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
             <span class="badge badge-success">W</span>
-            <span style="font-weight:700;cursor:pointer;" onclick="showProfile('${winner.id}')">${winner.name}</span>
+            <span style="font-weight:700;cursor:pointer;" onclick="showProfile('${winner.id}')">${escHtml(winner.name)}</span>
             <span class="rc-pos" style="font-size:12px;">+${game.winnerDelta}</span>
             <span style="font-size:11px;color:var(--text-muted);">${fmt(game.player1StartRating)} → ${fmt(game.player1EndRating)}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="badge badge-danger">L</span>
-            <span style="font-weight:600;color:var(--text-secondary);cursor:pointer;" onclick="showProfile('${loser.id}')">${loser.name}</span>
+            <span style="font-weight:600;color:var(--text-secondary);cursor:pointer;" onclick="showProfile('${loser.id}')">${escHtml(loser.name)}</span>
             <span class="rc-neg" style="font-size:12px;">${game.loserDelta}</span>
             <span style="font-size:11px;color:var(--text-muted);">${fmt(game.player2StartRating)} → ${fmt(game.player2EndRating)}</span>
           </div>
-          ${game.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${game.resort}</div>` : ''}
-          ${game.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${game.score}</div>` : ''}
-          ${game.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${game.tricks.join(', ')}</div>` : ''}
-          ${game.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${game.notes}</div>` : ''}
+          ${game.resort ? `<div style="font-size:11.5px;color:var(--ice);margin-top:5px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(game.resort)}</div>` : ''}
+          ${game.score ? `<div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:5px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${escHtml(game.score)}</div>` : ''}
+          ${game.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> ${escHtml(game.tricks.join(', '))}</div>` : ''}
+          ${game.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;font-style:italic;">${escHtml(game.notes)}</div>` : ''}
           ${game.clipUrl ? renderStoredClip(game.clipUrl) : ''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
@@ -8895,7 +8897,7 @@ function showGameDetail(gameId) {
     <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin-bottom:22px;">
       <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
         <div style="margin-bottom:6px;display:flex;justify-content:center;">${avatarHtml(winner, 'avatar-md')}</div>
-        <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${winner.id}')">${winner.name}</div>
+        <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${winner.id}')">${escHtml(winner.name)}</div>
         <span class="badge badge-success" style="margin-top:4px;">WIN</span>
         <div style="margin-top:6px;">
           <span class="rc-pos" style="font-family:'Bebas Neue',sans-serif;font-size:28px;">+${game.winnerDelta}</span>
@@ -8905,7 +8907,7 @@ function showGameDetail(gameId) {
       <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--border);">VS</div>
       <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
         <div style="margin-bottom:6px;display:flex;justify-content:center;">${avatarHtml(loser, 'avatar-md')}</div>
-        <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${loser.id}')">${loser.name}</div>
+        <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${loser.id}')">${escHtml(loser.name)}</div>
         <span class="badge badge-danger" style="margin-top:4px;">LOSS</span>
         <div style="margin-top:6px;">
           <span class="rc-neg" style="font-family:'Bebas Neue',sans-serif;font-size:28px;">${game.loserDelta}</span>
@@ -8917,21 +8919,21 @@ function showGameDetail(gameId) {
     <!-- Meta row -->
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;justify-content:center;">
       <span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-muted);"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(game.date)}</span>
-      ${game.resort ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--ice);"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${game.resort}</span>` : ''}
-      ${game.score  ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-secondary);font-weight:700;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${game.score}</span>` : ''}
+      ${game.resort ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--ice);"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(game.resort)}</span>` : ''}
+      ${game.score  ? `<span style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 12px;font-size:12px;color:var(--text-secondary);font-weight:700;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${escHtml(game.score)}</span>` : ''}
       ${game.liveLog?.length ? `<span class="badge badge-primary" style="padding:4px 12px;">Live Game</span>` : ''}
     </div>
 
     ${game.tricks?.length ? `
     <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;">
       <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;">Tricks</div>
-      <div style="font-size:13px;color:var(--text-secondary);">${game.tricks.join(' · ')}</div>
+      <div style="font-size:13px;color:var(--text-secondary);">${escHtml(game.tricks.join(' · '))}</div>
     </div>` : ''}
 
     ${game.notes ? `
     <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;">
       <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;">Notes</div>
-      <div style="font-size:13px;color:var(--text-secondary);line-height:1.55;">${game.notes}</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.55;">${escHtml(game.notes)}</div>
     </div>` : ''}
 
     ${game.clipUrl ? `
@@ -8977,7 +8979,7 @@ function renderProfileGames(games, id) {
         return `
           <div onclick="showGameDetail('${game.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
             <span class="badge ${isWin?'badge-success':'badge-danger'}">${isWin?'W':'L'}</span>
-            <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${opp.name}</span></span>
+            <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${escHtml(opp.name)}</span></span>
             ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-skis"><use href="#i-skis"/></svg></span>` : ''}
             ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></span>` : ''}
             <span class="${delta>=0?'rc-pos':'rc-neg'}" style="font-size:12.5px;">${delta>=0?'+':''}${delta}</span>
@@ -9053,7 +9055,7 @@ function showProfile(id) {
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
       ${avatarHtml}
       <div style="flex:1;min-width:0;">
-        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${p.name}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${escHtml(p.name)}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:${p.rating == null ? '6px' : '0'};">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
           ${t.provisional
@@ -9067,13 +9069,13 @@ function showProfile(id) {
     <div style="margin-bottom:18px;padding:0 2px;font-size:12px;color:var(--text-muted);line-height:1.7;">
       ${[
         p.riderType === 'boarder' ? 'Snowboarder' : 'Skier',
-        p.homeResort || p.location || '',
-        p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="color:var(--ice);text-decoration:none;">@${p.instagram}</a>` : '',
+        escHtml(p.homeResort || p.location || ''),
+        p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="color:var(--ice);text-decoration:none;">@${escHtml(p.instagram)}</a>` : '',
         `<span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-secondary);">${followers}</strong> Followers</span>`,
         `<span style="cursor:pointer;" onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count" style="color:var(--text-secondary);">${followingN}</strong> Following</span>`,
         `<span style="cursor:pointer;" onclick="openStatListModal('friends','${p.id}')"><strong id="modal-friends-count" style="color:var(--text-secondary);">${(p.friends || []).length}</strong> Friends</span>`
       ].filter(Boolean).join(' · ')}
-      ${p.bio ? `<div style="color:var(--text-secondary);margin-top:6px;">${p.bio}</div>` : ''}
+      ${p.bio ? `<div style="color:var(--text-secondary);margin-top:6px;">${escHtml(p.bio)}</div>` : ''}
     </div>
 
     <!-- ── Mutual friends ── -->
@@ -9202,8 +9204,8 @@ function showProfile(id) {
     <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
       ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${p.name}</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${escHtml(p.name)}</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${escHtml(p.name)}</button>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-danger btn-sm" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>` : ''}
     </div>`;
 
@@ -9229,7 +9231,7 @@ function openChallengeModal(toId) {
   const p = byId(toId);
   closeModal('profile-modal');
   document.getElementById('challenge-modal-to').innerHTML =
-    `Challenging <strong style="color:var(--accent);">${p?.name || 'Unknown'}</strong> to a match`;
+    `Challenging <strong style="color:var(--accent);">${escHtml(p?.name || 'Unknown')}</strong> to a match`;
   // Pre-fill date to tomorrow
   const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
   document.getElementById('challenge-date').value = tmr.toISOString().slice(0, 10);
@@ -9294,7 +9296,7 @@ function openReportModal(toId) {
   const p = byId(toId);
   closeModal('profile-modal');
   document.getElementById('report-modal-to').innerHTML =
-    `Reporting <strong style="color:var(--danger);">${p?.name || 'Unknown'}</strong>`;
+    `Reporting <strong style="color:var(--danger);">${escHtml(p?.name || 'Unknown')}</strong>`;
   document.getElementById('report-reason').value  = 'Harassment';
   document.getElementById('report-details').value = '';
   openModal('report-modal');
@@ -9416,9 +9418,9 @@ function renderChallenges() {
                   : `<span style="color:var(--text-muted);font-weight:400;">You challenged</span> ${pLink(c.toId, c.toName)}`}
               </div>
               <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateStr}${timeStr}</div>
-              ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${c.resort}</div>`  : ''}
-              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Judge: <strong style="color:var(--text-secondary);">${c.judgeName}</strong></div>` : ''}
-              ${c.message    ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${c.message}"</div>` : ''}
+              ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(c.resort)}</div>`  : ''}
+              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Judge: <strong style="color:var(--text-secondary);">${escHtml(c.judgeName)}</strong></div>` : ''}
+              ${c.message    ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${escHtml(c.message)}"</div>` : ''}
             </div>
           </div>
           <span class="badge ${isAccepted ? 'badge-success' : isIncoming ? 'badge-accent' : 'badge-muted'}" style="font-size:9px;flex-shrink:0;">
@@ -9636,7 +9638,7 @@ function renderInvitePicker(query) {
     <div class="invite-pick-item" style="opacity:.7;cursor:default;border-bottom:1px solid var(--border);">
       ${avatarHtml(me, 'avatar-sm')}
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;">${me.name} <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> You</span></div>
+        <div style="font-size:13px;font-weight:600;">${escHtml(me.name)} <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> You</span></div>
         <div style="font-size:11px;color:var(--text-muted);">Creator — already in</div>
       </div>
       <span style="font-size:16px;color:var(--success);"><svg class="icon icon-check"><use href="#i-check"/></svg></span>
@@ -9654,7 +9656,7 @@ function renderInvitePicker(query) {
         ${isChecked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
       ${avatarHtml(p, 'avatar-sm')}
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;">${p.name}${isFriend ? ' <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> Friend</span>' : ''}</div>
+        <div style="font-size:13px;font-weight:600;">${escHtml(p.name)}${isFriend ? ' <span style="font-size:10px;color:var(--ice);"><svg class="icon icon-star"><use href="#i-star"/></svg> Friend</span>' : ''}</div>
         <div style="font-size:11px;color:var(--text-muted);">${p.rating ? '#'+ranked(p.id) : 'Unrated'}</div>
       </div>
     </div>`;
@@ -9948,9 +9950,9 @@ function renderTournaments() {
         <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
           <div class="pending-card-header">
             <div>
-              <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${t.name}</strong></div>
+              <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${escHtml(t.name)}</strong></div>
               <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">
-                Created by ${t.creatorName}
+                Created by ${escHtml(t.creatorName)}
                 · ${t.format === 'single-elim' ? 'Single Elimination' : 'Round Robin'}
                 ${t.dateVal ? ' · ' + dateFmt(t.dateVal+'T12:00') : ''}
               </div>
@@ -9983,19 +9985,19 @@ function renderTournaments() {
   if (empty) empty.style.display = 'none';
   list.innerHTML = myTourneys.sort((a,b) => b.createdAt - a.createdAt).map(t => {
     const status = tourneyStatus(t);
-    const participantNames = (t.participants||[]).map(p=>p.name).join(', ');
+    const participantNames = (t.participants||[]).map(p=>escHtml(p.name)).join(', ');
     return `
     <div class="tourney-card" onclick="openTourneyDetail('${t.id}')">
       <div class="tourney-card-hdr">
-        <span class="tourney-card-name"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${t.name}</span>
+        <span class="tourney-card-name"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${escHtml(t.name)}</span>
         <span class="tourney-badge ${status}">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
       </div>
       <div class="tourney-meta">
         <span>${t.format === 'single-elim' ? '<svg class="icon icon-fire"><use href="#i-fire"/></svg> Single Elimination' : '<svg class="icon icon-refresh"><use href="#i-refresh"/></svg> Round Robin'}</span>
         <span><svg class="icon icon-users"><use href="#i-users"/></svg> ${(t.participants||[]).length} riders</span>
-        ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${t.resort}</span>` : ''}
+        ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(t.resort)}</span>` : ''}
         ${t.dateVal ? `<span><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
-        ${status === 'complete' ? `<span style="color:var(--warning);"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ${t.winnerName||'TBD'}</span>` : ''}
+        ${status === 'complete' ? `<span style="color:var(--warning);"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ${escHtml(t.winnerName||'TBD')}</span>` : ''}
       </div>
       <div style="margin-top:8px;font-size:11.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${participantNames}</div>
     </div>`;
@@ -10007,7 +10009,7 @@ function openTourneyDetail(tourneyId) {
   const t = getTourney(tourneyId);
   if (!t) return;
   _openTourneyId = tourneyId;
-  document.getElementById('tourney-detail-title').innerHTML = '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ' + t.name;
+  document.getElementById('tourney-detail-title').innerHTML = '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ' + escHtml(t.name);
   const body = document.getElementById('tourney-detail-body');
   const isCreator = t.creatorId === currentUser?.id;
   const status = tourneyStatus(t);
@@ -10018,7 +10020,7 @@ function openTourneyDetail(tourneyId) {
   html += `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--text-muted);">
     <span>${t.format === 'single-elim' ? '<svg class="icon icon-fire"><use href="#i-fire"/></svg> Single Elimination' : '<svg class="icon icon-refresh"><use href="#i-refresh"/></svg> Round Robin'}</span>
     <span class="tourney-badge ${status}" style="align-self:center;">${status === 'setup' ? 'Setup' : status === 'active' ? 'Live' : 'Complete'}</span>
-    ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${t.resort}</span>` : ''}
+    ${t.resort ? `<span><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(t.resort)}</span>` : ''}
     ${t.dateVal ? `<span><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateFmt(t.dateVal+'T12:00')}</span>` : ''}
   </div>`;
 
@@ -10026,7 +10028,7 @@ function openTourneyDetail(tourneyId) {
   if (status === 'complete' && t.winnerName) {
     html += `<div style="text-align:center;padding:18px;background:linear-gradient(135deg,rgba(255,196,0,.15),rgba(34,224,194,.08));border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
       <div style="font-size:28px;margin-bottom:4px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></div>
-      <div style="font-size:18px;font-weight:800;">${t.winnerName}</div>
+      <div style="font-size:18px;font-weight:800;">${escHtml(t.winnerName)}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Tournament Champion</div>
     </div>`;
   }
@@ -10037,7 +10039,7 @@ function openTourneyDetail(tourneyId) {
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
       ${(t.participants||[]).map(p => `
         <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:4px 10px 4px 4px;font-size:12px;font-weight:500;">
-          ${avatarHtml(byId(p.id)||p,'avatar-sm')} ${p.name}
+          ${avatarHtml(byId(p.id)||p,'avatar-sm')} ${escHtml(p.name)}
         </div>`).join('')}
     </div>
   </div>`;
@@ -10395,7 +10397,7 @@ function renderRRHTML(t) {
   standings.forEach((p, i) => {
     html += `<tr>
       <td style="color:var(--text-muted);font-weight:700;">${i+1}</td>
-      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ':''}${p.name}</td>
+      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ':''}${escHtml(p.name)}</td>
       <td style="color:var(--success);font-weight:600;">${wins[p.id]||0}</td>
       <td style="color:var(--text-muted);">${played[p.id]||0}</td>
     </tr>`;
@@ -10603,9 +10605,9 @@ function renderConfirmations() {
             ${pLink(r.loserId, r.loserName, 'font-weight:600;font-size:14px;color:var(--text-secondary);')}
             ${r.loserId === currentUser.id ? '<span style="font-size:11px;color:var(--danger);">(you)</span>' : ''}
           </div>
-          ${r.score ? `<div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-top:8px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${r.score}</div>` : ''}
-          ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Tricks: ${r.tricks.join(', ')}</div>` : ''}
-          ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;font-style:italic;">${r.notes}</div>` : ''}
+          ${r.score ? `<div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-top:8px;letter-spacing:.5px;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> ${escHtml(r.score)}</div>` : ''}
+          ${r.tricks?.length ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Tricks: ${escHtml(r.tricks.join(', '))}</div>` : ''}
+          ${r.notes ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;font-style:italic;">${escHtml(r.notes)}</div>` : ''}
           ${r.clipUrl ? renderStoredClip(r.clipUrl) : ''}
         </div>
 
@@ -11513,13 +11515,13 @@ function renderMyProfile() {
     : `${tierBadgeHTML(t, t.label)}`;
   document.getElementById('prof-hero-rank').textContent   = rank ? `#${rank} Overall` : (p.rating == null ? 'Unrated — play a game to get ranked!' : '');
   document.getElementById('prof-hero-resort').innerHTML   = p.homeResort
-    ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${p.homeResort}`
+    ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}`
     : '<span style="color:var(--text-muted);">No home mountain set</span>';
   document.getElementById('prof-hero-bio').textContent    = p.bio || '';
   const igEl = document.getElementById('prof-hero-instagram');
   if (igEl) igEl.innerHTML = p.instagram
     ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener"
-        style="color:var(--ice);text-decoration:none;font-size:12.5px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> @${p.instagram}</a>`
+        style="color:var(--ice);text-decoration:none;font-size:12.5px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> @${escHtml(p.instagram)}</a>`
     : '';
   document.getElementById('prof-hero-followers').textContent = followerCount(p.id);
   document.getElementById('prof-hero-following').textContent = followingCount(p.id);
@@ -11616,8 +11618,8 @@ function openStatListModal(kind, id) {
         <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
           ${avatarHtml(f, 'avatar-sm')}
           <div style="flex:1;min-width:0;">
-            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
+            <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${escHtml(f.name)}</div>
+            <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)} · ${ftBadge}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(f.homeResort)}` : ''}</div>
           </div>
           ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="unfriend('${f.id}')" title="Remove friend" style="color:var(--text-muted);font-size:11px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>` : ''}
         </div>`;
@@ -11631,8 +11633,8 @@ function openStatListModal(kind, id) {
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
         ${avatarHtml(f, 'avatar-sm')}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
+          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${escHtml(f.name)}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(f.homeResort)}` : ''}</div>
         </div>
         ${followBtn(f.id)}
       </div>`;
@@ -11645,8 +11647,8 @@ function openStatListModal(kind, id) {
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
         ${avatarHtml(f, 'avatar-sm')}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${f.name}</div>
-          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${f.homeResort}` : ''}</div>
+          <div style="font-weight:700;font-size:13.5px;cursor:pointer;" onclick="closeModal('stat-list-modal');showProfile('${f.id}')">${escHtml(f.name)}</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">${ratingDisplay(f.rating, f.gamesPlayed)}${f.homeResort ? ` · <svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(f.homeResort)}` : ''}</div>
         </div>
         ${p.id === currentUser.id ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${f.id}')" title="Unfollow" style="color:var(--text-muted);font-size:11px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>` : followBtn(f.id)}
       </div>`;
@@ -11844,13 +11846,13 @@ function showRatingAnim(winner, loser, game) {
       <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:4px;color:var(--text-muted);">RATINGS UPDATED</div>
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div class="ra-card">
-          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${winner.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${escHtml(winner.name)}</div>
           <div class="ra-delta win">+${wD}${wD>=15?' <svg class="icon icon-fire"><use href="#i-fire"/></svg>':''}</div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--primary);font-weight:700;">${wNew}</span></div>
         </div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--border);">VS</div>
         <div class="ra-card loser">
-          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">${loser.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">${escHtml(loser.name)}</div>
           <div class="ra-delta loss">${lD}</div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--text-primary);font-weight:700;">${lNew}</span></div>
         </div>
@@ -12096,7 +12098,7 @@ function renderAdminRatings(panel) {
         <thead><tr><th>Player</th><th>Current Rating</th><th>New Rating</th><th></th></tr></thead>
         <tbody>
           ${S.players.map(p => `<tr>
-            <td style="font-weight:600;">${p.name}</td>
+            <td style="font-weight:600;">${escHtml(p.name)}</td>
             <td style="color:var(--primary);">${p.rating ? fmt(p.rating) : 'Unranked'}</td>
             <td><input type="number" step="0.01" min="1" max="20" value="${p.rating ? (p.rating/100).toFixed(2) : ''}"
               placeholder="e.g. 8.50"

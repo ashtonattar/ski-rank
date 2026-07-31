@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// Firestore security rules for Slope Battles (skirank-b3b70).
+// NOT auto-deployed from this repo — paste into Firebase Console >
+// Firestore Database > Rules, or deploy via `firebase deploy --only firestore:rules`
+// if you set up the Firebase CLI locally.
+//
+// Requires index.html's doLogin()/doSignup() to keep the Firebase Auth session
+// alive (no more signOut() right after authenticating) — otherwise request.auth
+// is always null here and every isAdmin()/isSignedIn() check below fails closed,
+// breaking the app. That change has already been made in index.html.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Keep in sync with ADMIN_EMAILS in index.html.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ashtonattar@gmail.com';
+    }
+
+    // ── state/global ──────────────────────────────────────────────────────
+    // Almost everything lives in this one document (players, games, chat,
+    // reports, tournaments, etc.), written via targeted arrayUnion updates
+    // or a debounced merge:true save() from any signed-in user. Firestore
+    // rules can't cheaply distinguish "which field changed" inside one big
+    // document, so this can't fully replicate per-field admin-only checks
+    // (e.g. "only an admin may flip a report's status") without splitting
+    // admin-controlled data into its own collection — a bigger app change.
+    //
+    // What this DOES enforce: only signed-in users can write at all (closes
+    // fully anonymous read/write), and it blocks the specific destructive
+    // shape the admin "Wipe Game Data" / "Wipe Everything" tools produce
+    // (collapsing a non-empty players/games list down to empty) unless the
+    // caller is the admin account.
+    match /state/global {
+      allow read: if true; // public leaderboard/preview, no PII beyond what's shown
+
+      // Block a non-admin from wiping player/game data down to nothing.
+      function isDestructiveWipe() {
+        return resource != null &&
+          ( (resource.data.players.size() > 0 && request.resource.data.players.size() == 0) ||
+            (resource.data.games.size()   > 0 && request.resource.data.games.size()   == 0) );
+      }
+      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe());
+    }
+
+    // ── users/{uid} ────────────────────────────────────────────────────────
+    // Doc id is the Firebase Auth UID for accounts created normally. Legacy
+    // accounts (no Firebase Auth, rare fallback per PROJECT_STATUS.md) won't
+    // have a matching request.auth.uid and will be unable to write under
+    // these rules until they migrate on next successful login.
+    match /users/{uid} {
+      allow read: if true; // login-by-email lookup, public rider profiles
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── avatars/{uid} ──────────────────────────────────────────────────────
+    match /avatars/{uid} {
+      allow read: if true;
+      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── liveGames/{gameId} ─────────────────────────────────────────────────
+    // Only the two players and the optional judge may write to their own
+    // match; anyone signed in may create one (gameId is derived from the
+    // invite that started it, not user-chosen).
+    match /liveGames/{gameId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() &&
+        (request.auth.uid == resource.data.p1 ||
+         request.auth.uid == resource.data.p2 ||
+         request.auth.uid == resource.data.judgeId ||
+         isAdmin());
+      allow delete: if isAdmin(); // only the "Wipe Game Data" admin tool deletes these
+    }
+  }
+}
