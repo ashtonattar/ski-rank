@@ -12077,6 +12077,10 @@ function adminResolveReport(id) {
   if (!r) return;
   r.status = 'resolved';
   save();
+  // save()'s debounced full-doc write always strips `reports` (it's normally
+  // only appended via arrayUnion in submitReport) — write the updated array
+  // directly here so the resolve actually reaches Firestore.
+  if (db) db.collection('state').doc('global').update({ reports: S.reports }).catch(e => console.warn('Report resolve sync failed:', e));
   toast('Report marked resolved.', 'ok');
   adminTab('reports');
 }
@@ -12085,6 +12089,7 @@ function adminDeleteReport(id) {
   confirm_('Delete Report', 'Remove this report permanently?', () => {
     S.reports = (S.reports || []).filter(x => x.id !== id);
     save();
+    if (db) db.collection('state').doc('global').update({ reports: S.reports }).catch(e => console.warn('Report delete sync failed:', e));
     toast('Report deleted.', 'ok');
     adminTab('reports');
   });

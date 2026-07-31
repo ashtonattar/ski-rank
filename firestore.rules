@@ -45,7 +45,22 @@ service cloud.firestore {
           ( (resource.data.players.size() > 0 && request.resource.data.players.size() == 0) ||
             (resource.data.games.size()   > 0 && request.resource.data.games.size()   == 0) );
       }
-      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe());
+
+      // A non-admin may only ever *append* their own report (submitReport()
+      // uses arrayUnion, so old entries are never touched by that call) —
+      // this stops a tampered client from filing a report that impersonates
+      // someone else via a forged reporterId/reporterName. Resolving or
+      // deleting an existing report (same-size or shrinking array) is
+      // admin-only, enforced by falling through to isAdmin() below.
+      function isValidReportsChange() {
+        let oldReports = (resource != null && 'reports' in resource.data) ? resource.data.reports : [];
+        let newReports = ('reports' in request.resource.data) ? request.resource.data.reports : [];
+        return newReports == oldReports ||
+          ( newReports.size() == oldReports.size() + 1 &&
+            newReports[newReports.size()-1].reporterId == request.auth.uid );
+      }
+
+      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe() && isValidReportsChange());
     }
 
     // ── users/{uid} ────────────────────────────────────────────────────────
