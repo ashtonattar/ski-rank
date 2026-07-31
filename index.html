@@ -4312,9 +4312,35 @@ let currentUser = null;
 // a snapshot-triggered renderMyProfile() re-render clobbering in-progress typing.
 let _profileFormDirty = false;
 
-async function hashPw(pw) {
+// Legacy hash (pre-2026-07-31): unsalted single-round SHA-256 + static pepper —
+// fast to brute-force offline (GPU-parallelizable, same hash for every account
+// with the same password) and the pepper is visible in this file anyway.
+// Kept ONLY to verify passwordHash values written before the PBKDF2 switch below;
+// never used to create new hashes. A successful legacy-hash login already
+// migrates the account to Firebase Auth and deletes passwordHash (see doLogin()),
+// so this path retires itself as old fallback accounts log in once.
+async function hashPwLegacy(pw) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw + '__skirank_2025__'));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function randomSaltHex() {
+  return [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// PBKDF2-SHA256, 100k iterations, per-account random salt — used only for the
+// rare fallback path where Firebase Auth itself is unavailable at signup (see
+// doSignup()). Firebase Auth handles password storage server-side for every
+// normal account; this only guards the local passwordHash fallback field.
+async function hashPw(pw, saltHex) {
+  const enc = new TextEncoder();
+  const salt = new Uint8Array(saltHex.match(/../g).map(h => parseInt(h, 16)));
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 // ── Session: Firebase Auth token (primary) + localStorage (legacy fallback) ──
@@ -4421,11 +4447,12 @@ async function doSignup() {
 
   // Use Firebase Auth UID for new accounts, fallback to custom uid()
   const playerId = firebaseUid || uid();
+  const fallbackSalt = firebaseUid ? null : randomSaltHex();
   const newUser = {
     id: playerId,
     name, email,
     // Only store passwordHash for accounts created WITHOUT Firebase Auth (rare fallback)
-    ...(firebaseUid ? {} : { passwordHash: await hashPw(password) }),
+    ...(firebaseUid ? {} : { passwordHash: await hashPw(password, fallbackSalt), passwordSalt: fallbackSalt }),
     riderType: _selectedRiderType, homeResort,
     createdAt: Date.now(),
     ...(firebaseUid ? { firebaseUid } : {})
@@ -4515,7 +4542,9 @@ async function doLogin() {
 
   // ── Step 3: Legacy password check (only if Firebase Auth didn't verify) ─
   if (migratedViaLegacy) {
-    const hash = await hashPw(password);
+    // Accounts created with the PBKDF2 fallback have a passwordSalt; anything
+    // written before 2026-07-31 only has the old unsalted hash — see hashPwLegacy().
+    const hash = user.passwordSalt ? await hashPw(password, user.passwordSalt) : await hashPwLegacy(password);
     if (hash !== user.passwordHash) { resetBtn(); return showErr('Incorrect password.'); }
 
     // Password matched — silently migrate this account to Firebase Auth
@@ -4525,7 +4554,8 @@ async function doLogin() {
           // Link Firebase UID to Firestore record and delete the legacy hash
           await db.collection('users').doc(user.id).update({
             firebaseUid:  cred.user.uid,
-            passwordHash: firebase.firestore.FieldValue.delete()
+            passwordHash: firebase.firestore.FieldValue.delete(),
+            passwordSalt: firebase.firestore.FieldValue.delete()
           });
           toast('Account upgraded to secure sign-in <svg class="icon icon-lock"><use href="#i-lock"/></svg>', 'ok');
           // onAuthStateChanged will fire and call launchApp()
