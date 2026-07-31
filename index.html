@@ -1613,7 +1613,7 @@
     .reel-info {
       position: absolute;
       bottom: 0; left: 0; right: 80px;
-      padding: 24px 20px calc(32px + 120px);
+      padding: 24px 20px calc(110px + env(safe-area-inset-bottom));
     }
     .reel-players {
       font-size: 17px; font-weight: 800;
@@ -3416,17 +3416,13 @@
 
 <!-- ═══ Admin Console ═══ -->
 <div id="admin-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(1,6,14,0.97);backdrop-filter:blur(8px);overflow-y:auto;">
-  <!-- Password gate -->
+  <!-- Access-denied gate (shown when the signed-in account isn't an admin) -->
   <div id="admin-gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
     <div style="background:rgba(5,16,34,0.95);border:1px solid rgba(255,62,127,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">🔐</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--primary);margin-bottom:6px;">ADMIN CONSOLE</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Slope Battles · Restricted Access</div>
-      <input type="password" id="admin-pw-input" class="form-input" placeholder="Password" style="margin-bottom:12px;text-align:center;"
-        onkeydown="if(event.key==='Enter') verifyAdminPw()">
-      <div id="admin-pw-error" style="display:none;color:var(--danger);font-size:13px;margin-bottom:10px;"></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="verifyAdminPw()">Enter</button>
-      <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="closeAdmin()">Cancel</button>
+      <div style="font-size:36px;margin-bottom:12px;">🔒</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--primary);margin-bottom:6px;">ACCESS DENIED</div>
+      <div id="admin-gate-msg" style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Sign in with an admin account to use the Admin Console.</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">Close</button>
     </div>
   </div>
   <!-- Dashboard -->
@@ -4414,7 +4410,8 @@ async function doSignup() {
     try {
       const cred = await _fbAuth.createUserWithEmailAndPassword(email, password);
       firebaseUid = cred.user.uid;
-      await _fbAuth.signOut(); // session managed by app, not Firebase
+      // Keep the Firebase Auth session live (not signed out) — Firestore security
+      // rules need request.auth to be populated to authorize privileged writes.
     } catch(fbErr) {
       if (fbErr.code === 'auth/email-already-in-use') return showErr('An account with that email already exists.');
       if (fbErr.code === 'auth/weak-password')        return showErr('Password must be at least 6 characters.');
@@ -4490,7 +4487,7 @@ async function doLogin() {
   if (_fbAuth) {
     try {
       await _fbAuth.signInWithEmailAndPassword(email, password);
-      await _fbAuth.signOut(); // session managed by app
+      // Keep the Firebase Auth session live — see doSignup() for why.
     } catch(fbErr) {
       const notFound = ['auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email'];
       if (fbErr.code === 'auth/wrong-password') {
@@ -9207,7 +9204,7 @@ function showProfile(id) {
       ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${p.name}</button>` : ''}
       ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${p.name}</button>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>` : ''}
+      ${id !== currentUser?.id ? `<button class="btn btn-danger btn-sm" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>` : ''}
     </div>`;
 
   openModal('profile-modal');
@@ -11872,9 +11869,14 @@ function showRatingAnim(winner, loser, game) {
 // ═══════════════════════════════════════════════════════
 //  ADMIN CONSOLE  (access via URL hash #admin)
 // ═══════════════════════════════════════════════════════
-const ADMIN_PW_HASH = 'ashton';
-let _adminAuthed = false;
+// Client-side allowlist gates the UI only — it is not a real security boundary.
+// The actual enforcement must live in Firestore security rules (see PROJECT_STATUS.md),
+// since any client can bypass this UI and write to Firestore directly.
+const ADMIN_EMAILS = ['ashtonattar@gmail.com'];
 let _adminTab = 'users';
+function _isAdminUser() {
+  return !!(currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+}
 
 // Check for #admin in URL on load
 window.addEventListener('hashchange', () => { if (location.hash === '#admin') openAdmin(); });
@@ -11916,32 +11918,20 @@ document.addEventListener('visibilitychange', () => {
 
 function openAdmin() {
   document.getElementById('admin-screen').style.display = 'block';
-  if (_adminAuthed) { showAdminDashboard(); }
+  if (_isAdminUser()) { showAdminDashboard(); }
   else {
+    const msg = document.getElementById('admin-gate-msg');
+    msg.textContent = currentUser
+      ? `Signed in as ${currentUser.email || currentUser.name}, which isn't an admin account.`
+      : 'Sign in with an admin account to use the Admin Console.';
     document.getElementById('admin-gate').style.display = 'flex';
     document.getElementById('admin-dashboard').style.display = 'none';
-    setTimeout(() => document.getElementById('admin-pw-input')?.focus(), 100);
   }
 }
 
 function closeAdmin() {
   document.getElementById('admin-screen').style.display = 'none';
   history.replaceState(null, '', location.pathname);
-}
-
-async function verifyAdminPw() {
-  const pw = document.getElementById('admin-pw-input').value;
-  const errEl = document.getElementById('admin-pw-error');
-  // Simple direct comparison (admin-only tool, not a public auth flow)
-  if (pw !== ADMIN_PW_HASH) {
-    errEl.textContent = 'Incorrect password.';
-    errEl.style.display = 'block';
-    return;
-  }
-  _adminAuthed = true;
-  document.getElementById('admin-pw-input').value = '';
-  errEl.style.display = 'none';
-  showAdminDashboard();
 }
 
 async function showAdminDashboard() {
