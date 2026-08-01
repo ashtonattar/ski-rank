@@ -4668,7 +4668,10 @@ function showAuthScreen(hint='') {
   if (backRow) backRow.style.display = !currentUser && document.getElementById('app').style.display !== 'none' ? 'block' : 'none';
   // Contextual hint (e.g. "Sign in to log a game")
   const hintEl = document.getElementById('auth-hint');
-  if (hintEl) { hintEl.textContent = hint; hintEl.style.display = hint ? 'block' : 'none'; }
+  // hint is a hardcoded literal from AUTH_HINTS/callers (never user input) that embeds
+  // an <svg> icon — .textContent was rendering that markup as literal visible text
+  // instead of the icon, same class of bug fixed elsewhere for icon-bearing strings.
+  if (hintEl) { hintEl.innerHTML = hint; hintEl.style.display = hint ? 'block' : 'none'; }
   // Hide the local-file warning — auth is now Firestore-backed so file:// works fine
   const notice = document.getElementById('auth-origin-notice');
   if (notice) notice.style.display = 'none';
