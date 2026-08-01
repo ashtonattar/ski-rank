@@ -3743,6 +3743,14 @@ async function _saveToFirestore(pendingCopy) {
     // Reports are appended via a targeted arrayUnion update (see submitReport) —
     // same reasoning as messages/pending above.
     delete copy.reports;
+    // Friend requests / challenges are created via arrayUnion and mutated (accepted/
+    // declined/cancelled) via a targeted per-item transaction (see _updateArrayField,
+    // sendFriendRequest, acceptFriendRequest, etc.) — same reasoning as messages/pending;
+    // previously these went through this full-document save only, so two people sending
+    // requests (or one accepting while the debounce window was still open) could silently
+    // drop each other's write, same as the pre-fix messages bug.
+    delete copy.friendRequests;
+    delete copy.challenges;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -4608,6 +4616,13 @@ function deleteAccount() {
         S.friendRequests = S.friendRequests.filter(r => r.fromId !== currentUser.id && r.toId !== currentUser.id);
       }
       save();
+      // friendRequests/challenges are excluded from the regular full-document save
+      // (see _saveToFirestore) — write the filtered arrays directly so this cleanup
+      // actually reaches Firestore instead of being silently dropped.
+      if (db) db.collection('state').doc('global').update({
+        friendRequests: S.friendRequests,
+        challenges: S.challenges
+      }).catch(e => console.warn('Account-delete cleanup write failed:', e));
       // Remove from Firestore auth store
       if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
       // Remove from Firebase Auth
@@ -7693,6 +7708,32 @@ function delPlayer(id) {
   );
 }
 
+// Atomically mutate a single item (matched by `id`) inside an array field on the
+// shared state/global doc, via a transaction that reads the field fresh and writes
+// back only that field — not the whole document. Used for status changes/removals
+// on friendRequests/challenges so that, e.g., one person accepting a request can't
+// be silently dropped by another client's regular debounced full-document save
+// landing moments later with a stale copy of the same array (the same race class
+// already fixed for messages/pending/reports/tournaments elsewhere in this file).
+// `mutate(item)` returns the replacement item, or null/undefined to remove it.
+async function _updateArrayField(fieldName, itemId, mutate) {
+  if (!db) return;
+  const ref = db.collection('state').doc('global');
+  try {
+    await db.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const arr = (snap.data() && snap.data()[fieldName]) || [];
+      const idx = arr.findIndex(x => x.id === itemId);
+      if (idx === -1) return; // already removed/mutated by someone else — nothing to do
+      const updated = mutate(arr[idx]);
+      const next = updated
+        ? [...arr.slice(0, idx), updated, ...arr.slice(idx + 1)]
+        : [...arr.slice(0, idx), ...arr.slice(idx + 1)];
+      tx.update(ref, { [fieldName]: next });
+    });
+  } catch (e) { console.warn(`${fieldName} update failed:`, e); }
+}
+
 // ═══════════════════════════════════════════════════════
 //  FRIENDS
 // ═══════════════════════════════════════════════════════
@@ -7754,7 +7795,7 @@ function sendFriendRequest(toId) {
     (r.fromId === toId && r.toId === currentUser.id)
   );
   if (existing) return;
-  S.friendRequests.push({
+  const request = {
     id: uid(),
     fromId:   currentUser.id,
     fromName: currentUser.name,
@@ -7762,8 +7803,17 @@ function sendFriendRequest(toId) {
     toName:   toPlayer.name,
     status:   'pending',
     date:     Date.now()
-  });
+  };
+  S.friendRequests.push(request);
   save();
+  // Persist via an atomic arrayUnion (friendRequests is excluded from the regular
+  // full-document save — see _saveToFirestore) so two people sending requests in
+  // the same debounce window can't drop each other's write.
+  if (db) {
+    db.collection('state').doc('global').update({
+      friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
+    }).catch(e => console.warn('Friend request send failed:', e));
+  }
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -7772,10 +7822,13 @@ function sendFriendRequest(toId) {
 
 function cancelFriendRequest(toId) {
   if (!currentUser) return;
-  S.friendRequests = S.friendRequests.filter(r =>
-    !(r.fromId === currentUser.id && r.toId === toId && r.status === 'pending')
+  const req = S.friendRequests.find(r =>
+    r.fromId === currentUser.id && r.toId === toId && r.status === 'pending'
   );
+  if (!req) return;
+  S.friendRequests = S.friendRequests.filter(r => r.id !== req.id);
   save();
+  _updateArrayField('friendRequests', req.id, () => null);
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -7795,6 +7848,7 @@ function acceptFriendRequest(fromId) {
   if (me)    { if (!Array.isArray(me.friends))    me.friends    = []; if (!me.friends.includes(fromId))         me.friends.push(fromId); }
   if (other) { if (!Array.isArray(other.friends)) other.friends = []; if (!other.friends.includes(currentUser.id)) other.friends.push(currentUser.id); }
   save();
+  _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'accepted' }));
   checkNotifications();
   renderConfirmations();
   refreshModalFriendBtn(fromId);
@@ -7809,6 +7863,7 @@ function declineFriendRequest(fromId) {
   if (!req) return;
   req.status = 'declined';
   save();
+  _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'declined' }));
   checkNotifications();
   renderConfirmations();
   toast('Friend request declined.');
@@ -7819,10 +7874,15 @@ function unfriend(otherId) {
   const other = byId(otherId);
   confirm_('Remove friend?', `Remove ${other?.name || 'this skier'} from your friends?`, () => {
     // Remove the request record
+    const req = S.friendRequests.find(r =>
+      (r.fromId === currentUser.id && r.toId === otherId) ||
+      (r.fromId === otherId && r.toId === currentUser.id)
+    );
     S.friendRequests = S.friendRequests.filter(r =>
       !((r.fromId === currentUser.id && r.toId === otherId) ||
         (r.fromId === otherId && r.toId === currentUser.id))
     );
+    if (req) _updateArrayField('friendRequests', req.id, () => null);
     // Remove from both players' friends arrays
     const me    = S.players.find(p => p.id === currentUser.id);
     const them  = S.players.find(p => p.id === otherId);
@@ -9323,7 +9383,7 @@ function sendChallenge() {
   }
 
   if (!Array.isArray(S.challenges)) S.challenges = [];
-  S.challenges.push({
+  const challenge = {
     id: uid(),
     fromId:   currentUser.id,
     fromName: currentUser.name,
@@ -9337,8 +9397,16 @@ function sendChallenge() {
     message:  msgVal   || null,
     status:   'pending',
     createdAt: Date.now()
-  });
+  };
+  S.challenges.push(challenge);
   save();
+  // Persist via an atomic arrayUnion (challenges is excluded from the regular
+  // full-document save — see _saveToFirestore), same reasoning as friendRequests.
+  if (db) {
+    db.collection('state').doc('global').update({
+      challenges: firebase.firestore.FieldValue.arrayUnion(challenge)
+    }).catch(e => console.warn('Challenge send failed:', e));
+  }
   checkNotifications();
   closeModal('challenge-modal');
   const dateStr = new Date(dateVal + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
@@ -9401,6 +9469,7 @@ function acceptChallenge(id) {
   if (!c) return;
   c.status = 'accepted';
   save();
+  _updateArrayField('challenges', id, x => ({ ...x, status: 'accepted' }));
   checkNotifications();
   renderConfirmations();
   const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
@@ -9410,6 +9479,7 @@ function acceptChallenge(id) {
 function declineChallenge(id) {
   S.challenges = (S.challenges || []).filter(x => x.id !== id);
   save();
+  _updateArrayField('challenges', id, () => null);
   checkNotifications();
   renderConfirmations();
   toast('Challenge declined.', 'ok');
@@ -9430,6 +9500,7 @@ function startChallengeGame(challengeId) {
 function cancelChallenge(id) {
   S.challenges = (S.challenges || []).filter(x => x.id !== id);
   save();
+  _updateArrayField('challenges', id, () => null);
   checkNotifications();
   renderConfirmations();
   toast('Challenge cancelled.', 'ok');
@@ -12069,6 +12140,13 @@ function adminDeleteUser(id) {
     S.tournaments = (S.tournaments||[]).filter(t => t.creatorId !== id);
     S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
     save();
+    // friendRequests/challenges are excluded from the regular full-document save
+    // (see _saveToFirestore) — write the filtered arrays directly so this bulk
+    // removal actually reaches Firestore instead of being silently dropped.
+    if (db) db.collection('state').doc('global').update({
+      friendRequests: S.friendRequests,
+      challenges: S.challenges
+    }).catch(e => console.warn('Admin delete-user cleanup write failed:', e));
     toast(`${p.name} deleted.`, 'ok');
     renderAdminStats();
     adminTab('users');
