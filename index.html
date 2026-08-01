@@ -4971,7 +4971,7 @@ function renderTrickList() {
   if (_trickLibCat !== 'All') tricks = tricks.filter(t => t.cat === _trickLibCat);
   if (q) tricks = tricks.filter(t => t.name.toLowerCase().includes(q));
   if (!tricks.length) {
-    document.getElementById('trick-lib-list').innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q?` for "${q}"`:''}.</div>`;
+    document.getElementById('trick-lib-list').innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-muted);font-size:14px;">No tricks found${q?` for "${escHtml(q)}"`:''}.</div>`;
     return;
   }
   const grouped = {};
