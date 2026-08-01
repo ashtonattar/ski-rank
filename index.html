@@ -3751,6 +3751,11 @@ async function _saveToFirestore(pendingCopy) {
     // drop each other's write, same as the pre-fix messages bug.
     delete copy.friendRequests;
     delete copy.challenges;
+    // Explore-feed comments/likes are per-item maps ({itemId: [...]}), mutated via
+    // targeted dot-path arrayUnion/arrayRemove updates (see postComment/deleteComment/
+    // toggleLike) — same reasoning as messages/friendRequests/challenges above.
+    delete copy.comments;
+    delete copy.likes;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -8364,12 +8369,22 @@ function postComment() {
   if (!text) return;
   if (!S.comments) S.comments = {};
   if (!S.comments[_commentsItemId]) S.comments[_commentsItemId] = [];
-  S.comments[_commentsItemId].push({
+  const comment = {
     id: uid(), userId: currentUser.id, userName: currentUser.name,
     text, date: Date.now()
-  });
+  };
+  S.comments[_commentsItemId].push(comment);
   input.value = '';
   save();
+  // Persist via an atomic arrayUnion on the per-item dot-path (comments is excluded
+  // from the regular full-document save — see _saveToFirestore) so two people
+  // commenting on the same clip in the same debounce window can't drop each other's
+  // comment, same class of bug fixed earlier for messages/friendRequests/challenges.
+  if (db) {
+    db.collection('state').doc('global').update({
+      [`comments.${_commentsItemId}`]: firebase.firestore.FieldValue.arrayUnion(comment)
+    }).catch(e => console.warn('Comment post failed:', e));
+  }
   renderCommentsList(_commentsItemId);
   // Update count badge on the card
   const countEl = document.getElementById(`comment-count-${_commentsItemId}`);
@@ -8378,8 +8393,14 @@ function postComment() {
 
 function deleteComment(itemId, commentId) {
   if (!S.comments?.[itemId]) return;
+  const comment = S.comments[itemId].find(c => c.id === commentId);
   S.comments[itemId] = S.comments[itemId].filter(c => c.id !== commentId);
   save();
+  if (db && comment) {
+    db.collection('state').doc('global').update({
+      [`comments.${itemId}`]: firebase.firestore.FieldValue.arrayRemove(comment)
+    }).catch(e => console.warn('Comment delete failed:', e));
+  }
   renderCommentsList(itemId);
   const countEl = document.getElementById(`comment-count-${itemId}`);
   if (countEl) countEl.textContent = getCommentCount(itemId) || '';
@@ -8530,6 +8551,17 @@ function toggleLike(itemId, el) {
   if (liking) arr.push(currentUser.id);
   else arr.splice(idx, 1);
   save();
+  // Persist via an atomic arrayUnion/arrayRemove on the per-item dot-path (likes is
+  // excluded from the regular full-document save — see _saveToFirestore) so two
+  // people liking the same clip in the same debounce window can't drop each other's
+  // like, same class of bug fixed earlier for messages/friendRequests/challenges.
+  if (db) {
+    const fieldPath = `likes.${itemId}`;
+    const op = liking ? firebase.firestore.FieldValue.arrayUnion(currentUser.id)
+                       : firebase.firestore.FieldValue.arrayRemove(currentUser.id);
+    db.collection('state').doc('global').update({ [fieldPath]: op })
+      .catch(e => console.warn('Like toggle failed:', e));
+  }
 
   // Animate the tapped button immediately without full re-render
   const btn = el ? el.closest('.reel-action-btn') : null;
