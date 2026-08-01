@@ -6812,6 +6812,7 @@ function startLive() {
     strikes: {[p1]:0,[p2]:0},
     pendingCall: null,
     disputeVotes: {},
+    disputeClaimed: false,
     phase: judge ? 'waiting-for-judge' : 'pick-setter',
     log: [],
     over: false,
@@ -7188,6 +7189,7 @@ function enterDisputePhase(callType) {
   const g = S.live;
   g.pendingCall  = { type: callType, prevPhase: g.phase };
   g.disputeVotes = {};
+  g.disputeClaimed = false;
   g.phase        = 'dispute';
   _disputeResolved = false; // reset so the new dispute can be resolved
   // setterLanded/setterBailed are judged by the copier (they watch the setter's attempt);
@@ -7227,16 +7229,45 @@ function submitDisputeVote(vote) {
   resolveDisputeIfReady();
 }
 
-// Resolve a dispute once both players' votes are present. Safe to call
-// repeatedly (from the snapshot handler and right after casting a vote) —
-// _disputeResolved guards against double-applying the outcome.
-function resolveDisputeIfReady() {
+// Resolve a dispute once both players' votes are present. Called from both the
+// snapshot handler and right after casting the deciding vote — on a real
+// two-player match that means BOTH clients can reach this at once, each with
+// its own local S.live and its own (per-tab) _disputeResolved flag, so the old
+// local-only guard couldn't stop both from independently running
+// applyPendingCall() (and, on a game-ending call, finishLive() — double-committing
+// ratings and game history). Claim the resolution via a Firestore transaction
+// first: only the client whose transaction wins gets to actually resolve; the
+// loser's transaction sees disputeClaimed already true (or the phase already
+// moved on) and backs off, picking up the winner's outcome via the next snapshot.
+async function resolveDisputeIfReady() {
   const g = S.live;
   if (!g || g.phase !== 'dispute' || _disputeResolved) return;
   const dv = g.disputeVotes || {};
   const v1 = dv[g.p1];
   const v2 = dv[g.p2];
   if (!v1 || !v2) return;
+
+  if (db && g.id) {
+    let won = false;
+    try {
+      const ref = db.collection('liveGames').doc(g.id);
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const remote = snap.data();
+        if (!remote || remote.phase !== 'dispute' || remote.disputeClaimed) return; // already claimed/resolved elsewhere
+        const rdv = remote.disputeVotes || {};
+        if (rdv[g.p1] !== v1 || rdv[g.p2] !== v2) return; // our local votes are stale vs. the server — don't claim on old data
+        tx.update(ref, { disputeClaimed: true });
+        won = true;
+      });
+    } catch (e) {
+      console.warn('Dispute resolution claim failed:', e);
+      return; // couldn't determine a winner this time — the next snapshot/vote will retry
+    }
+    if (!won) return; // another client is resolving (or already did)
+    g.disputeClaimed = true;
+  }
+
   _disputeResolved = true;
   if (v1 === v2) {
     const upheld = v1 === 'confirm';
@@ -10928,6 +10959,7 @@ function acceptLiveInvite(inviteId) {
       strikes:     { [inv.p1Id]: 0, [inv.p2Id]: 0 },
       pendingCall: null,
       disputeVotes: {},
+      disputeClaimed: false,
       phase:    initialPhase,
       log:      judgeAlreadyAccepted
         ? [{ icon: '<svg class="icon icon-scale"><use href="#i-scale"/></svg>', msg: `${byId(inv.judgeId)?.name || 'Judge'} has joined as judge — pick who sets first!` }]
