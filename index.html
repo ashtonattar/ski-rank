@@ -1158,8 +1158,10 @@
     /* ── AUTH SCREEN ── */
     .auth-screen {
       position:fixed; inset:0; z-index:9999;
-      display:flex; align-items:center; justify-content:center;
+      display:flex; align-items:flex-start; align-items:safe center; justify-content:center;
       padding:20px;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
       background-color: var(--bg-base);
       background-image: url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1920&auto=format&fit=crop&q=80');
       background-size:cover; background-position:center 30%;
@@ -1577,12 +1579,11 @@
 
     /* ── Explore / Reels ── */
     #view-explore {
-      /* Override default view padding — reels need full bleed */
-      margin: -32px -38px;
-      width: calc(100% + 76px);
-    }
-    @media(max-width:768px) {
-      #view-explore { margin:-16px -16px; width:calc(100% + 32px); }
+      /* Cancel out .main's own padding (topbar/tabbar clearance + side gutters) —
+         reels need to bleed fully to the viewport edges, including behind the
+         translucent topbar/tabbar, since .reel-card sizes itself to 100dvh. */
+      margin: calc(-64px - env(safe-area-inset-top)) -18px calc(-112px - env(safe-area-inset-bottom));
+      width: calc(100% + 36px);
     }
     .explore-feed {
       height: 100dvh;
