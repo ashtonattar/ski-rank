@@ -5676,7 +5676,7 @@ function tier(raw, gamesPlayed) {
 // Renders a tier/provisional pill: colored glow, icon in a tinted chip. Pass clickable:true to wire up the tier-list modal.
 function tierBadgeHTML(t, text, { clickable = false } = {}) {
   const coloredIcon = t.icon.replace('<svg ', `<svg style="color:${t.color}" `);
-  const attrs = clickable ? ` onclick="showTierModal()" title="View all tiers" role="button" tabindex="0"` : '';
+  const attrs = clickable ? ` onclick="event.stopPropagation();showTierModal()" title="View all tiers" role="button" tabindex="0"` : '';
   return `<span class="badge tier-badge"${attrs} style="--tc:${t.color};">
     <span class="tier-badge-icon">${coloredIcon}</span><span>${text}</span>
   </span>`;
