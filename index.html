@@ -1585,7 +1585,7 @@
       #view-explore { margin:-16px -16px; width:calc(100% + 32px); }
     }
     .explore-feed {
-      height: calc(100vh - 0px);
+      height: 100dvh;
       overflow-y: scroll;
       scroll-snap-type: y mandatory;
       scrollbar-width: none;
@@ -1594,7 +1594,7 @@
 
     .reel-card {
       position: relative;
-      height: 100vh;
+      height: 100dvh;
       scroll-snap-align: start;
       scroll-snap-stop: always;
       background: #000;
@@ -5911,6 +5911,8 @@ function nav(view, _force) {
   // Save scroll position of the current view before switching
   if (_activeSection) _viewScroll[_activeSection] = window.scrollY || 0;
   _activeSection = view;
+  const acctBtn = document.getElementById('topbar-account');
+  if (acctBtn) acctBtn.style.display = currentUser ? 'flex' : 'none';
   // Pause any playing reel videos when leaving explore, and hide the post FAB
   document.querySelectorAll('video.reel-video').forEach(v => v.pause());
   if (view !== 'explore') { const fab = document.getElementById('post-clip-fab'); if (fab) fab.style.display = 'none'; }
