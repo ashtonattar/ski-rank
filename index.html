@@ -858,7 +858,6 @@
       background:color-mix(in srgb, var(--tc) 30%, transparent);
     }
     .tier-badge-icon .icon { width:10px; height:10px; }
-    .tier-caption { font-size:11px; color:var(--text-muted); margin-top:3px; }
     .badge-accent  { background:rgba(34,224,194,.1);   color:var(--fire);   border:1px solid rgba(34,224,194,.22); animation:badgeGlow 2.2s ease-in-out infinite; }
     .badge-muted   { background:rgba(45,90,115,.1);  color:var(--text-muted); border:1px solid rgba(45,90,115,.2); }
     @keyframes badgeGlow {
@@ -3291,7 +3290,6 @@
             <span id="prof-hero-tier"></span>
             <span id="prof-hero-rank" style="font-size:13px;color:var(--text-muted);"></span>
           </div>
-          <div class="tier-caption" id="prof-hero-tier-caption"></div>
           <div id="prof-hero-resort" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;"></div>
           <div id="prof-hero-instagram" style="margin-bottom:4px;"></div>
           <div style="display:flex;gap:16px;align-items:center;margin-bottom:4px;font-size:12.5px;">
@@ -5708,20 +5706,6 @@ function tier(raw, gamesPlayed) {
   if (r >=  7) return { label:'Shredder', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
   if (r >=  4) return { label:'Park Rat', color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
   return              { label:'Rookie',   color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
-}
-
-// One-line always-visible gloss on where a tier sits in the 5-tier ladder, so meaning isn't gated behind the tier modal tap.
-const TIER_CAPTIONS = {
-  'Rookie':   'low end of the ladder',
-  'Park Rat': 'lower-middle of the ladder',
-  'Shredder': 'middle of the ladder',
-  'Sender':   'upper-middle of the ladder',
-  'Legend':   'top of the ladder',
-};
-function tierCaption(t) {
-  if (t.provisional) return 'still qualifying for a tier';
-  if (t.label === 'Unrated') return 'play a game to get on the ladder';
-  return TIER_CAPTIONS[t.label] || '';
 }
 
 // Renders a tier/provisional pill: colored glow, icon in a tinted chip. Pass clickable:true to wire up the tier-list modal.
@@ -9441,7 +9425,6 @@ function showProfile(id) {
             ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
             : `${tierBadgeHTML(t, t.label)}`}
         </div>
-        <div class="tier-caption">${escHtml(tierCaption(t))}</div>
       </div>
     </div>
 
@@ -11905,7 +11888,6 @@ function renderMyProfile() {
   document.getElementById('prof-hero-tier').innerHTML = t.provisional
     ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD} games`)}`
     : `${tierBadgeHTML(t, t.label)}`;
-  document.getElementById('prof-hero-tier-caption').textContent = tierCaption(t);
   document.getElementById('prof-hero-rank').textContent   = rank ? `#${rank} Overall` : (p.rating == null ? 'Unrated — play a game to get ranked!' : '');
   document.getElementById('prof-hero-resort').innerHTML   = p.homeResort
     ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}`
