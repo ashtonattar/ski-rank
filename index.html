@@ -1210,6 +1210,23 @@
     .auth-screen.animating-out { animation:authScreenOut .45s ease forwards; pointer-events:none; }
     .auth-card.animating-out   { animation:authCardOut   .35s cubic-bezier(.4,0,1,1) forwards; }
     #app.animating-in          { animation:appIn         .5s cubic-bezier(.22,.68,0,1.2) forwards; }
+
+    /* ── BOOT LOADING SCREEN ── */
+    /* Shown while we determine session state, so returning users never see a
+       login-screen flash before we know they're already signed in. */
+    #boot-loading {
+      position:fixed; inset:0; z-index:10000;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:18px; background:var(--bg-base);
+    }
+    #boot-loading.animating-out { animation:authScreenOut .3s ease forwards; pointer-events:none; }
+    .boot-spinner {
+      width:36px; height:36px; border-radius:50%;
+      border:3px solid rgba(255,62,127,0.18);
+      border-top-color:var(--ice, #ff3e7f);
+      animation:bootSpin .8s linear infinite;
+    }
+    @keyframes bootSpin { to { transform:rotate(360deg); } }
     .auth-card::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       background:linear-gradient(90deg,transparent,var(--ice),var(--fire),transparent);
@@ -2329,8 +2346,15 @@
 </svg>
 
 
+<!-- ═══ Boot Loading Screen ═══ -->
+<!-- Visible by default so it covers the page the instant HTML parses, before
+     JS has determined whether the visitor has a saved session. -->
+<div id="boot-loading">
+  <div class="boot-spinner"></div>
+</div>
+
 <!-- ═══ Auth Screen ═══ -->
-<div id="auth-screen" class="auth-screen">
+<div id="auth-screen" class="auth-screen" style="display:none;">
   <div class="auth-card">
     <div class="auth-logo">
       <div style="display:flex;justify-content:center;margin-bottom:12px;">
@@ -4702,7 +4726,17 @@ function deleteAccount() {
   );
 }
 
+// Fades out the boot-loading screen shown while we determine session state.
+// Safe to call more than once — a no-op once the screen is already hidden.
+function hideBootLoading() {
+  const boot = document.getElementById('boot-loading');
+  if (!boot || boot.style.display === 'none') return;
+  boot.classList.add('animating-out');
+  setTimeout(() => { boot.style.display = 'none'; boot.classList.remove('animating-out'); }, 300);
+}
+
 function showAuthScreen(hint='') {
+  hideBootLoading();
   const screen = document.getElementById('auth-screen');
   screen.style.display = 'flex';
   screen.classList.remove('animating-out');
@@ -5511,6 +5545,7 @@ function launchApp() {
 
 // Animate the auth card out, fade the screen, then call cb
 function _animateAuthOut(cb) {
+  hideBootLoading();
   const screen = document.getElementById('auth-screen');
   const card   = screen.querySelector('.auth-card');
   card.classList.add('animating-out');
