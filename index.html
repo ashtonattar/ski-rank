@@ -2660,6 +2660,10 @@
           <p>Log a game to start building the rankings.</p>
           <button class="btn btn-primary" onclick="nav('log-game')">Log a Game</button>
         </div>
+        <div id="lb-loading" class="empty" style="display:none;">
+          <div class="boot-spinner" style="margin:0 auto 14px;"></div>
+          <p>Loading rankings…</p>
+        </div>
 
         <!-- Weekly leaderboard (hidden until tab is active) -->
         <div id="lb-weekly-wrap" style="display:none;">
@@ -3733,6 +3737,7 @@ const _dirtyAvatars = new Set(); // playerIds whose avatar needs uploading
 let   _firestoreUnsub = null; // unsubscribe handle for onSnapshot
 let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
+let   _firstSnapshotReceived = false; // false until the first real Firestore snapshot lands — lets views tell "still loading" apart from "genuinely empty"
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
 let   _clearLiveOnFirstSync   = false; // abandon any live game found on first sync after login/refresh
 let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapshot so old wins don't re-trigger
@@ -3912,6 +3917,7 @@ function startFirestoreSync() {
   _loadAvatars().then(() => {
     _firestoreUnsub = db.collection('state').doc('global').onSnapshot(
       snap => {
+        _firstSnapshotReceived = true;
         // Firestore is empty
         if (!snap.exists) {
           if (currentUser && !_wipeInProgress) {
@@ -4786,6 +4792,7 @@ function launchPreview() {
   // Always start empty — Firestore is the source of truth.
   // Don't call load() here or stale localStorage data would show up.
   S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
+  _firstSnapshotReceived = false; // views should show a loading state, not "no players", until sync catches up
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
   nav('live-game');
@@ -5525,6 +5532,7 @@ function launchApp() {
   // myMissingRecord can detect and write them to Firestore on first sync.
   const _preseedPlayers = S.players && S.players.length ? S.players : [];
   S = { players: _preseedPlayers, games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[] };
+  _firstSnapshotReceived = false; // views should show a loading state, not "no players", until sync catches up
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   updateSidebarAvatar();
   checkNotifications();
@@ -6292,9 +6300,10 @@ function renderLeaderboard() {
   // Auto-set sport filter to match current user's type
   if (currentUser) setLbRiderFilter(currentUser.riderType === 'boarder' ? 'boarder' : 'skier');
   const pl = sorted();
-  const body  = document.getElementById('lb-body');
-  const empty = document.getElementById('lb-empty');
-  const table = document.getElementById('lb-table');
+  const body    = document.getElementById('lb-body');
+  const empty   = document.getElementById('lb-empty');
+  const loading = document.getElementById('lb-loading');
+  const table   = document.getElementById('lb-table');
 
   const me = currentUser ? S.players.find(p => p.id === currentUser.id) : null;
   // Only ranked players (those with a rating) get a rank number
@@ -6330,8 +6339,22 @@ function renderLeaderboard() {
   const ctaEl = document.getElementById('lb-play-cta');
   if (ctaEl) ctaEl.style.display = (me && me.gamesPlayed === 0) ? 'block' : 'none';
 
-  if (!pl.length) { table.style.display='none'; empty.style.display='block'; return; }
-  table.style.display='table'; empty.style.display='none';
+  if (!pl.length) {
+    table.style.display = 'none';
+    // Firestore hasn't reported back yet — this is "still loading", not "genuinely
+    // no players". Showing the real empty state here previously made a fresh page
+    // load look like the app was running with no accounts, for as long as the
+    // first Firestore snapshot took to arrive (network-dependent, up to ~15s).
+    if (!_firstSnapshotReceived && db) {
+      loading.style.display = 'block';
+      empty.style.display = 'none';
+    } else {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+    }
+    return;
+  }
+  table.style.display='table'; empty.style.display='none'; loading.style.display='none';
 
   // Ranked players get a position number; provisional/unrated ones just show —
   body.innerHTML = pl.map((p, i) => {
