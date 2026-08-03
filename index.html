@@ -827,6 +827,7 @@
     .pp-item .pp-item-name { font-weight:600; flex:1; }
     .pp-item .pp-item-rating { font-size:12px; color:var(--text-muted); }
     .pp-empty { padding:14px 13px; font-size:13px; color:var(--text-muted); text-align:center; }
+    .pp-hint { padding:8px 13px 10px; font-size:12px; line-height:1.4; color:var(--text-muted); border-bottom:1px solid var(--border); }
 
     /* ── BADGES ── */
     .badge {
@@ -5953,6 +5954,9 @@ function renderPickerList(pickerId, query) {
   const otherRows  = data.others.filter(match);
   let html = '';
   if (friendRows.length) html += `<div class="pp-section">Friends</div>` + friendRows.map(itemHtml).join('');
+  if (!q && !data.friends.length && otherRows.length) {
+    html += `<div class="pp-hint">You haven't added any friends yet — pick anyone below to challenge them. Add friends from their profile to find them faster next time.</div>`;
+  }
   if (otherRows.length)  html += `<div class="pp-section">${friendRows.length ? 'Everyone Else' : 'All Riders'}</div>` + otherRows.map(itemHtml).join('');
   const _sport = (currentUser?.riderType === 'boarder') ? 'snowboarders' : 'skiers';
   if (!friendRows.length && !otherRows.length) html = `<div class="pp-empty">No ${_sport} found</div>`;
@@ -7185,8 +7189,8 @@ function playerPanel(player, g, role) {
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
       </div>
-      ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;"><svg class="icon icon-target"><use href="#i-target"/></svg> SETTER</div>' : ''}
-      ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> COPYING</div>' : ''}
+      ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;"><svg class="icon icon-target"><use href="#i-target"/></svg> SETTER</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Goes first — names a trick and attempts it</div>' : ''}
+      ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> COPYING</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Match the trick or take a letter</div>' : ''}
       ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> ${g.strikes[player.id]}/3 strikes</div>` : ''}
     </div>`;
 }
