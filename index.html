@@ -12,6 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
   <title>Slope Battles — Freestyle Trick Duels</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -2402,7 +2403,25 @@
         <input type="password" class="form-input" id="li-password" placeholder="••••••••"
                autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
+      <div style="text-align:right;margin:-6px 0 14px;">
+        <button type="button" onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;text-decoration:underline;">Forgot password?</button>
+      </div>
       <button class="btn btn-primary auth-btn" onclick="doLogin()">Sign In <svg class="icon icon-skier"><use href="#i-skier"/></svg></button>
+    </div>
+
+    <!-- ── Forgot Password ── -->
+    <div id="form-forgot" style="display:none;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">Enter the email on your account and we'll send you a link to reset your password.</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="fp-email" placeholder="you@example.com"
+               autocomplete="email" onkeydown="if(event.key==='Enter')sendPasswordReset()">
+      </div>
+      <div id="fp-message" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:var(--radius-sm);font-size:12.5px;text-align:center;line-height:1.5;"></div>
+      <button class="btn btn-primary auth-btn" id="fp-send-btn" onclick="sendPasswordReset()">Send Reset Link</button>
+      <div style="text-align:center;margin-top:14px;">
+        <button type="button" onclick="hideForgotPassword()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;"><svg class="icon icon-back"><use href="#i-back"/></svg> Back to Sign In</button>
+      </div>
     </div>
 
     <!-- ── Sign Up ── -->
@@ -2525,6 +2544,9 @@
       </button>
       <button class="nav-btn" data-view="tournaments" onclick="nav('tournaments');closeMoreSheet()" id="nav-tournaments">
         <span class="nav-icon"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span><span style="flex:1;">Tourneys</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-btn" id="nav-install-app" onclick="installApp()" style="display:none;">
+        <span class="nav-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span><span style="flex:1;">Install App</span>
       </button>
     </div>
   </div>
@@ -2745,7 +2767,7 @@
             <div class="clip-box-inner">
               <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
               <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Upload a video clip</div>
-              <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">MP4 · MOV · AVI · up to 200 MB</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">MP4 · MOV · AVI · up to 100 MB</div>
               <input type="hidden" id="lg-clip-url">
               <label class="btn btn-outline" style="cursor:pointer;">
                 Choose File <input type="file" id="lg-clip-file" accept="video/*" style="display:none;" onchange="handleClipFile('lg',this)">
@@ -2755,7 +2777,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary btn-lg" onclick="submitLog()" style="width:100%;">Submit Result</button>
+        <button class="btn btn-primary btn-lg" id="lg-submit-btn" onclick="submitLog()" style="width:100%;">Submit Result</button>
       </div>
     </div>
 
@@ -4267,11 +4289,21 @@ async function resolveAbandonIfStillPending(gameId, abId) {
 // Persist S.live to its own liveGames/{id} doc. Debounced like the global save
 // unless immediate is passed (used when the outcome must reach everyone right
 // away, e.g. a completed game, before the local player can navigate elsewhere).
-function saveLiveGame(liveObj, immediate) {
+// Retries with backoff on failure — a completed-game write that silently drops
+// leaves the opponent stuck staring at a live board forever with nothing to
+// tell either side something went wrong, so this can't be fire-and-forget.
+function saveLiveGame(liveObj, immediate, attempt = 0) {
   if (!db || !liveObj || !liveObj.id) return;
   const copy = JSON.parse(JSON.stringify(liveObj));
   const write = () => db.collection('liveGames').doc(copy.id).set(copy)
-    .catch(e => console.warn('Live game save error:', e));
+    .catch(e => {
+      console.warn('Live game save error:', e);
+      if (attempt < 4) {
+        setTimeout(() => saveLiveGame(liveObj, true, attempt + 1), 1000 * Math.pow(2, attempt));
+      } else if (copy.over) {
+        toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Result may not have synced — check your connection and reopen the game.', 'err');
+      }
+    });
   clearTimeout(_liveSaveTimer);
   if (immediate) write();
   else _liveSaveTimer = setTimeout(write, 300);
@@ -4366,19 +4398,24 @@ function setSession(u)  { localStorage.setItem('skirank_session', JSON.stringify
 function clearSession() { localStorage.removeItem('skirank_session'); currentUser = null; _profileFormDirty = false; }
 
 // Look up the app's player record from a Firebase Auth user object.
-// Returns null if not found.
+// Returns null only if the record is confirmed not to exist. If a lookup
+// throws (e.g. dropped network), that's a transient failure, not "not
+// found" — throws so the caller can retry instead of treating it as a
+// missing account.
 async function _playerFromFirebaseUser(fbUser) {
   if (!fbUser || !db) return null;
+  let sawError = false;
   // New accounts: Firestore doc ID == Firebase Auth UID
   try {
     const direct = await db.collection('users').doc(fbUser.uid).get();
     if (direct.exists) return direct.data();
-  } catch(_) {}
+  } catch(_) { sawError = true; }
   // Legacy accounts: look up by email
   try {
     const snap = await db.collection('users').where('email','==', fbUser.email).limit(1).get();
     if (!snap.empty) return snap.docs[0].data();
-  } catch(_) {}
+  } catch(_) { sawError = true; }
+  if (sawError) throw new Error('player-lookup-failed');
   return null;
 }
 
@@ -4454,7 +4491,16 @@ async function doSignup() {
     } catch(fbErr) {
       if (fbErr.code === 'auth/email-already-in-use') return showErr('An account with that email already exists.');
       if (fbErr.code === 'auth/weak-password')        return showErr('Password must be at least 6 characters.');
-      console.warn('Firebase Auth signup failed, falling back:', fbErr);
+      // Transient/unknown error (network drop, rate limit, etc.) — don't silently
+      // fall through to a local-only account with no live Firebase Auth session.
+      // That account has no firebaseUid, so it can never be found again by
+      // _playerFromFirebaseUser() on a later login, and firestore.rules' sign-in
+      // requirement means its very first write is likely to fail anyway — better
+      // to tell the user honestly now than surface a confusing generic error later.
+      console.warn('Firebase Auth signup failed:', fbErr.code);
+      return showErr(fbErr.code === 'auth/network-request-failed'
+        ? 'Connection error. Please try again.'
+        : 'Something went wrong. Please try again.');
     }
   }
 
@@ -4534,12 +4580,21 @@ async function doLogin() {
         // Firebase Auth knows this user but password is wrong
         resetBtn(); return showErr('Incorrect password.');
       }
-      if (!notFound.includes(fbErr.code)) {
-        // Unknown error — fall through to legacy silently
-        console.warn('Firebase Auth error, trying legacy:', fbErr.code);
+      if (notFound.includes(fbErr.code)) {
+        // User genuinely not in Firebase Auth yet — fall through to legacy
+        migratedViaLegacy = true;
+      } else {
+        // Transient/unknown error (e.g. auth/network-request-failed,
+        // auth/too-many-requests) — don't fall through to the legacy
+        // password check: an already-migrated account has no passwordHash
+        // left (see 0zh/0zk), so that check would wrongly report a correct
+        // password as "Incorrect password." on a flaky connection.
+        console.warn('Firebase Auth error:', fbErr.code);
+        resetBtn();
+        return showErr(fbErr.code === 'auth/network-request-failed'
+          ? 'Connection error. Please try again.'
+          : 'Something went wrong. Please try again.');
       }
-      // User not in Firebase Auth yet — fall through to legacy
-      migratedViaLegacy = true;
     }
   } else {
     migratedViaLegacy = true; // no Firebase Auth available
@@ -4700,11 +4755,60 @@ function launchPreview() {
 }
 
 function switchAuthTab(tab) {
+  document.getElementById('form-forgot').style.display = 'none';
+  document.querySelector('.auth-tabs').style.display = 'flex';
   document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
   document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
   document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
   document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
   document.getElementById('auth-error').classList.remove('visible');
+}
+
+function showForgotPassword() {
+  document.querySelector('.auth-tabs').style.display = 'none';
+  document.getElementById('form-login').style.display  = 'none';
+  document.getElementById('form-signup').style.display = 'none';
+  document.getElementById('auth-error').classList.remove('visible');
+  const fpMsg = document.getElementById('fp-message');
+  fpMsg.style.display = 'none';
+  document.getElementById('fp-email').value = document.getElementById('li-email').value.trim();
+  document.getElementById('form-forgot').style.display = 'block';
+}
+
+function hideForgotPassword() {
+  document.getElementById('form-forgot').style.display = 'none';
+  document.querySelector('.auth-tabs').style.display = 'flex';
+  switchAuthTab('login');
+}
+
+async function sendPasswordReset() {
+  const email = document.getElementById('fp-email').value.trim().toLowerCase();
+  const msgEl = document.getElementById('fp-message');
+  const showMsg = (m, ok) => {
+    msgEl.textContent = m;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'rgba(34,224,194,0.1)' : 'rgba(255,62,127,0.08)';
+    msgEl.style.border = `1px solid ${ok ? 'rgba(34,224,194,0.3)' : 'rgba(255,62,127,0.25)'}`;
+    msgEl.style.color = ok ? 'var(--ice)' : 'var(--fire)';
+  };
+
+  if (!email) return showMsg('Please enter your email.', false);
+  if (!_fbAuth) return showMsg('Unable to connect. Please try again.', false);
+
+  const btn = document.getElementById('fp-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await _fbAuth.sendPasswordResetEmail(email);
+  } catch (e) {
+    // Don't reveal whether an account exists for this email — show the
+    // same success message for user-not-found as for a real send.
+    if (e.code !== 'auth/user-not-found' && e.code !== 'auth/invalid-email') {
+      btn.disabled = false; btn.textContent = 'Send Reset Link';
+      return showMsg('Something went wrong. Please try again.', false);
+    }
+  }
+  btn.disabled = false; btn.textContent = 'Send Reset Link';
+  showMsg('If an account exists for that email, a reset link is on its way. Check your inbox (and spam folder).', true);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5610,15 +5714,6 @@ function openClipDB() {
     req.onsuccess  = e => { _clipDB = e.target.result; res(_clipDB); };
     req.onerror    = () => rej(req.error);
   });
-}
-function saveClipFile(file) {
-  const key = 'clip_' + uid();
-  return openClipDB().then(db => new Promise((res, rej) => {
-    const tx = db.transaction('files', 'readwrite');
-    tx.objectStore('files').put(file, key);
-    tx.oncomplete = () => res('idb:' + key);
-    tx.onerror    = () => rej(tx.error);
-  }));
 }
 function loadClipUrl(ref) {
   // Returns a live blob: URL for an idb: reference; passes http: URLs through.
@@ -6565,13 +6660,31 @@ function getWinnerLetters() {
   return active.join(''); // e.g. '', 'S', 'SK', 'SKI'
 }
 
-function submitLog() {
+// Writes a logged-game request to Firestore via arrayUnion, retrying with
+// backoff on failure. A dropped write here means the opponent never sees the
+// pending result to confirm, so a silent console.warn isn't enough — after
+// retries are exhausted the reporter gets told explicitly.
+function _syncPendingRequest(request, attempt = 0) {
+  if (!db) return;
+  db.collection('state').doc('global').update({
+    pending: firebase.firestore.FieldValue.arrayUnion(request)
+  }).catch(e => {
+    console.warn('Log game submit failed:', e);
+    if (attempt < 4) {
+      setTimeout(() => _syncPendingRequest(request, attempt + 1), 1000 * Math.pow(2, attempt));
+    } else {
+      const oppName = byId(request.opponentId)?.name || 'your opponent';
+      toast(`<svg class="icon icon-warning"><use href="#i-warning"/></svg> Couldn't send your result to ${oppName} — check your connection and log it again.`, 'err');
+    }
+  });
+}
+
+async function submitLog() {
   const p1Id  = document.getElementById('lg-p1').value;
   const p2Id  = document.getElementById('lg-p2').value;
   const wId   = document.getElementById('lg-winner').value;
   const tricks = document.getElementById('lg-tricks').value;
   const notes  = document.getElementById('lg-notes').value;
-  const clipUrl = getClipValue('lg');
   const resort  = (document.getElementById('lg-resort')?.value || '').trim();
   const winnerLetters = getWinnerLetters();
 
@@ -6581,6 +6694,24 @@ function submitLog() {
   const _p1rt = (byId(p1Id)?.riderType || 'skier'), _p2rt = (byId(p2Id)?.riderType || 'skier');
   if (_p1rt !== _p2rt) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
   if (winnerLetters === 'SKI') { toast("Score can't be SKI–SKI — the loser always spells SKI last.", 'err'); return; }
+
+  // Upload any attached clip to Cloudinary now (rather than at file-select
+  // time) so opponents/judges/other clients can actually see it — a local
+  // idb:/blob: reference only ever resolved on the uploader's own device.
+  const submitBtn = document.getElementById('lg-submit-btn');
+  const resetBtnLabel = () => { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Result'; } };
+  let clipUrl;
+  try {
+    if (submitBtn) submitBtn.disabled = true;
+    clipUrl = await resolveClipValue('lg', pct => {
+      if (submitBtn) submitBtn.textContent = `Uploading clip… ${pct}%`;
+    });
+  } catch (e) {
+    resetBtnLabel();
+    toast(e.message || 'Clip upload failed — check your connection and try again', 'err');
+    return;
+  }
+  resetBtnLabel();
 
   const lId = wId===p1Id ? p2Id : p1Id;
 
@@ -6616,11 +6747,7 @@ function submitLog() {
   // save() — two people logging games (or resolving other pending requests) within the
   // same ~500ms window would otherwise silently drop each other's submission, since
   // each client's full-document write only knows about its own local copy.
-  if (db) {
-    db.collection('state').doc('global').update({
-      pending: firebase.firestore.FieldValue.arrayUnion(request)
-    }).catch(e => console.warn('Log game submit failed:', e));
-  }
+  if (db) _syncPendingRequest(request);
 
   resetPicker('pp-lg-p2');
   document.getElementById('lg-winner').value='';
@@ -6639,7 +6766,14 @@ function submitLog() {
   if (lgResort) lgResort.value = '';
 
   checkNotifications();
-  toast(`Result sent to ${opponent?.name || 'opponent'} for confirmation <svg class="icon icon-mail"><use href="#i-mail"/></svg>`, 'ok');
+  if (db) {
+    toast(`Result sent to ${opponent?.name || 'opponent'} for confirmation <svg class="icon icon-mail"><use href="#i-mail"/></svg>`, 'ok');
+  } else {
+    // Firebase never initialized (blocked CDN, fully offline) — the arrayUnion
+    // write above never fired, so telling the user it was "sent" would be a lie:
+    // the result only exists in this browser's local state right now.
+    toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> No connection — result saved on this device only. Reconnect and log it again to notify your opponent.', 'err');
+  }
   nav('profile');
 }
 
@@ -7509,7 +7643,7 @@ function showGameOver(winnerId, loserId, game) {
         <button class="btn btn-primary" onclick="shareGameResult('${escHtml(winner.name.replace(/'/g,"\\'"))}','${escHtml(loser.name.replace(/'/g,"\\'"))}')">
           <svg class="icon icon-upload"><use href="#i-upload"/></svg> Share Result
         </button>
-        <button class="btn btn-ghost btn-sm" onclick="submitLiveClipAndReset()">New Game</button>
+        <button class="btn btn-ghost btn-sm" id="lv-submit-btn" onclick="submitLiveClipAndReset()">New Game</button>
       </div>
       <div style="margin-top:20px;text-align:left;">
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;"><svg class="icon icon-video"><use href="#i-video"/></svg> Attach a Video Clip</div>
@@ -7526,8 +7660,25 @@ function showGameOver(winnerId, loserId, game) {
     </div>`;
 }
 
-function submitLiveClipAndReset() {
-  const clipUrl = getClipValue('lv');
+async function submitLiveClipAndReset() {
+  const btn = document.getElementById('lv-submit-btn');
+  const resetBtnLabel = () => { if (btn) { btn.disabled = false; btn.textContent = 'New Game'; } };
+  let clipUrl;
+  try {
+    if (btn) btn.disabled = true;
+    // Upload to Cloudinary (same path as Explore posts) rather than IndexedDB —
+    // an idb: reference only ever resolves on the uploader's own device, so
+    // the opponent/judge viewing this game's history would see a blank video.
+    clipUrl = await resolveClipValue('lv', pct => {
+      if (btn) btn.textContent = `Uploading clip… ${pct}%`;
+    });
+  } catch (e) {
+    resetBtnLabel();
+    toast(e.message || 'Clip upload failed — check your connection and try again', 'err');
+    return;
+  }
+  resetBtnLabel();
+
   if (clipUrl && S.live?._game) {
     // Attach the clip to the already-committed game
     const game = S.games.find(g => g.id === S.live._game.id);
@@ -8424,7 +8575,7 @@ function shareReel(itemId) {
   }
   // For idb: references we can't share a blob URL externally — copy caption instead
   if (!url || url.startsWith('idb:')) {
-    navigator.clipboard?.writeText(text).then(() => toast('Link copied!', 'ok'));
+    navigator.clipboard?.writeText(text).then(() => toast('Link copied!', 'ok')).catch(() => toast('Could not copy link.', 'err'));
     return;
   }
   if (navigator.share) {
@@ -8848,46 +8999,63 @@ function previewClip(prefix) {
 }
 
 // Called when a file is chosen
+// Holds the raw File picked for the 'lg' (log-a-game) and 'lv' (post-match)
+// clip boxes, keyed by prefix, until the form is actually submitted — the
+// upload itself happens in resolveClipValue() at submit time (same pattern
+// as the Explore "Post Clip" flow's file mode), not on file selection.
+const _pendingClipFiles = {};
+
 function handleClipFile(prefix, input) {
   const file = input.files?.[0];
   if (!file) return;
-  if (file.size > 200 * 1024 * 1024) {
-    toast('File is over 200 MB — please try a shorter clip.', 'err');
+  if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
+    toast(`File is over ${_CLOUDINARY_MAX_MB} MB — please try a shorter clip.`, 'err');
     input.value = '';
     return;
   }
-  // Show an immediate preview using a temporary blob URL
+  // Show an immediate local preview using a temporary blob URL — the real
+  // upload to Cloudinary (so opponents/judges/other clients can actually see
+  // it, not just this device) happens on submit via resolveClipValue().
+  _pendingClipFiles[prefix] = file;
   const previewUrl = URL.createObjectURL(file);
   const previewEl  = document.getElementById(`${prefix}-clip-preview`);
   if (previewEl) {
     previewEl.style.display = 'block';
     previewEl.innerHTML = clipPreviewHtml({ type:'file', url: previewUrl }, prefix);
   }
-  // Persist the raw file in IndexedDB so the clip survives page reloads
-  saveClipFile(file).then(idbRef => {
-    const urlInput = document.getElementById(`${prefix}-clip-url`);
-    if (urlInput) urlInput.dataset.fileUrl = idbRef;
-  }).catch(() => {
-    // IDB unavailable — fall back to the short-lived blob URL
-    const urlInput = document.getElementById(`${prefix}-clip-url`);
-    if (urlInput) urlInput.dataset.fileUrl = previewUrl;
-  });
 }
 
 function clearClip(prefix) {
   const urlInput  = document.getElementById(`${prefix}-clip-url`);
   const previewEl = document.getElementById(`${prefix}-clip-preview`);
   const fileInput = document.getElementById(`${prefix}-clip-file`);
+  delete _pendingClipFiles[prefix];
   if (urlInput)  { urlInput.value = ''; delete urlInput.dataset.fileUrl; }
   if (fileInput) fileInput.value = '';
   if (previewEl) { previewEl.style.display='none'; previewEl.innerHTML=''; }
 }
 
-// Returns the clip URL string to store (file blob URL or typed URL)
+// Returns the clip URL string to store (file blob URL or typed URL).
+// Synchronous — used only where a pending file upload doesn't need resolving.
 function getClipValue(prefix) {
   const urlInput = document.getElementById(`${prefix}-clip-url`);
   if (!urlInput) return '';
   return urlInput.dataset.fileUrl || urlInput.value.trim();
+}
+
+// Resolves the clip box's current selection to a durable, shareable URL:
+// uploads a pending file to Cloudinary (same path Explore posts use, so the
+// clip is visible to opponents/judges/anyone, not just the uploader's own
+// browser), or passes a typed link straight through. onProgress(pct) is
+// called during a file upload. Returns '' if nothing was selected.
+async function resolveClipValue(prefix, onProgress) {
+  const file = _pendingClipFiles[prefix];
+  if (file) {
+    const url = await uploadClipToCloudinary(file, onProgress);
+    delete _pendingClipFiles[prefix];
+    return url;
+  }
+  return getClipValue(prefix);
 }
 
 // Renders a stored clip inline (in history / inbox cards)
@@ -11953,6 +12121,46 @@ function closeBadgeModal() {
   document.getElementById('badge-modal-overlay').style.display = 'none';
 }
 
+// Resolves a live Firebase Auth session to a player record and launches the
+// app. A lookup failure (dropped LTE, etc.) is retried with backoff rather
+// than treated as "no account" — only a confirmed empty result signs the
+// user out, so a flaky connection can never silently log a returning user out.
+async function _resolveFirebaseSession(fbUser, attempt = 0) {
+  let player;
+  try {
+    player = await _playerFromFirebaseUser(fbUser);
+  } catch (e) {
+    if (attempt < 3) {
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      return _resolveFirebaseSession(fbUser, attempt + 1);
+    }
+    console.warn('[init] player lookup failed after retries, staying signed in', e);
+    const session = getSession();
+    if (session) { currentUser = session; launchApp(); }
+    else { launchPreview(); toast('Connection trouble — check your signal and reload.', 'err'); }
+    return;
+  }
+  if (player) {
+    // A guest browsing in preview mode already has #app visible, so that check
+    // alone misses a fresh sign-in — also launch whenever the auth screen is
+    // still open (mid sign-in/signup) or we're transitioning from no session.
+    const authScreen = document.getElementById('auth-screen');
+    const midAuthFlow = authScreen && authScreen.style.display !== 'none';
+    const needsLaunch = !currentUser || midAuthFlow ||
+      !document.getElementById('app') || document.getElementById('app').style.display === 'none';
+    currentUser = { id: player.id, name: player.name, email: player.email, riderType: player.riderType || 'skier' };
+    // Sync the lightweight localStorage entry so legacy code paths work
+    setSession(currentUser);
+    if (needsLaunch) launchApp();
+    return;
+  }
+  // Confirmed: Firebase Auth user exists but no player record — sign out.
+  await _fbAuth.signOut();
+  const session = getSession();
+  if (session) { currentUser = session; launchApp(); }
+  else launchPreview();
+}
+
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
@@ -11965,24 +12173,8 @@ async function init() {
     // token (if any), so this replaces the old localStorage session check.
     _fbAuth.onAuthStateChanged(async fbUser => {
       if (fbUser) {
-        // Token is valid — look up the player record
-        const player = await _playerFromFirebaseUser(fbUser);
-        if (player) {
-          // A guest browsing in preview mode already has #app visible, so that check
-          // alone misses a fresh sign-in — also launch whenever the auth screen is
-          // still open (mid sign-in/signup) or we're transitioning from no session.
-          const authScreen = document.getElementById('auth-screen');
-          const midAuthFlow = authScreen && authScreen.style.display !== 'none';
-          const needsLaunch = !currentUser || midAuthFlow ||
-            !document.getElementById('app') || document.getElementById('app').style.display === 'none';
-          currentUser = { id: player.id, name: player.name, email: player.email, riderType: player.riderType || 'skier' };
-          // Sync the lightweight localStorage entry so legacy code paths work
-          setSession(currentUser);
-          if (needsLaunch) launchApp();
-          return;
-        }
-        // Firebase Auth user exists but no player record — sign out
-        await _fbAuth.signOut();
+        await _resolveFirebaseSession(fbUser);
+        return;
       }
       // ── Fallback: legacy localStorage session (pre-Firebase-Auth users) ──
       const session = getSession();
@@ -12002,6 +12194,34 @@ async function init() {
 }
 
 init();
+
+// ── PWA: app-shell service worker + install prompt ─────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW register failed:', e));
+  });
+}
+
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  const btn = document.getElementById('nav-install-app');
+  if (btn) btn.style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  const btn = document.getElementById('nav-install-app');
+  if (btn) btn.style.display = 'none';
+});
+async function installApp() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  const btn = document.getElementById('nav-install-app');
+  if (btn) btn.style.display = 'none';
+}
 
 
 function showRatingAnim(winner, loser, game) {
