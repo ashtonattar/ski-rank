@@ -339,6 +339,15 @@
       font-size:12.5px; font-weight:700; line-height:normal; max-width:100px;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
+    .topbar-signin {
+      display:flex; align-items:center; gap:6px;
+      background:var(--fire); color:#fff; border:none;
+      box-shadow:0 0 0 1px rgba(34,224,194,0.3);
+      cursor:pointer; padding:7px 14px; border-radius:999px;
+      font-size:12.5px; font-weight:700;
+    }
+    .topbar-signin:hover { background:#ff6a1f; }
+    .topbar-signin:active { transform:scale(0.96); }
 
     /* ── NATIVE SHELL: bottom tab bar ── */
     .tabbar {
@@ -2531,6 +2540,9 @@
     <button class="topbar-account" onclick="nav('profile');closeMoreSheet()" title="My Profile" id="topbar-account">
       <span class="avatar avatar-sm" id="sb-avatar" style="background:linear-gradient(135deg,#cc2f63,#22e0c2);">?</span>
       <span class="topbar-account-name" id="sb-name"></span>
+    </button>
+    <button class="topbar-signin" onclick="showAuthScreen()" title="Sign In / Create Account" id="topbar-signin" style="display:none;">
+      Sign In
     </button>
   </header>
 
@@ -5913,6 +5925,8 @@ function nav(view, _force) {
   _activeSection = view;
   const acctBtn = document.getElementById('topbar-account');
   if (acctBtn) acctBtn.style.display = currentUser ? 'flex' : 'none';
+  const signinBtn = document.getElementById('topbar-signin');
+  if (signinBtn) signinBtn.style.display = currentUser ? 'none' : 'flex';
   // Pause any playing reel videos when leaving explore, and hide the post FAB
   document.querySelectorAll('video.reel-video').forEach(v => v.pause());
   if (view !== 'explore') { const fab = document.getElementById('post-clip-fab'); if (fab) fab.style.display = 'none'; }
