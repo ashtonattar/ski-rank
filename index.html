@@ -10,8 +10,7 @@
   <meta name="application-name" content="Slope Battles">
   <meta name="description" content="Freestyle skiing trick duels & rating system">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="apple-touch-icon" sizes="180x180" href="icon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <title>Slope Battles — Freestyle Trick Duels</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -2369,39 +2368,7 @@
   <div class="auth-card">
     <div class="auth-logo">
       <div style="display:flex;justify-content:center;margin-bottom:12px;">
-        <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="auth-mtn-grad" x1="0" y1="72" x2="72" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#cc2f63"/>
-              <stop offset="100%" stop-color="#ff3e7f"/>
-            </linearGradient>
-            <linearGradient id="auth-fire-grad" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#22e0c2"/>
-              <stop offset="100%" stop-color="#ffaa00"/>
-            </linearGradient>
-            <filter id="auth-glow-mtn">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <filter id="auth-glow-skier">
-              <feGaussianBlur stdDeviation="2" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <!-- Outer mountain glow -->
-          <polygon points="36,5 67,63 5,63" fill="url(#auth-mtn-grad)" opacity="0.12" filter="url(#auth-glow-mtn)"/>
-          <!-- Back left peak -->
-          <polygon points="16,20 30,54 5,54" fill="url(#auth-mtn-grad)" opacity="0.45"/>
-          <!-- Back right peak -->
-          <polygon points="54,22 68,54 40,54" fill="url(#auth-mtn-grad)" opacity="0.38"/>
-          <!-- Main center peak -->
-          <polygon points="36,5 63,63 9,63" fill="url(#auth-mtn-grad)"/>
-          <!-- Snow cap -->
-          <polygon points="36,5 46,27 26,27" fill="white" opacity="0.95"/>
-          <!-- Snow cap inner highlight -->
-          <polygon points="36,5 41,18 31,18" fill="white" opacity="0.5"/>
-          <!-- Skier silhouette (airborne, spread eagle) -->
-        </svg>
+        <img src="assets/logo.svg" width="72" height="72" alt="">
       </div>
       <div class="logo-big">SLOPE BATTLES</div>
       <div class="logo-tag">Freestyle Skiing Rating System</div>
@@ -2523,19 +2490,7 @@
   <!-- ═══ Top brand bar ═══ -->
   <header class="topbar">
     <div class="topbar-brand" onclick="nav('live-game')" style="cursor:pointer;">
-      <svg width="26" height="26" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-        <defs>
-          <linearGradient id="sb-mtn-grad" x1="0" y1="38" x2="38" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#cc2f63"/>
-            <stop offset="100%" stop-color="#ff3e7f"/>
-          </linearGradient>
-        </defs>
-        <polygon points="19,3 35,33 3,33" fill="url(#sb-mtn-grad)" opacity="0.18"/>
-        <polygon points="10,10 18,28 3,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
-        <polygon points="28,10 35,28 20,28" fill="url(#sb-mtn-grad)" opacity="0.55"/>
-        <polygon points="19,3 33,32 5,32" fill="url(#sb-mtn-grad)"/>
-        <polygon points="19,3 24,14 14,14" fill="white" opacity="0.92"/>
-      </svg>
+      <img src="assets/logo.svg" width="26" height="26" alt="" style="flex-shrink:0;">
       <span class="logo-title">SLOPE BATTLES</span>
     </div>
     <button class="topbar-account" onclick="nav('profile');closeMoreSheet()" title="My Profile" id="topbar-account">
