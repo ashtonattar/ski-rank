@@ -5541,7 +5541,7 @@ function _renderOnboardStep() {
   document.getElementById('onboard-icon').innerHTML = step.icon;
   document.getElementById('onboard-title').textContent = step.title;
   document.getElementById('onboard-body').innerHTML = step.body;
-  document.getElementById('onboard-cta').textContent = step.cta;
+  document.getElementById('onboard-cta').innerHTML = step.cta;
   // Dots
   document.getElementById('onboard-dots').innerHTML = ONBOARDING_STEPS.map((_,i) =>
     `<div style="width:${i===_onboardStep?22:7}px;height:7px;border-radius:99px;background:${i===_onboardStep?'var(--ice)':'rgba(255,255,255,0.18)'};transition:all .3s cubic-bezier(.22,.68,0,1.2);"></div>`
