@@ -2319,6 +2319,7 @@
 <symbol id="i-trend-up" viewBox="0 0 24 24"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></symbol>
 <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><circle cx="17.5" cy="9" r="2.3"/><path d="M15.3 20a5 5 0 016.7-4.7"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0116 0"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.3"/><path d="M2 20a7 7 0 0114 0"/><line x1="18" y1="8" x2="18" y2="14"/><line x1="15" y1="11" x2="21" y2="11"/></symbol>
 <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" class="icon-fill"/></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15 9 22 9.5 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9.5 9 9" class="icon-fill"/></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><path d="M9 15l6-6M8 12l-2.5 2.5a3.5 3.5 0 004.9 4.9L13 17M11 7l2.5-2.5a3.5 3.5 0 014.9 4.9L16 12"/></symbol>
@@ -3124,9 +3125,12 @@
 
     <!-- ─── FRIENDS CHAT ─── -->
     <div id="view-friends" class="view">
-      <div class="view-header">
-        <h2>Friends</h2>
-        <p>Chat with your friends</p>
+      <div class="view-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h2>Friends</h2>
+          <p>Chat with your friends</p>
+        </div>
+        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="inviteFriends()"><svg class="icon icon-user-plus"><use href="#i-user-plus"/></svg> Invite Friends</button>
       </div>
       <div class="friends-layout">
         <!-- Left: friend list -->
@@ -3751,6 +3755,7 @@ let   _saveTimer      = null; // debounce handle for _saveToFirestore
 let   _wipeInProgress = false; // prevents localOnly merge from re-uploading after a wipe
 let   _firstSnapshotReceived = false; // false until the first real Firestore snapshot lands — lets views tell "still loading" apart from "genuinely empty"
 let   _pendingReelId = new URLSearchParams(location.search).get('reel') || null; // reel id to scroll to from a shared-reel deep link, cleared once found
+let   _pendingReferrerId = new URLSearchParams(location.search).get('ref') || null; // inviting player's id from a friend's invite link, consumed once signup completes
 let   _gameOverDismissed = false; // prevents Firestore snapshot from re-showing game-over after local dismiss
 let   _clearLiveOnFirstSync   = false; // abandon any live game found on first sync after login/refresh
 let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapshot so old wins don't re-trigger
@@ -4599,6 +4604,26 @@ async function doSignup() {
 
   _isNewSignup = true;
   launchApp();
+
+  // Signed up via a friend's invite link — send that friend a request so they
+  // don't have to go find the new account themselves. Looked up straight from
+  // Firestore (not S.players) since the referrer's record isn't synced locally
+  // yet this early in a fresh session. Fire-and-forget — shouldn't block onboarding.
+  if (_pendingReferrerId && _pendingReferrerId !== newUser.id) {
+    const refId = _pendingReferrerId;
+    _pendingReferrerId = null;
+    db.collection('users').doc(refId).get().then(snap => {
+      if (!snap.exists) return;
+      const referrer = snap.data();
+      const request = {
+        id: uid(), fromId: newUser.id, fromName: newUser.name,
+        toId: refId, toName: referrer.name, status: 'pending', date: Date.now()
+      };
+      return db.collection('state').doc('global').update({
+        friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
+      }).then(() => toast(`You're in! Friend request sent to ${referrer.name}.`, 'ok'));
+    }).catch(e => console.warn('Referral friend request failed:', e));
+  }
 }
 
 async function doLogin() {
@@ -4812,6 +4837,14 @@ function launchPreview() {
   const appEl = document.getElementById('app');
   appEl.classList.add('animating-in');
   setTimeout(() => appEl.classList.remove('animating-in'), 500);
+  // Arrived via a friend's invite link (?ref=<playerId>) — steer straight into
+  // signup instead of leaving them to find it themselves. History is cleaned
+  // immediately since _pendingReferrerId already holds the id we need.
+  if (_pendingReferrerId) {
+    history.replaceState(null, '', location.pathname);
+    showAuthScreen('<svg class="icon icon-user-plus"><use href="#i-user-plus"/></svg> A friend invited you to Slope Battles — create an account to connect with them!');
+    switchAuthTab('signup');
+  }
   }); // end _animateAuthOut callback
 }
 
@@ -5569,11 +5602,18 @@ function launchApp() {
   }); // end _animateAuthOut callback
 }
 
-// Animate the auth card out, fade the screen, then call cb
+// Animate the auth card out, fade the screen, then call cb.
+// Coming straight from the boot-loading screen (returning session — the auth
+// card was never actually shown) skips the card-out animation entirely and
+// lets the app's fade-in overlap the boot spinner's fade-out as one smooth
+// crossfade, instead of waiting out a wasted 420ms delay on an invisible
+// screen followed by a blank gap before the app appears.
 function _animateAuthOut(cb) {
-  hideBootLoading();
   const screen = document.getElementById('auth-screen');
-  const card   = screen.querySelector('.auth-card');
+  const wasVisible = screen.style.display !== 'none';
+  hideBootLoading();
+  if (!wasVisible) { cb(); return; }
+  const card = screen.querySelector('.auth-card');
   card.classList.add('animating-out');
   screen.classList.add('animating-out');
   setTimeout(() => {
@@ -8684,6 +8724,23 @@ function shareReel(itemId) {
     navigator.share({ title:'SKI Rank Clip', text, url }).catch(()=>{});
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(text + ' ' + url).then(() => toast('Link copied! <svg class="icon icon-link"><use href="#i-link"/></svg>', 'ok')).catch(() => toast('Could not copy link.', 'err'));
+  } else {
+    toast('Share not supported on this device.', 'err');
+  }
+}
+
+// Lets an existing player invite a friend who doesn't have an account yet.
+// The shared link carries the inviter's id (?ref=) — opening it steers the
+// recipient straight to the signup form, and completing signup automatically
+// sends the inviter a friend request (see doSignup()).
+function inviteFriends() {
+  if (!currentUser) return;
+  const url  = `${location.origin}${location.pathname}?ref=${encodeURIComponent(currentUser.id)}`;
+  const text = `${currentUser.name} wants you to join Slope Battles — log your tricks, get rated, and battle friends 1v1.`;
+  if (navigator.share) {
+    navigator.share({ title: 'Join me on Slope Battles', text, url }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(`${text} ${url}`).then(() => toast('Invite link copied! <svg class="icon icon-link"><use href="#i-link"/></svg>', 'ok')).catch(() => toast('Could not copy link.', 'err'));
   } else {
     toast('Share not supported on this device.', 'err');
   }
