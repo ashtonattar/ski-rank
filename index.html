@@ -3717,6 +3717,7 @@ let   _tourneyWinSeedDone     = false; // seed _seenTourneyWins on first snapsho
 let   _isNewSignup = false; // show onboarding after first Firestore sync for brand-new accounts
 let   _healPlayerDone = false; // prevent heal logic from firing more than once per session
 let   _disputeResolved = false; // prevent double-resolution when both players' snapshots fire simultaneously
+let   _disputeResolvedFor = null; // JSON signature of the pendingCall this client has already resolved/skipped for — lets _disputeResolved auto-reset per round on BOTH clients, not just the one that called enterDisputePhase()
 let   _setterVoteResolved = false; // prevent double-resolution of the pick-setter vote
 let   _abandonHandled  = false; // prevent survivor from calling finishLive twice for the same abandon
 let   _abandonTimer    = null;  // visibilitychange timer — forfeit if hidden > 30s during active game
@@ -5834,11 +5835,23 @@ function pLink(id, name, style='') {
   return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="showProfile('${id}')">${escHtml(name||'')}</span>`;
 }
 
+// Toast messages are hardcoded literals that may embed a trusted icon-sprite <svg>
+// (e.g. `<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`), but also interpolate
+// live player/tournament names — so we can't set the whole string as innerHTML verbatim
+// (XSS) or as textContent (renders the icon markup as literal text). Split out just the
+// known icon-svg segments, escape everything else, then render.
 function toast(msg, type='') {
   const w = document.getElementById('toast-wrap');
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.textContent = msg;
+  const iconPattern = /<svg class="icon[^"]*"><use href="#i-[a-z0-9-]+"\/><\/svg>/g;
+  let html = '', last = 0, m;
+  while ((m = iconPattern.exec(msg))) {
+    html += escHtml(msg.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  html += escHtml(msg.slice(last));
+  el.innerHTML = html;
   w.appendChild(el);
   setTimeout(() => el.remove(), 3000);
 }
@@ -7169,8 +7182,8 @@ function drawBoard() {
         document.getElementById('setter-label').textContent = byId(g.setterId).name;
       } else {
         document.getElementById('phase-wait').style.display = 'block';
-        document.getElementById('phase-wait-msg').textContent =
-          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(g.setterId).name} to name and attempt their trick…`;
+        document.getElementById('phase-wait-msg').innerHTML =
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(g.setterId).name)} to name and attempt their trick…`;
       }
 
     } else if (g.phase === 'judging-setter') {
@@ -7181,8 +7194,8 @@ function drawBoard() {
         document.getElementById('judge-setter-trick').textContent = g.trick || '—';
       } else {
         document.getElementById('phase-wait').style.display = 'block';
-        document.getElementById('phase-wait-msg').textContent =
-          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${judgeLabel} to judge the trick…`;
+        document.getElementById('phase-wait-msg').innerHTML =
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(judgeLabel)} to judge the trick…`;
       }
 
     } else if (g.phase === 'copying') {
@@ -7198,8 +7211,8 @@ function drawBoard() {
            <span style="font-size:12px;color:var(--text-muted);">${callerName} will judge whether you land it</span>`;
       } else {
         document.getElementById('phase-wait').style.display = 'block';
-        document.getElementById('phase-wait-msg').textContent =
-          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(copierId).name} to attempt the copy…`;
+        document.getElementById('phase-wait-msg').innerHTML =
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(copierId).name)} to attempt the copy…`;
       }
 
     } else if (g.phase === 'revenge') {
@@ -7215,8 +7228,8 @@ function drawBoard() {
            <span style="font-size:12px;color:var(--text-muted);">Land it and ${byId(g.setterId).name} takes the letter. ${callerName} will call it.</span>`;
       } else {
         document.getElementById('phase-wait').style.display = 'block';
-        document.getElementById('phase-wait-msg').textContent =
-          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${byId(copierId).name}'s revenge attempt…`;
+        document.getElementById('phase-wait-msg').innerHTML =
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(copierId).name)}'s revenge attempt…`;
       }
 
     } else if (g.phase === 'dispute') {
@@ -7483,7 +7496,23 @@ function submitDisputeVote(vote) {
 // moved on) and backs off, picking up the winner's outcome via the next snapshot.
 async function resolveDisputeIfReady() {
   const g = S.live;
-  if (!g || g.phase !== 'dispute' || _disputeResolved) return;
+  if (!g || g.phase !== 'dispute') return;
+  // _disputeResolved used to be reset only by enterDisputePhase(), which runs
+  // solely on whichever client's own action made the call — the other player's
+  // client (which only ever votes, never calls enterDisputePhase itself) kept
+  // _disputeResolved stuck at `true` from the first round it happened to win,
+  // permanently unable to attempt resolution on any later round in the same
+  // match. If the initiating client's own claim attempt then failed for any
+  // reason (backgrounded tab, dropped connection, etc.), nobody would ever
+  // resolve the round even though both players had voted. Fix: key the guard
+  // to the specific dispute round (its pendingCall) so it auto-resets on
+  // every client whenever a new round starts, not just the initiator's.
+  const callSig = JSON.stringify(g.pendingCall);
+  if (callSig !== _disputeResolvedFor) {
+    _disputeResolvedFor = callSig;
+    _disputeResolved = false;
+  }
+  if (_disputeResolved) return;
   const dv = g.disputeVotes || {};
   const v1 = dv[g.p1];
   const v2 = dv[g.p2];
