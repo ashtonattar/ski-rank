@@ -3944,7 +3944,13 @@ function startFirestoreSync() {
           const declined = (fresh.liveInvites || []).find(i =>
             i.fromId === currentUser.id && i.status === 'declined'
           );
-          if (accepted && !S.live && !_currentLiveGameId) {
+          // A finished-but-dismissed game is intentionally left in S.live/_currentLiveGameId
+          // (see dismissLiveGameOver()) so its result stays visible — but that must not block
+          // detecting acceptance of a brand-new invite sent afterward, or the sender is stuck
+          // on the waiting screen forever. Clear it here the same way acceptLiveInvite() does
+          // on the accepter's side.
+          if (accepted && (!S.live || S.live.over)) {
+            if (S.live) { unsubscribeLiveGame(); S.live = null; _gameOverDismissed = false; }
             Object.assign(S, fresh);
             try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
             checkNotifications();
