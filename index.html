@@ -9034,8 +9034,20 @@ function openChat(friendId, scrollToBottom=true) {
 
   if (scrollToBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
 
-  // Mark as read and refresh sidebar badges
-  markRead(friendId);
+  // Mark as read and refresh sidebar badges. Guarded on actually having
+  // unread messages — openChat() is also called passively on every Firestore
+  // snapshot/poll tick while a chat is open (to refresh incoming messages),
+  // and markRead()'s save() previously fired unconditionally on every one of
+  // those calls. Since save() writes to the same Firestore doc the snapshot
+  // listener watches, that produced a tight write→snapshot→write feedback
+  // loop for as long as the chat stayed open (each write re-triggering the
+  // handler that calls openChat again), which both spammed the "Cloud sync
+  // failed"/"Sync conflict" toasts from _saveToFirestore's error/guard paths
+  // and starved the debounced write of a chance to ever land — so a refresh
+  // could still show the conversation as unread. markRead() sets lastRead
+  // in-memory synchronously, so after the first (real) call below, later
+  // passive refreshes see zero unread and skip the write entirely.
+  if (getUnread(friendId) > 0) markRead(friendId);
   updateMessagesBadge();
   const listEl = document.getElementById('friends-list-items');
   if (listEl) {
