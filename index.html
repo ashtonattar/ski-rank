@@ -2969,7 +2969,7 @@
               <button class="btn btn-missed" onclick="revengeAttemptMissed()"><svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> No, They Missed Too</button>
             </div>
           </div>
-          <!-- Phase: dispute — both players confirm or deny the call -->
+          <!-- Phase: dispute — the player who didn't make the call confirms or denies it -->
           <div id="phase-dispute" style="display:none;">
             <div style="text-align:center;margin-bottom:14px;">
               <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warning);margin-bottom:6px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Disputed Call</div>
@@ -7189,10 +7189,9 @@ function drawBoard() {
             <button class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px;" onclick="voteForSetter('${p2p.id}')">
               ${avatarHtml(p2p,'avatar-sm')} ${p2p.name}
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="voteForSetter('random')"><svg class="icon icon-dice"><use href="#i-dice"/></svg> Random</button>
           </div>`;
       } else {
-        const voteLabel = myVote === 'random' ? '<svg class="icon icon-dice"><use href="#i-dice"/></svg> Random' : escHtml(byId(myVote)?.name||'');
+        const voteLabel = escHtml(byId(myVote)?.name||'');
         document.getElementById('phase-wait-msg').innerHTML = `
           <div style="font-size:13px;margin-bottom:4px;">You voted: <strong style="color:var(--primary);">${voteLabel}</strong></div>
           <div style="font-size:12px;color:var(--text-muted);"><svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(otherId)?.name||'')} to vote…</div>`;
@@ -7255,34 +7254,42 @@ function drawBoard() {
       }
 
     } else if (g.phase === 'dispute') {
-      document.getElementById('phase-dispute').style.display = 'block';
-      // Describe the call
-      document.getElementById('dispute-call-desc').innerHTML = callDesc(g.pendingCall?.type, g);
-      // Show vote buttons or waiting message
-      const myVote = currentUser ? (g.disputeVotes || {})[currentUser.id] : null;
-      const otherVote = currentUser ? (g.disputeVotes || {})[currentUser.id === g.p1 ? g.p2 : g.p1] : null;
-      if (!myVote && (amISetter || amICopier)) {
-        document.getElementById('dispute-vote-btns').style.display = 'grid';
-        document.getElementById('dispute-voted-msg').style.display = 'none';
+      const callerId = g.pendingCall?.callerId;
+      const amICaller = currentUser && callerId === currentUser.id;
+      if (amICaller) {
+        // The caller already made their call — just wait for the other player to confirm/deny.
+        document.getElementById('phase-wait').style.display = 'block';
+        document.getElementById('phase-wait-msg').innerHTML =
+          `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Waiting for ${escHtml(byId(callerId === g.p1 ? g.p2 : g.p1)?.name||'')} to confirm your call…`;
       } else {
-        document.getElementById('dispute-vote-btns').style.display = 'none';
-        document.getElementById('dispute-voted-msg').style.display = 'block';
-        document.getElementById('dispute-voted-msg').innerHTML = myVote
-          ? `You voted <strong>${myVote === 'confirm' ? '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Confirm' : '<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> Deny'}</strong> — waiting for the other player…`
-          : `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Both players are voting…`;
+        document.getElementById('phase-dispute').style.display = 'block';
+        // Describe the call
+        document.getElementById('dispute-call-desc').innerHTML = callDesc(g.pendingCall?.type, g);
+        // Show vote buttons or waiting message
+        const myVote = currentUser ? (g.disputeVotes || {})[currentUser.id] : null;
+        if (!myVote && (amISetter || amICopier)) {
+          document.getElementById('dispute-vote-btns').style.display = 'grid';
+          document.getElementById('dispute-voted-msg').style.display = 'none';
+        } else {
+          document.getElementById('dispute-vote-btns').style.display = 'none';
+          document.getElementById('dispute-voted-msg').style.display = 'block';
+          document.getElementById('dispute-voted-msg').innerHTML = myVote
+            ? `You voted <strong>${myVote === 'confirm' ? '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Confirm' : '<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg> Deny'}</strong> — resolving…`
+            : `<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg> Reviewing the call…`;
+        }
+        // Strike tracker
+        const strikes = g.strikes || {};
+        const strikeHtml = [g.p1, g.p2].map(pid => {
+          const s = strikes[pid] || 0;
+          const dots = '<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
+          return `<div style="text-align:center;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${escHtml(byId(pid)?.name||'')}</div>
+            <div style="font-size:18px;letter-spacing:3px;">${dots}</div>
+            <div style="font-size:10px;color:${s>=3?'var(--danger)':'var(--text-muted)'};">${s}/3 strikes</div>
+          </div>`;
+        }).join('');
+        document.getElementById('dispute-strikes').innerHTML = strikeHtml;
       }
-      // Strike tracker
-      const strikes = g.strikes || {};
-      const strikeHtml = [g.p1, g.p2].map(pid => {
-        const s = strikes[pid] || 0;
-        const dots = '<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>'.repeat(s) + '·'.repeat(Math.max(0, 3-s));
-        return `<div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">${escHtml(byId(pid)?.name||'')}</div>
-          <div style="font-size:18px;letter-spacing:3px;">${dots}</div>
-          <div style="font-size:10px;color:${s>=3?'var(--danger)':'var(--text-muted)'};">${s}/3 strikes</div>
-        </div>`;
-      }).join('');
-      document.getElementById('dispute-strikes').innerHTML = strikeHtml;
     }
 
     document.getElementById('trick-area').style.display = 'block';
@@ -7360,12 +7367,12 @@ function resolveSetterVoteIfReady() {
   _setterVoteResolved = true;
 
   let starterId;
-  if (v1 !== 'random' && v2 !== 'random' && v1 === v2) {
+  if (v1 === v2) {
     // Both picked the same player
     starterId = v1;
     addLog('<svg class="icon icon-handshake"><use href="#i-handshake"/></svg>', `Both players agreed — ${byId(starterId).name} sets first!`);
   } else {
-    // Different votes or random involved — pick randomly
+    // Votes differed — pick randomly
     starterId = Math.random() < 0.5 ? g.p1 : g.p2;
     addLog('<svg class="icon icon-dice"><use href="#i-dice"/></svg>', `Votes differed — ${byId(starterId).name} randomly selected to set first!`);
   }
@@ -7461,21 +7468,23 @@ function revengeAttemptMissed() {
 
 // ── DISPUTE SYSTEM ────────────────────────────────────────────────────────────
 
-// Enter dispute phase: save the pending call and ask both players to confirm/deny
+// Enter dispute phase: save the pending call and ask the other player to confirm/deny
 function enterDisputePhase(callType) {
   const g = S.live;
-  g.pendingCall  = { type: callType, prevPhase: g.phase };
-  g.disputeVotes = {};
+  // setterLanded/setterBailed are called by the copier (they watch the setter's attempt);
+  // copierLand/copierMiss/revengeLanded/revengeMissed are called by the setter.
+  const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  const callerId = (callType === 'setterLanded' || callType === 'setterBailed')
+    ? copierId
+    : g.setterId;
+  g.pendingCall  = { type: callType, prevPhase: g.phase, callerId };
+  // The caller's own call counts as their "confirm" vote — only the other
+  // player needs to confirm/deny.
+  g.disputeVotes = { [callerId]: 'confirm' };
   g.disputeClaimed = false;
   g.phase        = 'dispute';
   _disputeResolved = false; // reset so the new dispute can be resolved
-  // setterLanded/setterBailed are judged by the copier (they watch the setter's attempt);
-  // copierLand/copierMiss/revengeLanded/revengeMissed are judged by the setter.
-  const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
-  const callerName = (callType === 'setterLanded' || callType === 'setterBailed')
-    ? byId(copierId).name
-    : byId(g.setterId).name;
-  addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${callerName} made a call — both players must confirm or deny.`);
+  addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `${byId(callerId).name} made a call — waiting for confirmation.`);
   save(); drawBoard();
 }
 
