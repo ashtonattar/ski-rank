@@ -4329,7 +4329,14 @@ function saveLiveGame(liveObj, immediate, attempt = 0) {
 // ── Live-game fallback poll ────────────────────────────────────────────────
 // When the onSnapshot listener drops (common on mobile), this polls Firestore
 // every 4 s while the current user is in an active game so the game-over
-// state is never missed for more than a few seconds.
+// state is never missed for more than a few seconds. Also doubles as a
+// safety net for the dispute/pick-setter vote phases: resolution normally
+// happens the instant the deciding vote's onSnapshot fires (see
+// resolveDisputeIfReady()/resolveSetterVoteIfReady()), but if that listener
+// event never reaches this client (backgrounded tab, flaky connection), both
+// players had already voted and the game would otherwise sit stuck until a
+// manual page refresh reattached everything fresh. Polling re-pulls the doc
+// and retries resolution the same way a refresh would, without needing one.
 let _livePollInterval = null;
 
 function startLiveGamePoll() {
@@ -4345,19 +4352,34 @@ function startLiveGamePoll() {
     try {
       const snap = await db.collection('liveGames').doc(S.live.id).get();
       const fresh = snap.data();
-      if (!snap.exists || !fresh || !fresh.over) return;
-      S.live = fresh;
-      if (_activeSection === 'live-game') {
-        const liveActiveEl = document.getElementById('live-active');
-        const liveSetupEl  = document.getElementById('live-setup');
-        if (liveSetupEl)  liveSetupEl.style.display  = 'none';
-        if (liveActiveEl) liveActiveEl.style.display = 'block';
-        restoreLog();
-        drawBoard();
-        if (S.live.cancelled) showMatchCancelled();
-        else showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+      if (!snap.exists || !fresh) return;
+      if (fresh.over) {
+        S.live = fresh;
+        if (_activeSection === 'live-game') {
+          const liveActiveEl = document.getElementById('live-active');
+          const liveSetupEl  = document.getElementById('live-setup');
+          if (liveSetupEl)  liveSetupEl.style.display  = 'none';
+          if (liveActiveEl) liveActiveEl.style.display = 'block';
+          restoreLog();
+          drawBoard();
+          if (S.live.cancelled) showMatchCancelled();
+          else showGameOver(S.live.winnerId, S.live.loserId, S.live._game);
+        }
+        stopLiveGamePoll();
+        return;
       }
-      stopLiveGamePoll();
+      // Stuck-vote safety net: only kicks in if our local copy is actually behind
+      // (or a resolvable vote-phase never advanced), so this is a no-op on every
+      // normal poll tick where the listener is keeping us in sync already.
+      const isStale = fresh.phase !== S.live.phase ||
+        JSON.stringify(fresh.disputeVotes || {}) !== JSON.stringify(S.live.disputeVotes || {}) ||
+        JSON.stringify(fresh.setterVotes  || {}) !== JSON.stringify(S.live.setterVotes  || {});
+      if (isStale) {
+        S.live = fresh;
+        if (_activeSection === 'live-game') { restoreLog(); drawBoard(); }
+      }
+      if (fresh.phase === 'dispute')     resolveDisputeIfReady();
+      if (fresh.phase === 'pick-setter') resolveSetterVoteIfReady();
     } catch(e) { console.warn('[poll] error:', e.message); }
   }, 4000);
 }
@@ -7235,7 +7257,7 @@ function drawBoard() {
     } else if (g.phase === 'dispute') {
       document.getElementById('phase-dispute').style.display = 'block';
       // Describe the call
-      document.getElementById('dispute-call-desc').textContent = callDesc(g.pendingCall?.type, g);
+      document.getElementById('dispute-call-desc').innerHTML = callDesc(g.pendingCall?.type, g);
       // Show vote buttons or waiting message
       const myVote = currentUser ? (g.disputeVotes || {})[currentUser.id] : null;
       const otherVote = currentUser ? (g.disputeVotes || {})[currentUser.id === g.p1 ? g.p2 : g.p1] : null;
@@ -7606,7 +7628,7 @@ function flipCall(type) {
 // Human-readable description of a call
 function callDesc(type, g) {
   const setterId = g.setterId, copierId = setterId === g.p1 ? g.p2 : g.p1;
-  const sName = byId(setterId)?.name, cName = byId(copierId)?.name;
+  const sName = escHtml(byId(setterId)?.name || ''), cName = escHtml(byId(copierId)?.name || '');
   return {
     setterLanded:  `${sName} landed "${g.trick || 'the trick'}" <svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>`,
     setterBailed:  `${sName} bailed on "${g.trick || 'the trick'}" <svg class="icon icon-wind"><use href="#i-wind"/></svg>`,
