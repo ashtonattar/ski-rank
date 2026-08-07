@@ -2576,7 +2576,7 @@
               <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
             </div>
             <div id="lb-sport-filter" style="display:inline-flex;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:2px;flex-shrink:0;">
-              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Skiers</button>
+              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;"><svg class="icon icon-skier" style="color:#000;"><use href="#i-skier"/></svg> Skiers</button>
               <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Boarders</button>
             </div>
           </div>
@@ -6183,7 +6183,12 @@ function setLbRiderFilter(type) {
   _lbRiderFilter = type;
   ['skier','boarder'].forEach(t => {
     const btn = document.getElementById(`lb-rt-${t}`);
-    if (btn) { btn.style.background = t === type ? 'var(--primary)' : 'transparent'; btn.style.color = t === type ? '#000' : 'var(--text-muted)'; }
+    if (btn) {
+      btn.style.background = t === type ? 'var(--primary)' : 'transparent';
+      btn.style.color = t === type ? '#000' : 'var(--text-muted)';
+      const icon = btn.querySelector('svg');
+      if (icon) icon.style.color = t === type ? '#000' : 'var(--text-muted)';
+    }
   });
   const label = type === 'boarder' ? 'Boarder' : 'Skier';
   const th = document.getElementById('lb-th-rider');
@@ -6198,7 +6203,12 @@ function setRidersTypeFilter(type) {
   _ridersTypeFilter = type;
   ['all','skier','boarder'].forEach(t => {
     const btn = document.getElementById(`riders-rt-${t}`);
-    if (btn) { btn.style.background = t === type ? 'var(--primary)' : 'transparent'; btn.style.color = t === type ? '#000' : 'var(--text-muted)'; }
+    if (btn) {
+      btn.style.background = t === type ? 'var(--primary)' : 'transparent';
+      btn.style.color = t === type ? '#000' : 'var(--text-muted)';
+      const icon = btn.querySelector('svg');
+      if (icon) icon.style.color = t === type ? '#000' : 'var(--text-muted)';
+    }
   });
   filterRiders(document.getElementById('riders-search')?.value || '');
 }
