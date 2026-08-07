@@ -3364,6 +3364,7 @@
 
       <!-- Account -->
       <div class="card" style="margin-bottom:20px;">
+        <button class="btn btn-outline" style="width:100%;margin-bottom:10px;" onclick="openChangePasswordModal()"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Change Password</button>
         <button class="btn btn-outline" style="width:100%;" onclick="logout()"><svg class="icon icon-logout"><use href="#i-logout"/></svg> Log Out</button>
       </div>
 
@@ -3620,6 +3621,32 @@
         <textarea class="form-textarea" id="report-details" maxlength="500" placeholder="What happened?" rows="4"></textarea>
       </div>
       <button class="btn btn-danger btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="submitReport()"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Change Password Modal ─── -->
+<div class="modal-overlay hidden" id="change-password-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-hdr">
+      <span class="modal-title"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Change Password</span>
+      <button class="modal-close" onclick="closeModal('change-password-modal')"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+    </div>
+    <div id="change-password-modal-body">
+      <div class="auth-error" id="change-password-error"></div>
+      <div class="form-group">
+        <label class="form-label">Current Password</label>
+        <input type="password" class="form-input" id="cp-current" autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input type="password" class="form-input" id="cp-new" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm New Password</label>
+        <input type="password" class="form-input" id="cp-confirm" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:4px;" id="cp-submit" onclick="submitChangePassword()"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Update Password</button>
     </div>
   </div>
 </div>
@@ -4761,6 +4788,58 @@ function logout() {
     _setFabVisible(false);
     nav('leaderboard');
   });
+}
+
+function openChangePasswordModal() {
+  document.getElementById('cp-current').value = '';
+  document.getElementById('cp-new').value = '';
+  document.getElementById('cp-confirm').value = '';
+  const errEl = document.getElementById('change-password-error');
+  errEl.textContent = '';
+  errEl.classList.remove('visible');
+  openModal('change-password-modal');
+}
+
+async function submitChangePassword() {
+  const errEl   = document.getElementById('change-password-error');
+  const showErr = m => { errEl.textContent = m; errEl.classList.add('visible'); };
+  errEl.classList.remove('visible');
+
+  const current = document.getElementById('cp-current').value;
+  const newPw   = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+
+  if (!current || !newPw || !confirm) return showErr('Please fill in all fields.');
+  if (newPw.length < 6) return showErr('New password must be at least 6 characters.');
+  if (newPw !== confirm) return showErr('New passwords don\'t match.');
+
+  if (!_fbAuth || !_fbAuth.currentUser) {
+    return showErr('Secure sign-in isn\'t active on this session. Log out and back in with your current password, then try again.');
+  }
+
+  const submitBtn = document.getElementById('cp-submit');
+  submitBtn.disabled = true;
+  const resetBtn = () => { submitBtn.disabled = false; };
+
+  try {
+    const cred = firebase.auth.EmailAuthProvider.credential(_fbAuth.currentUser.email, current);
+    await _fbAuth.currentUser.reauthenticateWithCredential(cred);
+    await _fbAuth.currentUser.updatePassword(newPw);
+    resetBtn();
+    closeModal('change-password-modal');
+    toast('<svg class="icon icon-lock"><use href="#i-lock"/></svg> Password updated', 'ok');
+  } catch(e) {
+    resetBtn();
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+      showErr('Current password is incorrect.');
+    } else if (e.code === 'auth/weak-password') {
+      showErr('New password is too weak.');
+    } else if (e.code === 'auth/requires-recent-login') {
+      showErr('Please log out and back in, then try again.');
+    } else {
+      showErr('Something went wrong. Please try again.');
+    }
+  }
 }
 
 function deleteAccount() {
