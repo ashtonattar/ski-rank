@@ -3757,6 +3757,7 @@ const ABANDON_GRACE_MS = 8000;   // how long to wait after abandonedBy is set be
 let   _liveGameUnsub   = null; // unsubscribe handle for the liveGames/{id} onSnapshot listener
 let   _currentLiveGameId = null; // gameId of the liveGames doc we're currently subscribed to
 let   _liveSaveTimer   = null; // debounce handle for saveLiveGame
+let   _lastLocalLiveWriteAt = 0; // Date.now() of the most recent local phase-changing action (see saveLiveGame/startLiveGamePoll)
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -4365,6 +4366,7 @@ async function resolveAbandonIfStillPending(gameId, abId) {
 // tell either side something went wrong, so this can't be fire-and-forget.
 function saveLiveGame(liveObj, immediate, attempt = 0) {
   if (!db || !liveObj || !liveObj.id) return;
+  _lastLocalLiveWriteAt = Date.now();
   const copy = JSON.parse(JSON.stringify(liveObj));
   const write = () => db.collection('liveGames').doc(copy.id).set(copy)
     .catch(e => {
@@ -4428,7 +4430,14 @@ function startLiveGamePoll() {
       const isStale = fresh.phase !== S.live.phase ||
         JSON.stringify(fresh.disputeVotes || {}) !== JSON.stringify(S.live.disputeVotes || {}) ||
         JSON.stringify(fresh.setterVotes  || {}) !== JSON.stringify(S.live.setterVotes  || {});
-      if (isStale) {
+      // Guard against clobbering an action this client JUST took (e.g. a judge's
+      // Landed/Bailed/Confirm call) whose write hasn't reached the server yet —
+      // this poll's .get() would still see the old phase and, without this guard,
+      // treat that as "I'm behind" and revert the screen right back, forcing the
+      // user to click again. saveLiveGame() is debounced 300ms, so 2.5s comfortably
+      // covers that plus normal round-trip latency before trusting a phase mismatch.
+      const recentLocalWrite = Date.now() - _lastLocalLiveWriteAt < 2500;
+      if (isStale && !recentLocalWrite) {
         S.live = fresh;
         if (_activeSection === 'live-game') { restoreLog(); drawBoard(); }
       }
