@@ -4697,22 +4697,49 @@ async function doLogin() {
 
     // Password matched — silently migrate this account to Firebase Auth
     if (_fbAuth) {
+      const finishMigration = async cred => {
+        // Link Firebase UID to Firestore record and delete the legacy hash.
+        // Already-migrated (firebaseUid present, hash just not deleted yet)
+        // is fine too — this is idempotent.
+        await db.collection('users').doc(user.id).update({
+          firebaseUid:  cred.user.uid,
+          passwordHash: firebase.firestore.FieldValue.delete(),
+          passwordSalt: firebase.firestore.FieldValue.delete()
+        }).catch(e => console.warn('Migration cleanup write failed:', e.code));
+        toast('Account upgraded to secure sign-in <svg class="icon icon-lock"><use href="#i-lock"/></svg>', 'ok');
+        // onAuthStateChanged will fire and call launchApp()
+      };
       _fbAuth.createUserWithEmailAndPassword(email, password)
-        .then(async cred => {
-          // Link Firebase UID to Firestore record and delete the legacy hash
-          await db.collection('users').doc(user.id).update({
-            firebaseUid:  cred.user.uid,
-            passwordHash: firebase.firestore.FieldValue.delete(),
-            passwordSalt: firebase.firestore.FieldValue.delete()
-          });
-          toast('Account upgraded to secure sign-in <svg class="icon icon-lock"><use href="#i-lock"/></svg>', 'ok');
-          // onAuthStateChanged will fire and call launchApp()
-        })
+        .then(finishMigration)
         .catch(e => {
+          // A Firebase Auth account with this email can already exist here —
+          // e.g. a previous login's migration created it but then failed the
+          // Firestore update below (network drop), leaving passwordHash still
+          // set so every later login re-enters this branch and immediately
+          // hits auth/email-already-in-use. Falling straight back to a local-
+          // only session (as this used to do) left the account permanently
+          // unable to write to Firestore — request.auth is null with no real
+          // Firebase Auth session, so every save silently failed forever with
+          // "Missing or insufficient permissions" and no clear signal why.
+          // Recover by actually signing in with the credentials just typed —
+          // if this account's real Firebase Auth password matches, this
+          // succeeds and finishes the interrupted migration.
+          if (e.code === 'auth/email-already-in-use') {
+            _fbAuth.signInWithEmailAndPassword(email, password)
+              .then(finishMigration)
+              .catch(e2 => {
+                console.warn('Migration recovery sign-in failed:', e2.code);
+                setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
+                launchApp();
+                toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Signed in locally only — changes won\'t sync until you sign in again with a working connection.', 'err');
+              });
+            return;
+          }
           console.warn('Silent migration failed:', e.code);
           // Migration failed — fall back to localStorage session
           setSession({ id: user.id, name: user.name, email: user.email, riderType: user.riderType || 'skier' });
           launchApp();
+          toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Signed in locally only — changes won\'t sync until you sign in again with a working connection.', 'err');
         });
       return; // wait for onAuthStateChanged or the catch above
     }
@@ -11401,9 +11428,13 @@ function acceptLiveInvite(inviteId) {
     // 'accepted' status is what a player reads to skip waiting-for-judge when
     // THEY create it (see judgeAlreadyAccepted below).
 
-    // Save the liveInvites status change so players can detect judge already accepted
-    clearTimeout(_saveTimer);
-    _saveToFirestore();
+    // Persist the liveInvites status change via a targeted per-item transaction
+    // (see _updateArrayField) instead of the whole-document save() — a full-doc
+    // write here can race a player's own debounced save() (or trip the "sync
+    // conflict" safety guard in _saveToFirestore) and silently drop the judge's
+    // 'accepted' status, leaving the game stuck on waiting-for-judge forever.
+    try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+    _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'accepted' }));
 
     checkNotifications();
     toast(`You're the judge! <svg class="icon icon-scale"><use href="#i-scale"/></svg>`, 'ok');
@@ -11427,7 +11458,10 @@ function acceptLiveInvite(inviteId) {
   const gameId = inv.gameId || inv.id;
 
   const _finishAccept = () => {
-    save(); // persists the liveInvites status change to the global doc
+    // Targeted per-item write (see _updateArrayField) instead of the whole-document
+    // save() — avoids the same lost-status race described in the judge branch above.
+    try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+    _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'accepted' }));
     startLiveGamePoll();
     checkNotifications();
     toast(`Game on! <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
@@ -11492,7 +11526,8 @@ function declineLiveInvite(inviteId) {
   const inv = S.liveInvites.find(i => i.id === inviteId);
   if (!inv) return;
   inv.status = 'declined';
-  save();
+  try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+  _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'declined' }));
   checkNotifications();
   renderConfirmations();
   toast('Invite declined.', 'ok');
