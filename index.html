@@ -4253,15 +4253,21 @@ function subscribeLiveGame(gameId) {
       }
       // Auto-advance phase if judge's invite is now 'accepted' but phase is still waiting-for-judge.
       // Handles the race where a player accepted before the judge's status propagated to Firestore.
+      // Uses a transaction gated on the doc's CURRENT phase (not the local, possibly-stale
+      // S.live.phase from this snapshot) — otherwise a client that receives this snapshot late
+      // can blindly overwrite a phase the judge has already advanced past (e.g. back from
+      // 'setting' to 'judge-pick-setter'), forcing the judge to re-pick the setter.
       if (S.live.phase === 'waiting-for-judge' && S.live.judgeId && isPlayer) {
         const judgeNowAccepted = (S.liveInvites || []).some(
           i => i.role === 'judge' && i.toId === S.live.judgeId && i.status === 'accepted'
         );
         if (judgeNowAccepted) {
-          S.live.phase = 'judge-pick-setter';
-          db.collection('liveGames').doc(gameId)
-            .update({ phase: 'judge-pick-setter' })
-            .catch(e => console.warn('Phase advance failed:', e));
+          const gameRef = db.collection('liveGames').doc(gameId);
+          db.runTransaction(tx => tx.get(gameRef).then(doc => {
+            if (doc.exists && doc.data().phase === 'waiting-for-judge') {
+              tx.update(gameRef, { phase: 'judge-pick-setter' });
+            }
+          })).catch(e => console.warn('Phase advance failed:', e));
         }
       }
       if (liveActive && liveActive.style.display !== 'none') {
@@ -12635,6 +12641,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (S.live && !S.live.over && currentUser &&
         (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId)) {
+      // Clear any previously scheduled timer first — otherwise repeated 'hidden' events
+      // (common on mobile from lock-screen/notification-shade toggles) leave the earlier
+      // timer orphaned: only the latest one gets cancelled on return-to-visible, so the
+      // orphaned timer still fires later and falsely reports the player as having left.
+      clearTimeout(_abandonTimer);
       _abandonTimer = setTimeout(_signalAbandon, 30000);
     }
   } else {
