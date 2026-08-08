@@ -3757,7 +3757,6 @@ const ABANDON_GRACE_MS = 8000;   // how long to wait after abandonedBy is set be
 let   _liveGameUnsub   = null; // unsubscribe handle for the liveGames/{id} onSnapshot listener
 let   _currentLiveGameId = null; // gameId of the liveGames doc we're currently subscribed to
 let   _liveSaveTimer   = null; // debounce handle for saveLiveGame
-let   _lastLocalLiveWriteAt = 0; // Date.now() of the most recent local phase-changing action (see saveLiveGame/startLiveGamePoll)
 
 // Compress a profile photo to an 80×80 JPEG (~5 KB)
 async function compressAvatar(dataUrl) {
@@ -4183,7 +4182,9 @@ function subscribeLiveGame(gameId) {
       return;
     }
 
-    S.live = snap.data();
+    const fresh = snap.data();
+    if (_isRemoteLiveGameStale(fresh)) return; // racing one of our own in-flight writes — ignore
+    S.live = fresh;
     try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
 
     // On first sync after login/refresh: a reload should resume an active live game,
@@ -4366,7 +4367,9 @@ async function resolveAbandonIfStillPending(gameId, abId) {
 // tell either side something went wrong, so this can't be fire-and-forget.
 function saveLiveGame(liveObj, immediate, attempt = 0) {
   if (!db || !liveObj || !liveObj.id) return;
-  _lastLocalLiveWriteAt = Date.now();
+  // Bump the local rev on the original (not the retry attempt) — see
+  // _isRemoteLiveGameStale() below for why this exists.
+  if (attempt === 0) liveObj.rev = (liveObj.rev || 0) + 1;
   const copy = JSON.parse(JSON.stringify(liveObj));
   const write = () => db.collection('liveGames').doc(copy.id).set(copy)
     .catch(e => {
@@ -4380,6 +4383,22 @@ function saveLiveGame(liveObj, immediate, attempt = 0) {
   clearTimeout(_liveSaveTimer);
   if (immediate) write();
   else _liveSaveTimer = setTimeout(write, 300);
+}
+
+// Single gate both the onSnapshot listener and the poll fallback route through
+// before accepting a fetched/pushed copy of the live game doc into S.live.
+// `rev` is bumped locally by saveLiveGame() on every write this client makes
+// (before the debounced/retried write even lands), so a remote copy whose rev
+// is behind what we already have locally is necessarily a stale read racing
+// one of our own in-flight writes — not new information — and gets dropped.
+// This replaces what used to be two separately-maintained, ad hoc staleness
+// heuristics (a time-window guard here, a phase/vote diff there), each of
+// which only covered the specific race it was written to fix; a fix to one
+// path didn't protect the other, which is how this bug class kept resurfacing
+// in slightly different spots (see PROJECT_STATUS.md's judge/live-game history).
+function _isRemoteLiveGameStale(fresh) {
+  if (!S.live || !fresh || S.live.id !== fresh.id) return false;
+  return (fresh.rev || 0) < (S.live.rev || 0);
 }
 
 // ── Live-game fallback poll ────────────────────────────────────────────────
@@ -4426,18 +4445,15 @@ function startLiveGamePoll() {
       }
       // Stuck-vote safety net: only kicks in if our local copy is actually behind
       // (or a resolvable vote-phase never advanced), so this is a no-op on every
-      // normal poll tick where the listener is keeping us in sync already.
-      const isStale = fresh.phase !== S.live.phase ||
+      // normal poll tick where the listener is keeping us in sync already. Gated
+      // through the same rev check the onSnapshot handler uses, so a fetched copy
+      // racing this client's own just-taken action (write still debouncing/in
+      // flight) is recognized as stale instead of clobbering the screen the user
+      // just advanced past.
+      const changed = fresh.phase !== S.live.phase ||
         JSON.stringify(fresh.disputeVotes || {}) !== JSON.stringify(S.live.disputeVotes || {}) ||
         JSON.stringify(fresh.setterVotes  || {}) !== JSON.stringify(S.live.setterVotes  || {});
-      // Guard against clobbering an action this client JUST took (e.g. a judge's
-      // Landed/Bailed/Confirm call) whose write hasn't reached the server yet —
-      // this poll's .get() would still see the old phase and, without this guard,
-      // treat that as "I'm behind" and revert the screen right back, forcing the
-      // user to click again. saveLiveGame() is debounced 300ms, so 2.5s comfortably
-      // covers that plus normal round-trip latency before trusting a phase mismatch.
-      const recentLocalWrite = Date.now() - _lastLocalLiveWriteAt < 2500;
-      if (isStale && !recentLocalWrite) {
+      if (changed && !_isRemoteLiveGameStale(fresh)) {
         S.live = fresh;
         if (_activeSection === 'live-game') { restoreLog(); drawBoard(); }
       }
