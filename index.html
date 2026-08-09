@@ -5820,8 +5820,18 @@ const RATED_THRESHOLD  = 5;   // games needed for an official rating
 function isRated(p) { return p && p.gamesPlayed >= RATED_THRESHOLD && p.rating != null; }
 const LETTERS = ['S','K','I'];
 
+// Smoothly decays from a fast-learning start toward a stable floor, instead of
+// jumping at fixed thresholds — the old step function (64 → 32 at game 5, 32 → 16
+// at game 20) made game #5 and #20 arbitrarily consequential (e.g. game 5 counted
+// for twice as much as game 6 purely from crossing the threshold, with nothing
+// otherwise different about that game). K_DECAY is chosen so this curve still
+// passes through the old step function's own midpoint value (K(5) == 32) rather
+// than introducing new unrelated tuning.
+const K_START = 64;
+const K_FLOOR = 16;
+const K_DECAY = 5 / Math.log(3); // solved so kFactor(5) === 32
 function kFactor(games) {
-  return games < 5 ? 64 : games < 20 ? 32 : 16;
+  return K_FLOOR + (K_START - K_FLOOR) * Math.exp(-games / K_DECAY);
 }
 
 function expected(a, b) {
@@ -5843,11 +5853,24 @@ function scoreMultiplier(scoreStr) {
 
 // Upset modifier: fires on every game based on pre-game ratings alone —
 // not gated behind whether handicap mode was used for the match.
-// If the lower-rated player wins (upset) → boost ELO change (1.4×)
-// If the higher-rated player wins (expected) → dampen ELO change (0.6×)
-// Equal ratings → no modifier.
-const UPSET_DAMPEN = 0.6;
-const UPSET_BOOST   = 1.4;
+// Scales continuously with the size of the pre-game rating gap, rather than a
+// flat multiplier for any upset regardless of margin — a 4-rated player
+// upsetting a 10-rated player is a much bigger upset than a 4 beating a 5,
+// and now gains proportionally more.
+// If the lower-rated player wins (upset) → boost ELO change, approaching 1.4×
+//   as the gap grows.
+// If the higher-rated player wins (expected) → dampen ELO change, approaching
+//   0.6× as the gap grows.
+// Equal ratings → no modifier (1.0×). Uses tanh rather than a linear ramp
+// clamped at UPSET_GAP_SCALE, so the multiplier keeps climbing — just by ever
+// smaller amounts — for gaps beyond that scale instead of going flat: a 4
+// beating a 10 (6.00 gap) and a 4 beating a 14 (10.00 gap) used to be rewarded
+// identically once both cleared the old hard cutoff; now the bigger upset always
+// counts for strictly more, asymptotically approaching but never quite reaching
+// the ceiling/floor.
+const UPSET_DAMPEN     = 0.6;
+const UPSET_BOOST      = 1.4;
+const UPSET_GAP_SCALE  = 600; // raw rating-point gap (6.00 displayed) — the curve's characteristic scale, not a hard cutoff
 
 function calcRatings(winner, loser, score='', handicap=null) {
   // Unrated players are treated as START_RATING for Elo math;
@@ -5861,9 +5884,9 @@ function calcRatings(winner, loser, score='', handicap=null) {
   const el = expected(lR, wR); // loser's win probability
   const m  = scoreMultiplier(score);
 
-  let hm = 1.0;
-  if (wR < lR) hm = UPSET_BOOST;
-  else if (wR > lR) hm = UPSET_DAMPEN;
+  const gap = lR - wR; // positive = winner was the lower-rated underdog
+  const gt  = Math.tanh(gap / UPSET_GAP_SCALE); // smoothly bounded to (-1, 1), never flat
+  const hm  = gt >= 0 ? 1 + gt * (UPSET_BOOST - 1) : 1 + gt * (1 - UPSET_DAMPEN);
 
   // Winner gains more if they were the underdog (standard Elo, compounded by the upset multiplier above)
   // Upset multiplier only applied to winner's gain — loser always loses standard amount
