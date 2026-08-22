@@ -1988,6 +1988,14 @@
       .nav-btn.active .nav-icon { filter:drop-shadow(0 0 6px rgba(255,62,127,0.5)); }
       .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(255,62,127,0.18),rgba(255,62,127,0.07)); }
 
+      /* Toasts above the fixed bottom tab bar — otherwise they render partially
+         or fully hidden behind it (tab bar is ~64px + safe-area tall). */
+      .toast-wrap {
+        bottom:calc(78px + env(safe-area-inset-bottom));
+        left:14px; right:14px;
+        align-items:flex-end;
+      }
+
       /* Profile island above tab bar */
       .sidebar-user {
         display:flex;
@@ -2176,7 +2184,7 @@
     #trick-lib-overlay.closing { animation:fadeOutOverlay .2s ease forwards; }
     #trick-lib-overlay.closing #trick-lib-sheet { animation:onboardSlideDown .2s cubic-bezier(.4,0,1,1) forwards; }
     #trick-lib-header { flex-shrink:0; padding:14px 20px 0; }
-    #trick-lib-drag   { width:40px; height:5px; border-radius:99px; background:rgba(255,255,255,0.18); margin:0 auto 14px; }
+    #trick-lib-drag   { width:40px; height:5px; border-radius:99px; background:rgba(255,255,255,0.18); margin:0 auto 14px; touch-action:none; cursor:grab; }
     #trick-lib-search {
       width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06);
       border:1px solid rgba(255,62,127,0.2); border-radius:12px;
@@ -2276,7 +2284,7 @@
     #onboard-drag-handle {
       width:40px; height:5px; border-radius:99px;
       background:rgba(255,255,255,0.18); margin:0 auto 20px;
-      flex-shrink:0;
+      flex-shrink:0; touch-action:none; cursor:grab;
     }
     #onboard-scroll {
       overflow-y:auto; -webkit-overflow-scrolling:touch;
