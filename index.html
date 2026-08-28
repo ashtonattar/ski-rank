@@ -578,9 +578,8 @@
        Chess.com's homepage hero is a literal playable chessboard, not a
        photo — this is the same move: an honest snapshot of the real
        player-panel / trick-area / ski-letter UI, not a decorative graphic.
-       Two usages share these .phb-* classes: a small always-visible panel
-       beside the hero headline (.phb-compact), and a full-size guest-only
-       board that replaces the New Challenge form (.phb-large). */
+       Guest-only: replaces the New Challenge form (.phb-large) in place,
+       since signed-out visitors can't submit a real invite anyway. */
     .play-hero-board {
       position:relative; z-index:2;
       display:flex; flex-direction:column; gap:12px;
@@ -590,9 +589,6 @@
       backdrop-filter:blur(10px);
       box-shadow:var(--shadow-surface);
       padding:16px;
-    }
-    .play-hero-board.phb-compact {
-      flex:0 0 240px; margin:16px 20px 16px 0; align-self:center;
     }
     .play-hero-board.phb-large {
       flex:1 1 100%; max-width:none; margin:0; padding:4px 0 0;
@@ -645,12 +641,10 @@
     .phb-trick.phb-trick-missed { background:rgba(255,51,85,0.06); border:1px solid rgba(255,51,85,0.18); }
     .phb-letters { display:flex; align-items:center; justify-content:center; gap:6px; }
     .phb-large .phb-letters { gap:8px; }
-    .phb-compact .ski-letter { width:32px; height:32px; font-size:15px; }
     @media(max-width:600px) {
       .play-hero { min-height:200px; }
       .play-hero-title { font-size:42px; }
       .play-hero-content { padding:22px 18px 20px; }
-      .play-hero-board.phb-compact { flex-basis:100%; margin:0 18px 20px; align-self:stretch; }
     }
     body.light .play-hero-bg { filter:brightness(.65) saturate(.9); }
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
@@ -2899,33 +2893,7 @@
             <div class="play-pill"><span><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span> No rating needed</div>
           </div>
         </div>
-        <!-- Live duel preview: the real player-panel / trick / ski-letter
-             components, not a photo or decorative graphic — same move as
-             chess.com's homepage hero being a literal playable board. -->
-        <div class="play-hero-board phb-compact" id="play-hero-board" aria-hidden="true">
-          <div class="phb-eyebrow"><span class="phb-eyebrow-dot"></span> Live Duel</div>
-          <div class="phb-row">
-            <div class="phb-panel phb-setter">
-              <div class="phb-name">Jamie C.</div>
-              <div class="phb-role">Setter</div>
-            </div>
-            <div class="phb-vs">VS</div>
-            <div class="phb-panel phb-copier">
-              <div class="phb-name">Mia R.</div>
-              <div class="phb-role">Copying</div>
-            </div>
-          </div>
-          <div class="phb-trick phb-trick-landed" id="phb-trick-box">
-            <svg class="icon icon-success" id="phb-trick-icon"><use href="#i-check-circle"/></svg>
-            <span id="phb-trick-text">Switch 360 Mute — Landed</span>
-          </div>
-          <div class="phb-letters">
-            <span class="ski-letter">S</span>
-            <span class="ski-letter">K</span>
-            <span class="ski-letter earned">I</span>
-          </div>
         </div>
-      </div>
 
       <!-- Action shots strip -->
       <div class="action-strip" id="play-action-strip" style="margin-bottom:22px;">
@@ -6204,9 +6172,8 @@ function _demoNewMatch() {
 }
 
 function _demoRender(trick, landed, s) {
-  // Updates every .play-hero-board on the page (the compact hero panel and
-  // the large guest-only board that replaces the New Challenge form) so both
-  // stay in sync off one shared scripted state.
+  // Updates every .play-hero-board on the page — currently just the
+  // guest-only board that replaces the New Challenge form.
   document.querySelectorAll('.play-hero-board').forEach((board) => {
     const nameEls  = board.querySelectorAll('.phb-name');
     const roleEls  = board.querySelectorAll('.phb-role');
@@ -6274,7 +6241,6 @@ function _demoStop() {
 let _demoLastGuest = null;
 
 function _demoWatch() {
-  const heroBox     = document.getElementById('play-hero-box');
   const guestBoard  = document.getElementById('guest-challenge-board');
   const inviteForm  = document.getElementById('live-invite-form');
   const playView    = document.getElementById('view-live-game');
@@ -6295,10 +6261,11 @@ function _demoWatch() {
     _demoLastGuest = guest;
   }
 
-  const heroVisible = !!(heroBox && heroBox.style.display !== 'none' && heroBox.offsetParent !== null);
+  // Only board left is guestBoard, which only ever renders for guests on the
+  // Play tab — heroBox itself (the marketing headline) carries no board to
+  // animate, so visibility reduces to guest + on-tab, no separate hero check.
   const playViewActive = !!(playView && playView.classList.contains('active'));
-  const anyBoardVisible = heroVisible || (guest && playViewActive);
-  if (anyBoardVisible && guest && !reduceMotion) _demoStart();
+  if (guest && playViewActive && !reduceMotion) _demoStart();
   else _demoStop();
 }
 _demoWatchTimer = setInterval(_demoWatch, 800);
