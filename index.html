@@ -543,13 +543,23 @@
     /* Ken-Burns photo rotation (Layer A) — 3 stacked layers cross-fading with a
        slow zoom, replacing the single static photo. Reuses photo IDs already
        proven working elsewhere in this file (auth screen, action strip) rather
-       than introducing new unverified stock-photo URLs. */
+       than introducing new unverified stock-photo URLs.
+       Photo #1 shows as a static poster (no animation) until _heroVideoMaybeStart()
+       resolves whether the video will take over — this keeps photo #1 the
+       guaranteed "first slide" instead of the video popping in over whichever
+       photo the rotation happens to have reached by the time it's ready. The
+       .phb-rotating class (added once that decision is settled) starts the
+       actual cross-fade cycle. */
     .phb-photo {
       position:absolute; inset:0;
       background-size:cover; background-position:60% 30%;
       opacity:0; transform:scale(1);
+    }
+    .phb-photo:first-of-type { opacity:1; }
+    .play-hero-bg.phb-rotating .phb-photo {
       animation:heroKenBurns 24s var(--ease-out) infinite;
     }
+    .play-hero-bg.phb-rotating .phb-photo:first-of-type { opacity:0; }
     .phb-photo:nth-of-type(1) { background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75'); animation-delay:0s; }
     .phb-photo:nth-of-type(2) { background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=1400&auto=format&fit=crop&q=75'); animation-delay:8s; }
     .phb-photo:nth-of-type(3) { background-image:url('https://images.unsplash.com/photo-1776789472329-2766e6f4ee17?w=1400&auto=format&fit=crop&q=75'); animation-delay:16s; }
@@ -569,9 +579,6 @@
       opacity:0; transition:opacity 1.2s var(--ease-out);
     }
     .play-hero-video.phv-active { opacity:1; }
-    @media (max-width:600px) {
-      .play-hero-video { display:none; }
-    }
     /* Generative snow-drift particles (Layer C) — ambient depth, scoped to the
        hero's own box only (not full-viewport) to keep GPU/CPU cost small.
        Sits above the background layers, below the hero content/demo board. */
@@ -6382,8 +6389,9 @@ window.addEventListener('resize', () => {
 });
 
 // ── Hero background video (Layer B, progressive enhancement) ──
-// Only activates on connections that can afford it, with motion allowed, on
-// non-mobile widths. Layer A (the Ken-Burns photo rotation) is the permanent
+// Only activates on connections that can afford it, with motion allowed —
+// runs on mobile too, gated by the connection check below rather than by
+// viewport width. Layer A (the Ken-Burns photo rotation) is the permanent
 // fallback — this only ever fades on top of it, never replaces it in the DOM.
 // Source: Coverr "Ski Tricks" (coverr.co/videos/ski-tricks-abtfjjvsad, free
 // commercial rights, no attribution required), re-hosted through the app's
@@ -6393,18 +6401,29 @@ const HERO_VIDEO_URL = 'https://res.cloudinary.com/dlswxctw9/video/upload/f_auto
 let _heroVideoAttempted = false;
 
 function _heroVideoMaybeStart() {
-  if (_heroVideoAttempted || !HERO_VIDEO_URL) return;
+  if (_heroVideoAttempted) return;
   _heroVideoAttempted = true;
+  const heroBg = document.querySelector('.play-hero-bg');
+  // Starts the Ken-Burns cross-fade cycle — called once we know whether the
+  // video is taking over (photo #1 stays a frozen "first slide" until then).
+  const startRotation = () => { if (heroBg) heroBg.classList.add('phb-rotating'); };
+  if (!HERO_VIDEO_URL) { startRotation(); return; }
   const video = document.getElementById('play-hero-video');
-  if (!video) return;
-  if (window.matchMedia('(max-width:600px)').matches) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!video) { startRotation(); return; }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { startRotation(); return; }
   const conn = navigator.connection;
-  if (conn && (conn.saveData || (conn.effectiveType && !/4g/.test(conn.effectiveType)))) return;
+  if (conn && (conn.saveData || (conn.effectiveType && !/4g/.test(conn.effectiveType)))) { startRotation(); return; }
+  let settled = false;
+  const settle = () => { if (settled) return; settled = true; startRotation(); };
   video.addEventListener('canplaythrough', () => {
     video.play().catch(() => {});
     video.classList.add('phv-active');
+    settle();
   }, { once: true });
+  // If the video never loads (network error, unsupported format), fall back
+  // to starting the photo rotation rather than leaving photo #1 frozen forever.
+  video.addEventListener('error', settle, { once: true });
+  setTimeout(settle, 6000);
   video.src = HERO_VIDEO_URL;
   video.load();
 }
