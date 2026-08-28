@@ -1367,34 +1367,46 @@
       animation:bootSpin .8s linear infinite;
     }
     @keyframes bootSpin { to { transform:rotate(360deg); } }
-    .boot-ski-scene { position:relative; width:120px; height:60px; }
-    .boot-ski-trail { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
-    .boot-ski-trail path {
-      fill:none; stroke:var(--ice, #22e0c2); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
-      stroke-dasharray:220; stroke-dashoffset:220;
-      animation:bootTrailDraw 2.6s cubic-bezier(.65,0,.35,1) infinite;
+    .boot-ski-scene { position:relative; width:136px; height:60px; }
+    .boot-ski-track { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+    .boot-ground { stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 3; opacity:.3; }
+    .boot-ramp { fill:var(--text-muted); opacity:.18; }
+    .boot-rail-leg { stroke:var(--text-muted); stroke-width:2; stroke-linecap:round; opacity:.35; }
+    .boot-rail-bar { stroke:var(--text-muted); stroke-width:3; stroke-linecap:round; opacity:.45; }
+    .boot-rail-glow {
+      fill:none; stroke:var(--ice, #ff3e7f); stroke-width:3; stroke-linecap:round;
+      stroke-dasharray:44; stroke-dashoffset:44; opacity:0;
+      filter:drop-shadow(0 0 5px rgba(255,62,127,.55));
+      animation:bootRailGlow 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
     .boot-skier {
-      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #22e0c2);
-      filter:drop-shadow(0 0 6px rgba(34,224,194,.45));
-      animation:bootSkierMove 2.6s cubic-bezier(.65,0,.35,1) infinite;
+      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #ff3e7f);
+      filter:drop-shadow(0 0 6px rgba(255,62,127,.45));
+      animation:bootSkierMove 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
-    @keyframes bootTrailDraw {
-      0%   { stroke-dashoffset:220; opacity:0; }
-      8%   { opacity:.55; }
-      70%  { stroke-dashoffset:0; opacity:.55; }
-      88%  { stroke-dashoffset:0; opacity:0; }
-      100% { stroke-dashoffset:220; opacity:0; }
+    @keyframes bootRailGlow {
+      0%   { stroke-dashoffset:44; opacity:0; }
+      38%  { stroke-dashoffset:44; opacity:0; }
+      41%  { opacity:.9; }
+      68%  { stroke-dashoffset:0; opacity:.9; }
+      78%  { opacity:0; stroke-dashoffset:0; }
+      100% { stroke-dashoffset:44; opacity:0; }
     }
+    /* Approach → ramp → airborne → land+grind the rail → pop off → land → reset,
+       waypoints are the skier's center point (icon is 22px, so each translate
+       is the scene coordinate minus 11px to keep the icon centered on it). */
     @keyframes bootSkierMove {
-      0%   { transform:translate(-3px,-3px)  rotate(-10deg); opacity:0; }
-      8%   { opacity:1; }
-      25%  { transform:translate(34px,11px)  rotate(18deg); }
-      45%  { transform:translate(14px,23px)  rotate(-18deg); }
-      65%  { transform:translate(49px,35px)  rotate(18deg); }
-      85%  { transform:translate(29px,45px)  rotate(-10deg); opacity:1; }
-      95%  { opacity:0; }
-      100% { transform:translate(-3px,-3px)  rotate(-10deg); opacity:0; }
+      0%   { transform:translate(-9px,41px)  rotate(-5deg);  opacity:0; animation-timing-function:ease-in; }
+      6%   { opacity:1; }
+      18%  { transform:translate(7px,33px)   rotate(-18deg); animation-timing-function:ease-out; }
+      32%  { transform:translate(23px,13px)  rotate(8deg);   animation-timing-function:ease-in; }
+      40%  { transform:translate(37px,19px)  rotate(-10deg); animation-timing-function:linear; }
+      55%  { transform:translate(58px,19px)  rotate(0deg); }
+      68%  { transform:translate(79px,19px)  rotate(10deg);  animation-timing-function:ease-out; }
+      80%  { transform:translate(95px,5px)   rotate(-20deg); animation-timing-function:ease-in; }
+      92%  { transform:translate(111px,31px) rotate(-5deg);  opacity:1; }
+      97%  { opacity:0; }
+      100% { transform:translate(-9px,41px)  rotate(-5deg);  opacity:0; }
     }
     .boot-loading-msg {
       font-size:12px; color:var(--text-muted); letter-spacing:.3px;
@@ -2478,7 +2490,7 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
-      .boot-spinner, .boot-ski-trail path, .boot-skier, [style*="animation:spin"], [style*="animation: spin"] {
+      .boot-spinner, .boot-rail-glow, .boot-skier, [style*="animation:spin"], [style*="animation: spin"] {
         animation-duration: revert !important;
         animation-iteration-count: infinite !important;
       }
@@ -2580,8 +2592,13 @@
     <div class="logo-big" style="font-size:32px;">SLOPE BATTLES</div>
   </div>
   <div class="boot-ski-scene">
-    <svg class="boot-ski-trail" viewBox="0 0 120 60" preserveAspectRatio="none">
-      <path d="M8 8 Q30 15 45 22 Q30 30 25 34 Q45 42 60 46 Q50 52 40 56"/>
+    <svg class="boot-ski-track" viewBox="0 0 136 60" preserveAspectRatio="none">
+      <line class="boot-ground" x1="0" y1="52" x2="136" y2="52"/>
+      <polygon class="boot-ramp" points="8,52 30,52 30,36"/>
+      <line class="boot-rail-leg" x1="48" y1="52" x2="48" y2="30"/>
+      <line class="boot-rail-leg" x1="90" y1="52" x2="90" y2="30"/>
+      <line class="boot-rail-bar" x1="46" y1="30" x2="92" y2="30"/>
+      <path class="boot-rail-glow" d="M48 30 L90 30"/>
     </svg>
     <svg class="icon boot-skier"><use href="#i-skier"/></svg>
   </div>
