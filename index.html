@@ -1353,6 +1353,7 @@
       gap:18px; background:var(--bg-base);
     }
     #boot-loading.animating-out { animation:authScreenOut .3s ease forwards; pointer-events:none; }
+    #boot-loading .auth-logo { margin-bottom:0; }
     .boot-spinner {
       width:36px; height:36px; border-radius:50%;
       border:3px solid rgba(255,62,127,0.18);
@@ -1360,6 +1361,40 @@
       animation:bootSpin .8s linear infinite;
     }
     @keyframes bootSpin { to { transform:rotate(360deg); } }
+    .boot-ski-scene { position:relative; width:120px; height:60px; }
+    .boot-ski-trail { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+    .boot-ski-trail path {
+      fill:none; stroke:var(--ice, #22e0c2); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+      stroke-dasharray:220; stroke-dashoffset:220;
+      animation:bootTrailDraw 2.6s cubic-bezier(.65,0,.35,1) infinite;
+    }
+    .boot-skier {
+      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #22e0c2);
+      filter:drop-shadow(0 0 6px rgba(34,224,194,.45));
+      animation:bootSkierMove 2.6s cubic-bezier(.65,0,.35,1) infinite;
+    }
+    @keyframes bootTrailDraw {
+      0%   { stroke-dashoffset:220; opacity:0; }
+      8%   { opacity:.55; }
+      70%  { stroke-dashoffset:0; opacity:.55; }
+      88%  { stroke-dashoffset:0; opacity:0; }
+      100% { stroke-dashoffset:220; opacity:0; }
+    }
+    @keyframes bootSkierMove {
+      0%   { transform:translate(-3px,-3px)  rotate(-10deg); opacity:0; }
+      8%   { opacity:1; }
+      25%  { transform:translate(34px,11px)  rotate(18deg); }
+      45%  { transform:translate(14px,23px)  rotate(-18deg); }
+      65%  { transform:translate(49px,35px)  rotate(18deg); }
+      85%  { transform:translate(29px,45px)  rotate(-10deg); opacity:1; }
+      95%  { opacity:0; }
+      100% { transform:translate(-3px,-3px)  rotate(-10deg); opacity:0; }
+    }
+    .boot-loading-msg {
+      font-size:12px; color:var(--text-muted); letter-spacing:.3px;
+      opacity:0; transition:opacity .4s ease;
+    }
+    .boot-loading-msg.visible { opacity:1; }
     .auth-card::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       background:linear-gradient(90deg,transparent,var(--ice),var(--fire),transparent);
@@ -2437,7 +2472,7 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
-      .boot-spinner, [style*="animation:spin"], [style*="animation: spin"] {
+      .boot-spinner, .boot-ski-trail path, .boot-skier, [style*="animation:spin"], [style*="animation: spin"] {
         animation-duration: revert !important;
         animation-iteration-count: infinite !important;
       }
@@ -2532,7 +2567,19 @@
 <!-- Visible by default so it covers the page the instant HTML parses, before
      JS has determined whether the visitor has a saved session. -->
 <div id="boot-loading">
-  <div class="boot-spinner"></div>
+  <div class="auth-logo">
+    <div style="display:flex;justify-content:center;margin-bottom:10px;">
+      <img src="assets/logo.svg" width="56" height="56" alt="">
+    </div>
+    <div class="logo-big" style="font-size:32px;">SLOPE BATTLES</div>
+  </div>
+  <div class="boot-ski-scene">
+    <svg class="boot-ski-trail" viewBox="0 0 120 60" preserveAspectRatio="none">
+      <path d="M8 8 Q30 15 45 22 Q30 30 25 34 Q45 42 60 46 Q50 52 40 56"/>
+    </svg>
+    <svg class="icon boot-skier"><use href="#i-skier"/></svg>
+  </div>
+  <div class="boot-loading-msg" id="boot-loading-msg">Still loading…</div>
 </div>
 
 <!-- ═══ Auth Screen ═══ -->
@@ -5117,9 +5164,22 @@ function deleteAccount() {
   );
 }
 
+let _bootLoadingMsgTimer = null;
+// Arms the delayed "Still loading…" message shown under the boot animation
+// if session resolution takes longer than expected (slow network, cold
+// Firestore connection). Cleared in hideBootLoading() so it never fires on
+// a normal fast load.
+function armBootLoadingMsg() {
+  _bootLoadingMsgTimer = setTimeout(() => {
+    const msg = document.getElementById('boot-loading-msg');
+    if (msg) msg.classList.add('visible');
+  }, 2000);
+}
+
 // Fades out the boot-loading screen shown while we determine session state.
 // Safe to call more than once — a no-op once the screen is already hidden.
 function hideBootLoading() {
+  clearTimeout(_bootLoadingMsgTimer);
   const boot = document.getElementById('boot-loading');
   if (!boot || boot.style.display === 'none') return;
   boot.classList.add('animating-out');
@@ -6393,11 +6453,14 @@ window.addEventListener('resize', () => {
 // runs on mobile too, gated by the connection check below rather than by
 // viewport width. Layer A (the Ken-Burns photo rotation) is the permanent
 // fallback — this only ever fades on top of it, never replaces it in the DOM.
-// Source: Coverr "Ski Tricks" (coverr.co/videos/ski-tricks-abtfjjvsad, free
-// commercial rights, no attribution required), re-hosted through the app's
-// existing Cloudinary account (skirank/hero folder) with f_auto,q_auto for
-// automatic per-device format/quality.
-const HERO_VIDEO_URL = 'https://res.cloudinary.com/dlswxctw9/video/upload/f_auto,q_auto/v1787883324/skirank/hero/ski-tricks-hero.mp4';
+// Source: Pexels "Dynamic Freestyle Skiing Jump in Spring Snow" by Alex
+// Moliski (pexels.com/video/dynamic-freestyle-skiing-jump-in-spring-snow-31940035,
+// free commercial rights, no attribution required) — swapped in for the prior
+// Coverr "Ski Tricks" clip, which was generic groomer skiing rather than an
+// actual freestyle trick. Re-hosted through the app's existing Cloudinary
+// account (skirank/hero folder) with f_auto,q_auto for automatic per-device
+// format/quality.
+const HERO_VIDEO_URL = 'https://res.cloudinary.com/dlswxctw9/video/upload/f_auto,q_auto/v1787935707/skirank/hero/freeski-jump-hero.mp4';
 let _heroVideoAttempted = false;
 
 function _heroVideoMaybeStart() {
@@ -13179,6 +13242,7 @@ async function _resolveFirebaseSession(fbUser, attempt = 0) {
 //  INIT
 // ═══════════════════════════════════════════════════════
 async function init() {
+  armBootLoadingMsg();
   document.getElementById('trick-input').addEventListener('keydown', e => { if (e.key==='Enter') setterSubmitTrick(); });
 
   if (_fbAuth) {
