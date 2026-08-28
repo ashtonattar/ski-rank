@@ -72,6 +72,23 @@
          on the dark background without a hard, single-layer shadow edge. */
       --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.28);
       --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(0,0,0,0.3);
+
+      /* Motion tokens — named by role so intent stays obvious at call sites.
+         Durations/eases below consolidate values already proven in this file
+         (see chess.com-taste.mdc's own .3s/cubic-bezier(0.2,1,0.3,1) contract);
+         --ease-spring/--ease-impact retire several near-duplicate overshoot
+         curves that had accumulated with no functional difference. */
+      --dur-instant:   .05s;
+      --dur-fast:      .2s;
+      --dur-base:      .3s;
+      --dur-entrance:  .35s;
+      --dur-exit:      .22s;
+      --dur-celebrate: .5s;
+      --ease-out:      cubic-bezier(.16,.84,.44,1);
+      --ease-in:       cubic-bezier(.4,0,1,1);
+      --ease-standard: cubic-bezier(0.2,1,0.3,1);
+      --ease-spring:   cubic-bezier(.34,1.56,.64,1);
+      --ease-impact:   cubic-bezier(.36,.07,.19,.97);
     }
 
     /* ── LIGHT MODE (daytime session — same accents, sunlit concrete ground) ── */
@@ -520,9 +537,46 @@
     }
     .play-hero-bg {
       position:absolute; inset:0;
-      background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75');
-      background-size:cover; background-position:60% 30%;
       filter:brightness(.55) saturate(1.1);
+      overflow:hidden;
+    }
+    /* Ken-Burns photo rotation (Layer A) — 3 stacked layers cross-fading with a
+       slow zoom, replacing the single static photo. Reuses photo IDs already
+       proven working elsewhere in this file (auth screen, action strip) rather
+       than introducing new unverified stock-photo URLs. */
+    .phb-photo {
+      position:absolute; inset:0;
+      background-size:cover; background-position:60% 30%;
+      opacity:0; transform:scale(1);
+      animation:heroKenBurns 24s var(--ease-out) infinite;
+    }
+    .phb-photo:nth-of-type(1) { background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75'); animation-delay:0s; }
+    .phb-photo:nth-of-type(2) { background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=1400&auto=format&fit=crop&q=75'); animation-delay:8s; }
+    .phb-photo:nth-of-type(3) { background-image:url('https://images.unsplash.com/photo-1776789472329-2766e6f4ee17?w=1400&auto=format&fit=crop&q=75'); animation-delay:16s; }
+    @keyframes heroKenBurns {
+      0%           { opacity:0; transform:scale(1); }
+      4.2%         { opacity:1; }
+      29.2%        { opacity:1; transform:scale(1.08); }
+      33.3%, 100%  { opacity:0; transform:scale(1.08); }
+    }
+    /* Gated looping video (Layer B) — progressive enhancement over the photo
+       rotation above, only faded in by JS once a good-connection/reduced-motion
+       check passes (see _heroVideoMaybeStart()). Layer A never gets swapped
+       away from; this just fades on top of it. */
+    .play-hero-video {
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover; object-position:60% 30%;
+      opacity:0; transition:opacity 1.2s var(--ease-out);
+    }
+    .play-hero-video.phv-active { opacity:1; }
+    @media (max-width:600px) {
+      .play-hero-video { display:none; }
+    }
+    /* Generative snow-drift particles (Layer C) — ambient depth, scoped to the
+       hero's own box only (not full-viewport) to keep GPU/CPU cost small.
+       Sits above the background layers, below the hero content/demo board. */
+    .play-hero-snow {
+      position:absolute; inset:0; z-index:1; pointer-events:none;
     }
     .play-hero-bg::after {
       content:''; position:absolute; inset:0;
@@ -749,7 +803,7 @@
       40%  { box-shadow:0 0 0 14px rgba(0,230,118,0); transform:scale(1.04); }
       100% { box-shadow:0 4px 22px rgba(0,230,118,0.3); transform:scale(1); }
     }
-    .btn-landed.btn-fired { animation:landedPulse .45s cubic-bezier(.22,.68,0,1.2) forwards; }
+    .btn-landed.btn-fired { animation:landedPulse .45s var(--ease-spring) forwards; }
 
     /* ── Missed: red shake ── */
     @keyframes missedShake {
@@ -759,7 +813,7 @@
       55%     { transform:translateX(-4px) scale(0.98); }
       75%     { transform:translateX(3px)  scale(0.99); }
     }
-    .btn-missed.btn-fired { animation:missedShake .42s cubic-bezier(.36,.07,.19,.97) forwards; }
+    .btn-missed.btn-fired { animation:missedShake .42s var(--ease-impact) forwards; }
 
     .btn-primary {
       background:var(--ice-dark); color:#fff;
@@ -1071,11 +1125,18 @@
     @keyframes ratingCardIn  { from{opacity:0;transform:translateY(28px) scale(0.93);} to{opacity:1;transform:translateY(0) scale(1);} }
     @keyframes ratingCardOut { from{opacity:1;transform:scale(1);} to{opacity:0;transform:scale(1.05);} }
     @keyframes deltaCountIn  { 0%{opacity:0;transform:translateY(-12px);} 60%{opacity:1;transform:translateY(3px);} 100%{opacity:1;transform:translateY(0);} }
+    /* Dominant-win (Tier 3) glow pulse behind the winner's card — no color-token
+       changes, just an animated box-shadow using the existing brand colors. */
+    @keyframes tier3Glow {
+      0%, 100% { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); }
+      50%      { box-shadow:0 0 48px 6px rgba(255,62,127,0.35), 0 0 30px 4px rgba(34,224,194,0.22), var(--shadow-surface); }
+    }
     #rating-anim-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(18,20,22,0.88); align-items:center; justify-content:center; backdrop-filter:blur(14px); animation:fadeIn .25s ease; }
     #rating-anim-overlay.visible { display:flex; }
-    .ra-card { background:linear-gradient(160deg,#232830,#14171b); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn .35s cubic-bezier(.34,1.56,.64,1) both; }
+    .ra-card { background:linear-gradient(160deg,#232830,#14171b); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both; }
+    .ra-card.tier3-glow { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
     .ra-card.loser { animation-delay:.08s; }
-    .ra-delta { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1; animation:deltaCountIn .4s .3s ease both; }
+    .ra-delta { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1; animation:deltaCountIn .4s .3s var(--ease-out) both; }
     .ra-delta.win { color:var(--success); }
     .ra-delta.loss { color:var(--danger); }
 
@@ -2373,6 +2434,11 @@
         animation-duration: revert !important;
         animation-iteration-count: infinite !important;
       }
+      /* Without this, all 3 .phb-photo layers would collapse to their final
+         keyframe (opacity:0) and the hero background would go blank instead
+         of just freezing on one photo. */
+      .phb-photo { animation:none !important; opacity:0 !important; }
+      .phb-photo:first-of-type { opacity:1 !important; }
     }
   </style>
   <!-- Firebase compat SDK -->
@@ -2380,6 +2446,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 <style>
@@ -2882,7 +2949,13 @@
 
       <!-- Play Hero -->
       <div class="play-hero" id="play-hero-box">
-        <div class="play-hero-bg"></div>
+        <div class="play-hero-bg">
+          <div class="phb-photo"></div>
+          <div class="phb-photo"></div>
+          <div class="phb-photo"></div>
+          <video class="play-hero-video" id="play-hero-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+        </div>
+        <canvas class="play-hero-snow" id="play-hero-snow" aria-hidden="true"></canvas>
         <div class="play-hero-content">
           <div class="play-hero-eyebrow">Set It. Match It. Or Take A Letter.</div>
           <h1 class="play-hero-title">CHALLENGE<br>A RIDER</h1>
@@ -6238,6 +6311,104 @@ function _demoStop() {
   if (_demoTimer) { clearInterval(_demoTimer); _demoTimer = null; }
 }
 
+// ── Hero snow-drift particles (Layer C, ambient depth) ──
+// Scoped to the hero's own bounding rect (not full-viewport) to keep cost
+// small. Unlike the guest-only demo board, this runs for signed-in users
+// too — gated only on the hero being on-screen and reduced-motion.
+let _snowCtx = null, _snowParticles = null, _snowRunning = false, _snowRAF = null;
+
+function _snowInit(canvas) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  // Guard against a zero-size read (e.g. hero briefly hidden behind the boot
+  // screen on first paint) — bail without marking running, so the next
+  // _demoWatch() tick (800ms later) retries instead of permanently locking
+  // the canvas's intrinsic size at 0x0.
+  if (rect.width < 1 || rect.height < 1) return false;
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const mobile = window.matchMedia('(max-width:600px)').matches;
+  const count = mobile ? 14 : 32;
+  const colors = ['rgba(255,62,127,', 'rgba(34,224,194,'];
+  _snowParticles = Array.from({ length: count }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: 1 + Math.random() * 2,
+    vy: 0.15 + Math.random() * 0.35,
+    vx: (Math.random() - 0.5) * 0.2,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    alpha: 0.15 + Math.random() * 0.15,
+  }));
+  return true;
+}
+
+function _snowFrame() {
+  if (!_snowRunning || !_snowCtx) return;
+  const canvas = _snowCtx.canvas;
+  _snowCtx.clearRect(0, 0, canvas.width, canvas.height);
+  _snowParticles.forEach((p) => {
+    p.y += p.vy; p.x += p.vx;
+    if (p.y - p.r > canvas.height) { p.y = -p.r; p.x = Math.random() * canvas.width; }
+    if (p.x < -p.r) p.x = canvas.width + p.r;
+    if (p.x > canvas.width + p.r) p.x = -p.r;
+    _snowCtx.beginPath();
+    _snowCtx.fillStyle = p.color + p.alpha + ')';
+    _snowCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    _snowCtx.fill();
+  });
+  _snowRAF = requestAnimationFrame(_snowFrame);
+}
+
+function _snowStart() {
+  if (_snowRunning) return;
+  const canvas = document.getElementById('play-hero-snow');
+  if (!canvas) return;
+  if (!_snowInit(canvas)) return; // zero-size read — retry on the next tick
+  _snowCtx = canvas.getContext('2d');
+  _snowRunning = true;
+  _snowRAF = requestAnimationFrame(_snowFrame);
+}
+
+function _snowStop() {
+  _snowRunning = false;
+  if (_snowRAF) { cancelAnimationFrame(_snowRAF); _snowRAF = null; }
+  if (_snowCtx) { _snowCtx.clearRect(0, 0, _snowCtx.canvas.width, _snowCtx.canvas.height); }
+}
+
+let _snowResizeTimer = null;
+window.addEventListener('resize', () => {
+  if (!_snowRunning || !_snowCtx) return;
+  clearTimeout(_snowResizeTimer);
+  _snowResizeTimer = setTimeout(() => _snowInit(_snowCtx.canvas), 200);
+});
+
+// ── Hero background video (Layer B, progressive enhancement) ──
+// Only activates on connections that can afford it, with motion allowed, on
+// non-mobile widths. Layer A (the Ken-Burns photo rotation) is the permanent
+// fallback — this only ever fades on top of it, never replaces it in the DOM.
+// HERO_VIDEO_URL is intentionally blank until a real clip has been sourced
+// (Coverr/Pexels) and uploaded through the app's existing Cloudinary account
+// (see uploadClipToCloudinary()) — set it once that one-time asset step is
+// done; until then this function is a no-op and Layer A alone is shown.
+const HERO_VIDEO_URL = '';
+let _heroVideoAttempted = false;
+
+function _heroVideoMaybeStart() {
+  if (_heroVideoAttempted || !HERO_VIDEO_URL) return;
+  _heroVideoAttempted = true;
+  const video = document.getElementById('play-hero-video');
+  if (!video) return;
+  if (window.matchMedia('(max-width:600px)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const conn = navigator.connection;
+  if (conn && (conn.saveData || (conn.effectiveType && !/4g/.test(conn.effectiveType)))) return;
+  video.addEventListener('canplaythrough', () => {
+    video.play().catch(() => {});
+    video.classList.add('phv-active');
+  }, { once: true });
+  video.src = HERO_VIDEO_URL;
+  video.load();
+}
+
 let _demoLastGuest = null;
 
 function _demoWatch() {
@@ -6267,6 +6438,15 @@ function _demoWatch() {
   const playViewActive = !!(playView && playView.classList.contains('active'));
   if (guest && playViewActive && !reduceMotion) _demoStart();
   else _demoStop();
+
+  // Snow particles run for signed-in users too (unlike the guest-only demo
+  // board) — gated only on the hero being on-screen and reduced-motion.
+  if (playViewActive && !reduceMotion) _snowStart();
+  else _snowStop();
+
+  // One-shot connection/motion check; no-ops immediately if HERO_VIDEO_URL
+  // is unset (see its own comment).
+  if (playViewActive) _heroVideoMaybeStart();
 }
 _demoWatchTimer = setInterval(_demoWatch, 800);
 if (document.readyState === 'loading') {
@@ -12850,8 +13030,66 @@ document.addEventListener('click', function(e) {
     void btn.offsetWidth; // reflow to restart animation
     btn.classList.add('btn-fired');
     btn.addEventListener('animationend', () => btn.classList.remove('btn-fired'), { once:true });
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (btn.classList.contains('btn-landed')) fireLandedBurst(e.clientX, e.clientY);
+      else fireMissedShatter(e.clientX, e.clientY);
+    }
   }
 }, true);
+
+// ── Trick landed/missed particle effects ──
+// Small canvas anchored at the tap point, removed once its brief effect
+// finishes — proportionate to a single button-level state change, not the
+// full-screen celebration reserved for a match-ending rating reveal.
+function _fxCanvas(clientX, clientY, size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  canvas.style.cssText = `position:fixed;left:${clientX - size / 2}px;top:${clientY - size / 2}px;width:${size}px;height:${size}px;pointer-events:none;z-index:9999;`;
+  document.body.appendChild(canvas);
+  return canvas;
+}
+
+function fireLandedBurst(clientX, clientY) {
+  if (typeof confetti !== 'function') return;
+  const mobile = window.matchMedia('(max-width:600px)').matches;
+  const canvas = _fxCanvas(clientX, clientY, 160);
+  const burst = confetti.create(canvas, { resize:false, useWorker:true });
+  burst({
+    particleCount: mobile ? 10 : 18,
+    spread: 55, startVelocity: 22, gravity: 0.9, scalar: 0.7, ticks: 60,
+    colors: ['#00e676', '#22e0c2'],
+    origin: { x:0.5, y:0.5 },
+  });
+  setTimeout(() => canvas.remove(), 1200);
+}
+
+function fireMissedShatter(clientX, clientY) {
+  const canvas = _fxCanvas(clientX, clientY, 100);
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const cracks = Array.from({ length: 6 }, (_, i) => {
+    const angle = (i / 6) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    const len = 22 + Math.random() * 18;
+    return { angle, len };
+  });
+  const start = performance.now();
+  const duration = 300;
+  function draw(now) {
+    const t = Math.min(1, (now - start) / duration);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = `rgba(255,51,85,${0.8 * (1 - t)})`;
+    ctx.lineWidth = 2;
+    cracks.forEach(({ angle, len }) => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * len * (0.3 + 0.7 * t), cy + Math.sin(angle) * len * (0.3 + 0.7 * t));
+      ctx.stroke();
+    });
+    if (t < 1) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
+}
 
 function showTierModal() {
   const m = document.getElementById('tier-modal-overlay');
@@ -12990,7 +13228,7 @@ function showRatingAnim(winner, loser, game) {
     <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:4px;color:var(--text-muted);">RATINGS UPDATED</div>
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
-        <div class="ra-card">
+        <div class="ra-card${wD>=15?' tier3-glow':''}">
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${escHtml(winner.name)}</div>
           <div class="ra-delta win">+${wD}${wD>=15?' <svg class="icon icon-fire"><use href="#i-fire"/></svg>':''}</div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--primary);font-weight:700;">${wNew}</span></div>
@@ -13005,12 +13243,34 @@ function showRatingAnim(winner, loser, game) {
       <div style="font-size:12px;color:var(--text-muted);opacity:.6;">tap anywhere to dismiss</div>
     </div>`;
   el.classList.add('visible');
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) fireRatingCelebration(wD);
   const dismiss = () => {
-    el.style.animation = 'ratingCardOut .3s ease forwards';
+    el.style.animation = 'ratingCardOut var(--dur-exit) var(--ease-in) forwards';
     setTimeout(() => { el.classList.remove('visible'); el.style.animation=''; el.innerHTML=''; el.removeEventListener('click', dismiss); }, 320);
   };
   el.addEventListener('click', dismiss);
   setTimeout(dismiss, 3200);
+}
+
+// Tiered win celebration off the same winnerDelta signal the fire-icon threshold
+// already uses (wD>=15) — celebrating every result would cheapen the effect, so
+// small wins (<8) get none, solid wins get one burst, dominant wins get several
+// plus the .tier3-glow card pulse (pure CSS, added above).
+function fireRatingCelebration(wD) {
+  if (typeof confetti !== 'function' || wD < 8) return;
+  const mobile = window.matchMedia('(max-width:600px)').matches;
+  const style = getComputedStyle(document.documentElement);
+  const colors = [style.getPropertyValue('--ice').trim(), style.getPropertyValue('--fire').trim(), style.getPropertyValue('--success').trim()].filter(Boolean);
+  const fire = (particleCount) => confetti({
+    particleCount, spread: 70, startVelocity: 45, gravity: 1,
+    colors, origin: { x:0.5, y:0.25 }, zIndex: 9600, useWorker: true,
+  });
+  if (wD >= 15) {
+    fire(70);
+    if (!mobile) { setTimeout(() => fire(70), 250); setTimeout(() => fire(70), 550); }
+  } else {
+    fire(40);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
