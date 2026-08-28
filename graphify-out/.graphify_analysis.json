@@ -1,0 +1,80 @@
+{
+  "communities": {
+    "0": [
+      "manifest",
+      "manifest_background_color",
+      "manifest_description",
+      "manifest_display",
+      "manifest_icons",
+      "manifest_name",
+      "manifest_orientation",
+      "manifest_scope",
+      "manifest_short_name",
+      "manifest_start_url",
+      "manifest_theme_color"
+    ],
+    "1": [
+      "sw",
+      "sw_shell_files"
+    ]
+  },
+  "cohesion": {
+    "0": 0.18181818181818182,
+    "1": 1.0
+  },
+  "gods": [
+    {
+      "id": "manifest_background_color",
+      "label": "background_color",
+      "degree": 1
+    },
+    {
+      "id": "manifest_display",
+      "label": "display",
+      "degree": 1
+    },
+    {
+      "id": "manifest_icons",
+      "label": "icons",
+      "degree": 1
+    },
+    {
+      "id": "manifest_orientation",
+      "label": "orientation",
+      "degree": 1
+    },
+    {
+      "id": "manifest_scope",
+      "label": "scope",
+      "degree": 1
+    },
+    {
+      "id": "manifest_short_name",
+      "label": "short_name",
+      "degree": 1
+    },
+    {
+      "id": "manifest_start_url",
+      "label": "start_url",
+      "degree": 1
+    },
+    {
+      "id": "manifest_theme_color",
+      "label": "theme_color",
+      "degree": 1
+    },
+    {
+      "id": "sw_shell_files",
+      "label": "SHELL_FILES",
+      "degree": 1
+    }
+  ],
+  "surprises": [],
+  "questions": [
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `background_color`, `description`, `display` to the rest of the system?",
+      "why": "11 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

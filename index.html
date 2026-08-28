@@ -60,12 +60,18 @@
       --text-secondary: #a3ab9e;
       --text-muted:     #6b7269;
 
-      --radius:    14px;
-      --radius-sm: 8px;
-      --radius-lg: 20px;
+      --radius-chip: 3px;
+      --radius-sm: 6px;
+      --radius:    10px;
+      --radius-lg: 14px;
       --shadow:    0 12px 48px rgba(0,0,0,0.7);
       --glow-ice:  0 0 40px rgba(255,62,127,0.12);
       --glow-fire: 0 0 40px rgba(34,224,194,0.12);
+      /* Tactile 3-layer surface shadow (chess.com-derived construction) — inset top
+         highlight simulates a light source, two stacked drops give perceivable lift
+         on the dark background without a hard, single-layer shadow edge. */
+      --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.28);
+      --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(0,0,0,0.3);
     }
 
     /* ── LIGHT MODE (daytime session — same accents, sunlit concrete ground) ── */
@@ -94,6 +100,8 @@
       --shadow:    0 12px 48px rgba(0,0,0,0.10);
       --glow-ice:  0 0 40px rgba(184,15,74,0.06);
       --glow-fire: 0 0 40px rgba(15,158,134,0.06);
+      --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(40,40,35,0.06), 0 2px 6px rgba(40,40,35,0.05);
+      --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 2px rgba(40,40,35,0.05);
     }
 
   <style>
@@ -215,7 +223,7 @@
     .sidebar-nav { flex:1; padding:10px 12px; display:flex; flex-direction:column; gap:2px; overflow-y:auto; min-height:0; }
 
     .nav-btn {
-      display:flex; align-items:center; gap:11px;
+      display:flex; align-items:center; gap:12px;
       padding: 8px 14px; border-radius:var(--radius-sm);
       cursor:pointer; color:var(--text-muted);
       font-size:13px; font-weight:500;
@@ -323,9 +331,10 @@
       background:rgba(20,23,26,0.85);
       backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
       border-bottom:1px solid var(--border);
+      box-shadow:0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.2);
     }
     body.light .topbar { background:rgba(255,253,248,0.9); }
-    .topbar-brand { display:flex; align-items:center; gap:9px; }
+    .topbar-brand { display:flex; align-items:center; gap:8px; }
     .topbar-brand .logo-title { font-size:15px; letter-spacing:2px; }
     .topbar-account {
       display:flex; align-items:center; gap:7px;
@@ -356,7 +365,7 @@
       backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
       border-top:1px solid var(--border);
       border-left:1px solid var(--border); border-right:1px solid var(--border);
-      border-top-left-radius:20px; border-top-right-radius:20px;
+      border-top-left-radius:var(--radius-lg); border-top-right-radius:var(--radius-lg);
       padding:8px 4px calc(8px + env(safe-area-inset-bottom));
       box-shadow:0 -8px 32px rgba(0,0,0,0.45);
     }
@@ -366,7 +375,7 @@
       flex-direction:column; gap:3px; padding:7px 4px;
       font-size:10px; font-weight:700; letter-spacing:.1px;
       width:auto; flex:1; min-width:0; text-align:center;
-      border-radius:12px; position:relative;
+      border-radius:var(--radius); position:relative;
       -webkit-tap-highlight-color:transparent;
     }
     .tabbar .nav-btn::before { display:none; }
@@ -387,7 +396,7 @@
       width:100%; max-width:480px;
       transform:translateX(-50%) translateY(105%);
       background:var(--bg-elevated); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-      border-top-left-radius:22px; border-top-right-radius:22px;
+      border-top-left-radius:var(--radius-lg); border-top-right-radius:var(--radius-lg);
       border:1px solid var(--border-light); border-bottom:none;
       padding:10px 14px calc(18px + env(safe-area-inset-bottom));
       box-shadow:0 -16px 48px rgba(0,0,0,0.5);
@@ -406,13 +415,14 @@
       flex-direction:row; justify-content:flex-start; align-items:center; gap:14px;
       width:100%; max-width:none; min-width:0; flex:none;
       padding:12px; font-size:14.5px; font-weight:600;
-      border-radius:14px; text-align:left;
+      border-radius:var(--radius); text-align:left;
       white-space:normal; overflow:visible; text-overflow:clip;
+      box-shadow:var(--shadow-surface-sm);
     }
     .more-sheet .nav-btn .nav-icon {
       font-size:17px; width:34px; height:34px; flex-shrink:0; line-height:1;
       display:flex; align-items:center; justify-content:center;
-      border-radius:11px; background:rgba(255,255,255,0.05);
+      border-radius:var(--radius-sm); background:rgba(255,255,255,0.05);
     }
     .more-sheet .nav-btn.active { background:rgba(255,62,127,0.10); color:var(--ice); font-weight:700; }
     .more-sheet .nav-btn.active .nav-icon { background:rgba(255,62,127,0.16); }
@@ -506,7 +516,7 @@
       margin-bottom:18px;
       box-shadow: var(--glow-ice), 0 24px 64px rgba(0,0,0,0.75);
       min-height:240px;
-      display:flex; align-items:flex-end;
+      display:flex; align-items:stretch; flex-wrap:wrap;
     }
     .play-hero-bg {
       position:absolute; inset:0;
@@ -531,7 +541,8 @@
     .play-hero-content {
       position:relative; z-index:2;
       padding:32px 32px 30px;
-      flex:1;
+      flex:1 1 300px;
+      align-self:flex-end;
     }
     .play-hero-eyebrow {
       font-family:'Barlow Condensed',sans-serif;
@@ -563,42 +574,88 @@
       font-size:11.5px; font-weight:600; color:var(--text-secondary);
       backdrop-filter:blur(8px);
     }
-    /* Animated S·K·I letters in the right corner */
-    .play-hero-letters {
-      position:absolute; bottom:24px; right:28px; z-index:2;
-      display:flex; align-items:center; gap:4px;
-      font-family:'Bebas Neue',sans-serif;
-      user-select:none; pointer-events:none;
+    /* ── Live duel preview: real UI components, not marketing art ──
+       Chess.com's homepage hero is a literal playable chessboard, not a
+       photo — this is the same move: an honest snapshot of the real
+       player-panel / trick-area / ski-letter UI, not a decorative graphic.
+       Two usages share these .phb-* classes: a small always-visible panel
+       beside the hero headline (.phb-compact), and a full-size guest-only
+       board that replaces the New Challenge form (.phb-large). */
+    .play-hero-board {
+      position:relative; z-index:2;
+      display:flex; flex-direction:column; gap:12px;
+      border-radius:var(--radius);
+      background:rgba(8,10,12,0.55);
+      border:1px solid var(--border-light);
+      backdrop-filter:blur(10px);
+      box-shadow:var(--shadow-surface);
+      padding:16px;
     }
-    .ski-letter {
-      font-size:52px; line-height:1; letter-spacing:2px;
-      color:rgba(255,62,127,0.14);
-      text-shadow:none;
-      /* Each letter runs the same 2.4s cycle, offset by 0.8s so they fire S→K→I */
-      animation:skiLetterFlash 2.4s ease-in-out infinite;
-      animation-delay:var(--d,0s);
+    .play-hero-board.phb-compact {
+      flex:0 0 240px; margin:16px 20px 16px 0; align-self:center;
     }
-    .ski-letter-dot {
-      font-size:28px; color:rgba(255,62,127,0.10);
-      line-height:1; margin-bottom:4px;
+    .play-hero-board.phb-large {
+      flex:1 1 100%; max-width:none; margin:0; padding:4px 0 0;
+      background:transparent; border:none; backdrop-filter:none; box-shadow:none;
+      gap:16px;
     }
-    /* 2.4s total / 3 letters = 0.8s per letter slot
-       Flash occupies ~40% of the slot (0→33% bright, 33%→100% dim) */
-    @keyframes skiLetterFlash {
-      0%          { color:rgba(255,62,127,0.14); text-shadow:none; }
-      5%          { color:rgba(255,62,127,1);    text-shadow:0 0 18px rgba(255,62,127,0.9), 0 0 40px rgba(255,62,127,0.6), 0 0 80px rgba(255,62,127,0.3); }
-      25%         { color:rgba(255,62,127,0.85); text-shadow:0 0 14px rgba(255,62,127,0.7), 0 0 35px rgba(255,62,127,0.4); }
-      38%         { color:rgba(255,62,127,0.14); text-shadow:none; }
-      100%        { color:rgba(255,62,127,0.14); text-shadow:none; }
+    .phb-eyebrow {
+      font-size:9.5px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      color:var(--text-muted); display:flex; align-items:center; gap:6px;
     }
+    .phb-large .phb-eyebrow { font-size:11px; letter-spacing:2px; gap:7px; justify-content:center; }
+    .phb-eyebrow-dot {
+      width:6px; height:6px; border-radius:50%; background:var(--success);
+      box-shadow:0 0 8px rgba(0,230,118,0.7);
+      animation:pulseBadge 2s ease-in-out infinite;
+    }
+    .phb-large .phb-eyebrow-dot { width:7px; height:7px; }
+    .phb-row { display:flex; align-items:center; gap:10px; }
+    .phb-large .phb-row { gap:14px; }
+    .phb-panel {
+      flex:1; min-width:0; text-align:center;
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 6px;
+      box-shadow:var(--shadow-surface-sm);
+    }
+    .phb-large .phb-panel { padding:14px 8px; }
+    .phb-panel.phb-setter { border-color:rgba(34,224,194,.45); }
+    .phb-panel.phb-copier { border-color:rgba(255,62,127,.4); }
+    .phb-name { font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .phb-large .phb-name { font-size:14px; }
+    .phb-role {
+      font-size:8.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+      margin-top:2px;
+    }
+    .phb-large .phb-role { font-size:10px; margin-top:3px; }
+    .phb-panel.phb-setter .phb-role { color:var(--fire); }
+    .phb-panel.phb-copier .phb-role { color:var(--ice); }
+    .phb-vs { font-family:'Bebas Neue',sans-serif; font-size:14px; color:rgba(255,255,255,0.2); flex-shrink:0; }
+    .phb-large .phb-vs { font-size:18px; }
+    .phb-trick {
+      display:flex; align-items:center; gap:6px;
+      font-size:11.5px; font-weight:600; color:var(--text-secondary);
+      border-radius:var(--radius-sm); padding:8px 10px;
+      transition:background-color .25s, border-color .25s;
+    }
+    .phb-large .phb-trick { justify-content:center; font-size:13px; gap:7px; padding:10px 12px; }
+    .phb-trick svg { width:14px; height:14px; flex-shrink:0; }
+    .phb-large .phb-trick svg { width:16px; height:16px; }
+    .phb-trick.phb-trick-landed { background:rgba(0,230,118,0.06); border:1px solid rgba(0,230,118,0.18); }
+    .phb-trick.phb-trick-missed { background:rgba(255,51,85,0.06); border:1px solid rgba(255,51,85,0.18); }
+    .phb-letters { display:flex; align-items:center; justify-content:center; gap:6px; }
+    .phb-large .phb-letters { gap:8px; }
+    .phb-compact .ski-letter { width:32px; height:32px; font-size:15px; }
     @media(max-width:600px) {
       .play-hero { min-height:200px; }
       .play-hero-title { font-size:42px; }
       .play-hero-content { padding:22px 18px 20px; }
-      .play-hero-letters { bottom:16px; right:16px; }
-      .ski-letter { font-size:38px; }
+      .play-hero-board.phb-compact { flex-basis:100%; margin:0 18px 20px; align-self:stretch; }
     }
     body.light .play-hero-bg { filter:brightness(.65) saturate(.9); }
+    /* Faint ice-tinted "unearned" letter color for light mode — shared by the
+       real live-game S·K·I tracker (.ski-letter, defined further down) since
+       it has no light-mode color of its own otherwise. */
     body.light .ski-letter { color:rgba(184,15,74,0.15); }
 
     /* ── STATS GRID ── */
@@ -611,14 +668,10 @@
       background:var(--bg-card); border:1px solid var(--border);
       border-radius:var(--radius); padding:18px 20px;
       backdrop-filter:blur(20px); position:relative; overflow:hidden;
-      transition:transform .2s, border-color .2s;
+      box-shadow:var(--shadow-surface);
+      transition:transform .2s, border-color .2s, box-shadow .2s;
     }
     .stat-card:hover { transform:translateY(-2px); border-color:var(--border-light); }
-    .stat-card::before {
-      content:''; position:absolute;
-      top:0; left:20%; right:20%; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,62,127,0.35),transparent);
-    }
 
     .stat-label {
       font-size:10px; font-weight:700; color:var(--text-muted);
@@ -638,11 +691,7 @@
       border-radius:var(--radius); padding:20px 22px;
       backdrop-filter:blur(20px); position:relative;
       overflow:visible;
-    }
-    .card::before {
-      content:''; position:absolute;
-      top:0; left:18px; right:18px; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,62,127,0.18),transparent);
+      box-shadow:var(--shadow-surface);
     }
 
     .card-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
@@ -659,7 +708,7 @@
       border-bottom:1px solid var(--border); white-space:nowrap;
     }
 
-    td { padding:13px 14px; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-secondary); }
+    td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-secondary); }
     tr:last-child td { border-bottom:none; }
     tr:hover td { background:rgba(255,62,127,0.025); }
 
@@ -676,8 +725,8 @@
 
     /* ── BUTTONS ── */
     .btn {
-      display:inline-flex; align-items:center; gap:7px;
-      padding:9px 18px; border-radius:var(--radius-sm);
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 18px; border-radius:var(--radius-sm);
       font-size:12px; font-weight:700; letter-spacing:.5px;
       text-transform:uppercase;
       cursor:pointer; border:none; transition:background-color .18s, color .18s, box-shadow .18s, transform .18s;
@@ -736,7 +785,7 @@
       box-shadow:0 4px 22px rgba(34,224,194,0.5);
     }
 
-    .btn-outline { background:transparent; color:var(--text-secondary); border:1px solid var(--border); }
+    .btn-outline { background:var(--bg-elevated); color:var(--text-secondary); border:1px solid var(--border); box-shadow:var(--shadow-surface-sm); }
     .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(255,62,127,0.05); }
 
     .btn-ghost { background:transparent; color:var(--text-muted); border:none; }
@@ -745,8 +794,8 @@
     .btn-danger { background:transparent; color:var(--danger); border:1px solid rgba(255,51,85,0.25); }
     .btn-danger:hover { background:rgba(255,51,85,0.1); }
 
-    .btn-sm { padding:5px 11px; font-size:10.5px; }
-    .btn-lg { padding:13px 28px; font-size:14px; border-radius:var(--radius); }
+    .btn-sm { padding:4px 12px; font-size:10.5px; }
+    .btn-lg { padding:12px 28px; font-size:14px; border-radius:var(--radius); }
 
     .btn-landed {
       background:linear-gradient(135deg,#00b854,#00e676);
@@ -818,7 +867,7 @@
       overflow:hidden;
     }
     .pp-search {
-      width:100%; box-sizing:border-box; padding:9px 12px;
+      width:100%; box-sizing:border-box; padding:8px 12px;
       background:rgba(0,0,0,0.3); border:none; border-bottom:1px solid var(--border);
       color:var(--text-primary); font-family:'Inter',sans-serif; font-size:13px;
       outline:none;
@@ -827,7 +876,7 @@
     .pp-list { max-height:220px; overflow-y:auto; }
     .pp-section { padding:5px 12px 3px; font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; }
     .pp-item {
-      padding:9px 13px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:10px;
+      padding:8px 12px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:10px;
       transition:background .1s;
     }
     .pp-item:hover, .pp-item.selected { background:rgba(255,62,127,0.08); }
@@ -874,10 +923,10 @@
     @media (prefers-reduced-motion: reduce) { .badge-accent { animation:none; } }
 
     /* ── SKI LETTERS ── */
-    .ski-letters { display:flex; gap:9px; justify-content:center; }
+    .ski-letters { display:flex; gap:8px; justify-content:center; }
 
     .ski-letter {
-      width:48px; height:48px; border-radius:10px;
+      width:48px; height:48px; border-radius:var(--radius);
       display:flex; align-items:center; justify-content:center;
       font-family:'Bebas Neue',sans-serif; font-size:28px;
       border:2px solid rgba(255,255,255,0.07);
@@ -914,26 +963,18 @@
       border-radius:var(--radius-lg); padding:26px 20px;
       text-align:center; transition:border-color .3s, background-color .3s, box-shadow .3s;
       backdrop-filter:blur(20px); position:relative; overflow:hidden;
-    }
-
-    .player-panel::before {
-      content:''; position:absolute;
-      top:0; left:0; right:0; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(255,62,127,0.2),transparent);
+      box-shadow:var(--shadow-surface);
     }
 
     .player-panel.is-setter {
       border-color:rgba(34,224,194,.5);
       background:rgba(255,40,0,0.04);
-      box-shadow:0 0 32px rgba(34,224,194,0.15), inset 0 0 24px rgba(34,224,194,0.03);
-    }
-    .player-panel.is-setter::before {
-      background:linear-gradient(90deg,transparent,rgba(34,224,194,0.55),transparent);
+      box-shadow:var(--shadow-surface), 0 0 32px rgba(34,224,194,0.15), inset 0 0 24px rgba(34,224,194,0.03);
     }
     .player-panel.is-copier {
       border-color:rgba(255,62,127,.42);
       background:rgba(0,150,200,0.04);
-      box-shadow:0 0 32px rgba(255,62,127,0.12);
+      box-shadow:var(--shadow-surface), 0 0 32px rgba(255,62,127,0.12);
     }
 
     .pp-name {
@@ -952,9 +993,10 @@
       background:var(--bg-card); border:1px solid var(--border);
       border-radius:var(--radius-lg); padding:22px; margin-bottom:18px;
       backdrop-filter:blur(20px);
+      box-shadow:var(--shadow-surface);
     }
 
-    .trick-btns { display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:14px; }
+    .trick-btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
 
     /* ── GAME LOG ── */
     .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
@@ -962,7 +1004,7 @@
     .log-row {
       background:rgba(255,62,127,0.03);
       border:1px solid rgba(255,62,127,0.06);
-      border-radius:6px; padding:8px 13px;
+      border-radius:var(--radius-sm); padding:8px 13px;
       font-size:12.5px; display:flex; align-items:center; gap:8px;
       animation:slideIn .2s ease;
     }
@@ -1101,11 +1143,11 @@
     }
 
     /* ── TOAST ── */
-    .toast-wrap { position:fixed; bottom:22px; right:22px; z-index:2000; display:flex; flex-direction:column; gap:7px; }
+    .toast-wrap { position:fixed; bottom:22px; right:22px; z-index:2000; display:flex; flex-direction:column; gap:8px; }
 
     .toast {
       background:rgba(4,14,30,0.96); border:1px solid var(--border);
-      border-radius:var(--radius-sm); padding:11px 15px;
+      border-radius:var(--radius-sm); padding:12px 16px;
       font-size:13px; font-weight:500; color:var(--text-primary);
       box-shadow:var(--shadow), var(--glow-ice);
       animation:slideInR .28s ease;
@@ -1280,22 +1322,22 @@
       gap:2px;
     }
     .auth-tab {
-      flex:1; padding:9px; text-align:center;
+      flex:1; padding:8px; text-align:center;
       font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
-      border-radius:6px; cursor:pointer; transition:all .18s;
+      border-radius:var(--radius-sm); cursor:pointer; transition:all .18s;
       border:none; background:none; color:var(--text-muted);
       font-family:'Barlow Condensed',sans-serif;
     }
     .auth-tab.active { background:var(--ice-dark); color:#fff; box-shadow:0 2px 14px rgba(255,62,127,0.35); }
     .auth-error {
       background:rgba(255,51,85,0.1); border:1px solid rgba(255,51,85,0.3);
-      border-radius:var(--radius-sm); padding:10px 13px;
+      border-radius:var(--radius-sm); padding:10px 12px;
       font-size:13px; color:var(--danger); margin-bottom:14px; display:none;
     }
     .auth-error.visible { display:block; animation:slideIn .2s ease; }
     .auth-btn {
       width:100%; justify-content:center; margin-top:4px;
-      padding:13px; font-size:14px; letter-spacing:1px; border-radius:var(--radius);
+      padding:12px; font-size:14px; letter-spacing:1px; border-radius:var(--radius);
     }
     .auth-btn:disabled {
       opacity:0.6; cursor:not-allowed; transform:none !important;
@@ -1309,7 +1351,7 @@
       background:rgba(255,196,0,0.08);
       border:1px solid rgba(255,196,0,0.3);
       border-radius:var(--radius-sm);
-      padding:11px 13px;
+      padding:12px;
       font-size:12px; line-height:1.55;
       color:#e8c84a;
     }
@@ -1446,6 +1488,7 @@
       padding:16px 18px;
       margin-bottom:12px;
       cursor:pointer;
+      box-shadow:var(--shadow-surface-sm);
       transition:border-color .15s, box-shadow .15s;
     }
     .tourney-card:hover { border-color:var(--ice); box-shadow:0 0 18px var(--ice-glow); }
@@ -1486,7 +1529,7 @@
     /* Round-robin standings */
     .rr-table { width:100%;border-collapse:collapse;font-size:13px; }
     .rr-table th { font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border); }
-    .rr-table td { padding:9px 10px;border-bottom:1px solid var(--border); }
+    .rr-table td { padding:8px 10px;border-bottom:1px solid var(--border); }
     .rr-table tr:last-child td { border-bottom:none; }
 
     /* Invite picker list */
@@ -1789,8 +1832,8 @@
       display:flex;
       align-items:center;
       gap:10px;
-      padding:9px 10px;
-      border-radius:8px;
+      padding:8px 10px;
+      border-radius:var(--radius-sm);
       cursor:pointer;
       transition:background .15s;
       position:relative;
@@ -1807,8 +1850,8 @@
     }
     .msg-bubble {
       max-width:72%;
-      padding:9px 13px;
-      border-radius:14px;
+      padding:8px 12px;
+      border-radius:var(--radius-lg);
       font-size:13.5px;
       line-height:1.45;
       word-break:break-word;
@@ -1836,7 +1879,7 @@
 
     /* SKI letter toggle buttons */
     .ski-letter-btn {
-      width:34px; height:34px; border-radius:8px;
+      width:34px; height:34px; border-radius:var(--radius-sm);
       border:2px solid var(--border); background:var(--bg-card);
       color:var(--text-muted); font-size:14px; font-weight:800;
       cursor:pointer; transition:all .15s; display:inline-flex;
@@ -2002,9 +2045,9 @@
         position:fixed;
         bottom:calc(64px + env(safe-area-inset-bottom));
         left:10px; right:10px;
-        padding:9px 14px;
+        padding:8px 14px;
         border:1px solid rgba(255,62,127,0.15);
-        border-radius:18px;
+        border-radius:var(--radius-lg);
         background:rgba(3,10,24,0.97);
         backdrop-filter:blur(32px);
         -webkit-backdrop-filter:blur(32px);
@@ -2214,8 +2257,8 @@
     }
     .trick-item {
       display:flex; align-items:center; justify-content:space-between;
-      padding:11px 12px; border-radius:12px; cursor:pointer;
-      transition:background .12s; margin-bottom:3px;
+      padding:12px; border-radius:var(--radius); cursor:pointer;
+      transition:background .12s; margin-bottom:4px;
       -webkit-tap-highlight-color:transparent;
     }
     .trick-item:hover, .trick-item:active { background:rgba(255,62,127,0.08); }
@@ -2856,13 +2899,31 @@
             <div class="play-pill"><span><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span> No rating needed</div>
           </div>
         </div>
-        <!-- Animated ski letters -->
-        <div class="play-hero-letters" aria-hidden="true">
-          <span class="ski-letter" style="--d:0s">S</span>
-          <span class="ski-letter-dot">·</span>
-          <span class="ski-letter" style="--d:0.8s">K</span>
-          <span class="ski-letter-dot">·</span>
-          <span class="ski-letter" style="--d:1.6s">I</span>
+        <!-- Live duel preview: the real player-panel / trick / ski-letter
+             components, not a photo or decorative graphic — same move as
+             chess.com's homepage hero being a literal playable board. -->
+        <div class="play-hero-board phb-compact" id="play-hero-board" aria-hidden="true">
+          <div class="phb-eyebrow"><span class="phb-eyebrow-dot"></span> Live Duel</div>
+          <div class="phb-row">
+            <div class="phb-panel phb-setter">
+              <div class="phb-name">Jamie C.</div>
+              <div class="phb-role">Setter</div>
+            </div>
+            <div class="phb-vs">VS</div>
+            <div class="phb-panel phb-copier">
+              <div class="phb-name">Mia R.</div>
+              <div class="phb-role">Copying</div>
+            </div>
+          </div>
+          <div class="phb-trick phb-trick-landed" id="phb-trick-box">
+            <svg class="icon icon-success" id="phb-trick-icon"><use href="#i-check-circle"/></svg>
+            <span id="phb-trick-text">Switch 360 Mute — Landed</span>
+          </div>
+          <div class="phb-letters">
+            <span class="ski-letter">S</span>
+            <span class="ski-letter">K</span>
+            <span class="ski-letter earned">I</span>
+          </div>
         </div>
       </div>
 
@@ -2881,6 +2942,35 @@
       <!-- Setup panel -->
       <div id="live-setup" class="card" style="max-width:560px; margin-bottom:20px;">
         <div class="card-hdr"><span class="card-title"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> New Challenge</span></div>
+
+        <!-- Guest: live-duel demo replaces the actual challenge form —
+             signed-out visitors can't send a real invite anyway, so this
+             shows the game in motion instead of a form they can't submit. -->
+        <div class="play-hero-board phb-large" id="guest-challenge-board" aria-hidden="true" style="display:none;">
+          <div class="phb-eyebrow"><span class="phb-eyebrow-dot"></span> Live Duel</div>
+          <div class="phb-row">
+            <div class="phb-panel phb-setter">
+              <div class="phb-name">Jamie C.</div>
+              <div class="phb-role">Setter</div>
+            </div>
+            <div class="phb-vs">VS</div>
+            <div class="phb-panel phb-copier">
+              <div class="phb-name">Mia R.</div>
+              <div class="phb-role">Copying</div>
+            </div>
+          </div>
+          <div class="phb-trick phb-trick-landed">
+            <svg class="icon icon-success"><use href="#i-check-circle"/></svg>
+            <span>Switch 360 Mute — Landed</span>
+          </div>
+          <div class="phb-letters">
+            <span class="ski-letter">S</span>
+            <span class="ski-letter">K</span>
+            <span class="ski-letter earned">I</span>
+          </div>
+          <p style="text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:4px;">Sign in to challenge a rider yourself.</p>
+          <button class="btn btn-primary" onclick="showAuthScreen()" style="width:100%;justify-content:center;">Sign In / Create Account</button>
+        </div>
 
         <!-- Invite form -->
         <div id="live-invite-form">
@@ -6088,6 +6178,135 @@ function sortedSameSport() {
 }
 
 function initials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
+
+// ── Guest-only hero demo: auto-plays a scripted duel on the Play-tab hero,
+// chess.com-style (their homepage shows a live board playing itself out).
+// Only runs for signed-out visitors — real users skip straight to setting up
+// a real challenge. Self-contained: a lightweight watcher checks visibility/
+// login state on an interval rather than hooking into every nav/login/logout
+// code path, so it can't interfere with core app logic.
+const DEMO_DUEL_MATCHUPS = [
+  { p1:'Jamie C.', p2:'Mia R.' },
+  { p1:'Kai T.',   p2:'Sam O.' },
+  { p1:'Ari L.',   p2:'Nico B.' },
+];
+const DEMO_DUEL_TRICKS = [
+  'Switch 360 Mute','Backflip Japan Grab','Cork 720 Truck Driver','Switch Rodeo 5',
+  'Nose Butter 270 Out','Method Air Grab','Double Cork 1080','Zero Spin Truck Driver',
+];
+let _demoState = null;
+let _demoTimer = null;
+let _demoWatchTimer = null;
+
+function _demoNewMatch() {
+  const m = DEMO_DUEL_MATCHUPS[Math.floor(Math.random() * DEMO_DUEL_MATCHUPS.length)];
+  _demoState = { p1: m.p1, p2: m.p2, setter: Math.random() < 0.5 ? 1 : 2, letters: [false, false, false], frame: 0 };
+}
+
+function _demoRender(trick, landed, s) {
+  // Updates every .play-hero-board on the page (the compact hero panel and
+  // the large guest-only board that replaces the New Challenge form) so both
+  // stay in sync off one shared scripted state.
+  document.querySelectorAll('.play-hero-board').forEach((board) => {
+    const nameEls  = board.querySelectorAll('.phb-name');
+    const roleEls  = board.querySelectorAll('.phb-role');
+    const panelEls = board.querySelectorAll('.phb-panel');
+    if (nameEls.length < 2) return;
+
+    nameEls[0].textContent = s.p1;
+    nameEls[1].textContent = s.p2;
+    roleEls[0].textContent = s.setter === 1 ? 'Setter' : 'Copying';
+    roleEls[1].textContent = s.setter === 2 ? 'Setter' : 'Copying';
+    panelEls[0].classList.toggle('phb-setter', s.setter === 1);
+    panelEls[0].classList.toggle('phb-copier', s.setter !== 1);
+    panelEls[1].classList.toggle('phb-setter', s.setter === 2);
+    panelEls[1].classList.toggle('phb-copier', s.setter !== 2);
+
+    const trickBox  = board.querySelector('.phb-trick');
+    const trickText = trickBox?.querySelector('span');
+    const trickIcon = trickBox?.querySelector('svg');
+    if (trickText) trickText.textContent = `${trick} — ${landed ? 'Landed' : 'Missed'}`;
+    if (trickBox) {
+      trickBox.classList.toggle('phb-trick-landed', landed);
+      trickBox.classList.toggle('phb-trick-missed', !landed);
+    }
+    if (trickIcon) {
+      // SVG elements' `className` is a read-only SVGAnimatedString, not a
+      // plain string — must use setAttribute, unlike ordinary HTML elements.
+      trickIcon.setAttribute('class', 'icon ' + (landed ? 'icon-success' : 'icon-danger'));
+      trickIcon.innerHTML = landed ? '<use href="#i-check-circle"/>' : '<use href="#i-x-circle"/>';
+    }
+
+    const letterEls = board.querySelectorAll('.ski-letter');
+    letterEls.forEach((el, i) => el.classList.toggle('earned', !!s.letters[i]));
+  });
+}
+
+function _demoAdvance() {
+  if (!_demoState) _demoNewMatch();
+  const s = _demoState;
+  const trick = DEMO_DUEL_TRICKS[s.frame % DEMO_DUEL_TRICKS.length];
+  const landed = Math.random() > 0.42;
+  if (!landed) {
+    const idx = s.letters.findIndex(l => !l);
+    if (idx !== -1) s.letters[idx] = true;
+  }
+  _demoRender(trick, landed, s);
+  s.setter = s.setter === 1 ? 2 : 1;
+  s.frame++;
+  if (s.letters.every(Boolean)) {
+    // Match over — hold on the final frame a beat, then start a fresh one.
+    setTimeout(_demoNewMatch, 1400);
+  }
+}
+
+function _demoStart() {
+  if (_demoTimer) return;
+  if (!_demoState) _demoNewMatch();
+  _demoAdvance();
+  _demoTimer = setInterval(_demoAdvance, 3200);
+}
+
+function _demoStop() {
+  if (_demoTimer) { clearInterval(_demoTimer); _demoTimer = null; }
+}
+
+let _demoLastGuest = null;
+
+function _demoWatch() {
+  const heroBox     = document.getElementById('play-hero-box');
+  const guestBoard  = document.getElementById('guest-challenge-board');
+  const inviteForm  = document.getElementById('live-invite-form');
+  const playView    = document.getElementById('view-live-game');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const guest = !currentUser;
+
+  // guest-challenge-board is exclusively ours (nothing else touches it), safe
+  // to set every tick. live-invite-form's display is also actively managed
+  // by the real invite-sent/cancelled flow (sendLiveInvite(), nav(), etc.),
+  // which resets it to 'block' on things like view navigation — so re-assert
+  // 'none' every tick while guest (guests never have a legitimate pending
+  // invite to preserve), but never touch it once signed in: that in-flight
+  // state belongs entirely to the real app logic from there.
+  if (guestBoard) guestBoard.style.display = guest ? 'flex' : 'none';
+  if (inviteForm && guest) inviteForm.style.display = 'none';
+  if (guest !== _demoLastGuest) {
+    if (inviteForm && !guest) inviteForm.style.display = 'block';
+    _demoLastGuest = guest;
+  }
+
+  const heroVisible = !!(heroBox && heroBox.style.display !== 'none' && heroBox.offsetParent !== null);
+  const playViewActive = !!(playView && playView.classList.contains('active'));
+  const anyBoardVisible = heroVisible || (guest && playViewActive);
+  if (anyBoardVisible && guest && !reduceMotion) _demoStart();
+  else _demoStop();
+}
+_demoWatchTimer = setInterval(_demoWatch, 800);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _demoWatch);
+} else {
+  _demoWatch();
+}
 
 function dateFmt(ts) {
   return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});

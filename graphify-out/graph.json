@@ -1,0 +1,275 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "manifest",
+      "label": "manifest.json",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "manifest.json",
+      "source_file": "manifest.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "manifest_background_color",
+      "label": "background_color",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "background_color",
+      "source_file": "manifest.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "manifest_description",
+      "label": "description",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "description",
+      "source_file": "manifest.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "manifest_display",
+      "label": "display",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "display",
+      "source_file": "manifest.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "manifest_icons",
+      "label": "icons",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "icons",
+      "source_file": "manifest.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "manifest_name",
+      "label": "name",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "name",
+      "source_file": "manifest.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "manifest_orientation",
+      "label": "orientation",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "orientation",
+      "source_file": "manifest.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "manifest_scope",
+      "label": "scope",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "scope",
+      "source_file": "manifest.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "manifest_short_name",
+      "label": "short_name",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "short_name",
+      "source_file": "manifest.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "manifest_start_url",
+      "label": "start_url",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "start_url",
+      "source_file": "manifest.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "manifest_theme_color",
+      "label": "theme_color",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "manifest.json",
+      "file_type": "code",
+      "norm_label": "theme_color",
+      "source_file": "manifest.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "sw",
+      "label": "sw.js",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "sw.js",
+      "file_type": "code",
+      "norm_label": "sw.js",
+      "source_file": "sw.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "sw_shell_files",
+      "label": "SHELL_FILES",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "sw.js",
+      "file_type": "code",
+      "norm_label": "shell_files",
+      "source_file": "sw.js",
+      "source_location": "L8"
+    }
+  ],
+  "links": [
+    {
+      "source": "manifest",
+      "target": "manifest_theme_color",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_icons",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_name",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_short_name",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_description",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_start_url",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_scope",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_display",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_orientation",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "manifest",
+      "target": "manifest_background_color",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "manifest.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "sw",
+      "target": "sw_shell_files",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "sw.js",
+      "source_location": "L8",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "built_at_commit": "12460e39ad416fd03e5a5f4a712c3f88c786be32"
+}
