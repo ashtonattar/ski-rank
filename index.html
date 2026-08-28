@@ -6385,11 +6385,11 @@ window.addEventListener('resize', () => {
 // Only activates on connections that can afford it, with motion allowed, on
 // non-mobile widths. Layer A (the Ken-Burns photo rotation) is the permanent
 // fallback — this only ever fades on top of it, never replaces it in the DOM.
-// HERO_VIDEO_URL is intentionally blank until a real clip has been sourced
-// (Coverr/Pexels) and uploaded through the app's existing Cloudinary account
-// (see uploadClipToCloudinary()) — set it once that one-time asset step is
-// done; until then this function is a no-op and Layer A alone is shown.
-const HERO_VIDEO_URL = '';
+// Source: Coverr "Ski Tricks" (coverr.co/videos/ski-tricks-abtfjjvsad, free
+// commercial rights, no attribution required), re-hosted through the app's
+// existing Cloudinary account (skirank/hero folder) with f_auto,q_auto for
+// automatic per-device format/quality.
+const HERO_VIDEO_URL = 'https://res.cloudinary.com/dlswxctw9/video/upload/f_auto,q_auto/v1787883324/skirank/hero/ski-tricks-hero.mp4';
 let _heroVideoAttempted = false;
 
 function _heroVideoMaybeStart() {
