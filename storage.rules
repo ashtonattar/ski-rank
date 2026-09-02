@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Firebase Storage security rules for Slope Battles (skirank-b3b70).
+// NOT auto-deployed from this repo — paste into Firebase Console >
+// Storage > Rules, or `firebase deploy --only storage`.
+//
+// As of this audit, the app does NOT actually use Firebase Storage for
+// uploads: avatars are stored as base64 data URLs directly in Firestore
+// ('avatars/{uid}' documents) and video clips go through Cloudinary
+// (uploadClipToCloudinary() in index.html), not this bucket. The Storage
+// SDK is still initialized (firebase.storage()) and the bucket exists, so
+// this file exists purely to close the gap where a brand-new Firebase
+// project's default test-mode rules ("allow read, write: if true" for 30
+// days) could otherwise be sitting live in the console with nothing in
+// this repo to override it. If Storage uploads are added later, replace
+// the deny-all block below with rules scoped to the specific path/uid,
+// plus size and content-type limits.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -60,7 +60,49 @@ service cloud.firestore {
             newReports[newReports.size()-1].reporterId == request.auth.uid );
       }
 
-      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe() && isValidReportsChange());
+      // KNOWN GAP (tracked, not fixed by this rule): a non-admin's write can
+      // still set THEIR OWN player entry's rating/wins/losses to any value —
+      // ratings are computed client-side in commitGame() and merged in via
+      // save() with no server-side recompute. Firestore rules can't validate
+      // that cheaply here because `players`/`games` are plain arrays (not
+      // maps keyed by uid), so there's no way to look up "the caller's own
+      // entry" or diff a single field within one array element without a
+      // per-element loop, which this rules language doesn't support. Closing
+      // that gap for real requires either (a) a Cloud Function that computes
+      // ratings server-side from a submitted match result, with client writes
+      // to rating/wins/losses blocked here, or (b) migrating `players` to a
+      // uid-keyed map/subcollection so per-field ownership is checkable.
+      //
+      // What CAN be enforced cheaply on arrays — and IS, below — is a bound
+      // on how many player/game records a single write touches at all. That
+      // stops a compromised or scripted client from bulk-rewriting the whole
+      // leaderboard (e.g. setting 50 accounts to rating 3000) in one shot.
+      // It does NOT stop a user quietly inflating their own single entry;
+      // that's the gap above.
+      function playersChangeCount() {
+        let oldP = (resource != null && 'players' in resource.data) ? resource.data.players : [];
+        let newP = ('players' in request.resource.data) ? request.resource.data.players : [];
+        return oldP.toSet().difference(newP.toSet()).size() + newP.toSet().difference(oldP.toSet()).size();
+      }
+
+      function gamesChangeCount() {
+        let oldG = (resource != null && 'games' in resource.data) ? resource.data.games : [];
+        let newG = ('games' in request.resource.data) ? request.resource.data.games : [];
+        return oldG.toSet().difference(newG.toSet()).size() + newG.toSet().difference(oldG.toSet()).size();
+      }
+
+      // Each changed array element counts twice (its old value removed +
+      // its new value added), so a normal 1v1 game commit — 2 player entries
+      // changed — already sums to 4. save() writes the WHOLE players/games
+      // array on every debounced save (not a targeted diff), so any other
+      // signed-in user's write that landed between this client's last fetch
+      // and now shows up here too — each such stale entry adds another 2.
+      // Bounds need real headroom for that organic staleness under normal
+      // concurrent usage, while still catching the actual abuse case this
+      // guards against (bulk-rewriting dozens of accounts in one shot, e.g.
+      // 50 accounts -> 100 on this metric).
+      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe() && isValidReportsChange()
+        && playersChangeCount() <= 20 && gamesChangeCount() <= 10);
     }
 
     // ── users/{uid} ────────────────────────────────────────────────────────
@@ -72,6 +114,16 @@ service cloud.firestore {
       allow read: if true; // login-by-email lookup, public rider profiles
       allow create: if isSignedIn() && request.auth.uid == uid;
       allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── usersPrivate/{uid} ────────────────────────────────────────────────
+    // Holds PII that must NOT be exposed by users/{uid}'s public read rule
+    // (currently just birthYear, collected for the signup age gate).
+    match /usersPrivate/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isAdmin();
       allow delete: if isSignedIn() && (request.auth.uid == uid || isAdmin());
     }
 

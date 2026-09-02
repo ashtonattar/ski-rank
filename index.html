@@ -2708,6 +2708,11 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="form-label">Date of Birth</label>
+        <input type="date" class="form-input" id="su-dob" autocomplete="bday"
+               onkeydown="if(event.key==='Enter')document.getElementById('su-password').focus()">
+      </div>
+      <div class="form-group">
         <label class="form-label">Password</label>
         <input type="password" class="form-input" id="su-password" placeholder="6+ characters"
                autocomplete="new-password" onkeydown="if(event.key==='Enter')document.getElementById('su-confirm').focus()">
@@ -2717,10 +2722,13 @@
         <input type="password" class="form-input" id="su-confirm" placeholder="Repeat password"
                autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()">
       </div>
-      <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
-      <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-muted);">
-        By creating an account, you agree to our <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+      <div style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 4px;">
+        <input type="checkbox" id="su-agree" style="margin-top:3px;flex:none;width:16px;height:16px;">
+        <label for="su-agree" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
+          I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+        </label>
       </div>
+      <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
     </div>
 
     <div class="auth-footer"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Your data is private and securely stored</div>
@@ -4835,9 +4843,24 @@ function selectRiderType(type) {
   }
 }
 
+// Whole years between a YYYY-MM-DD date-of-birth string and today, accounting
+// for whether this year's birthday has happened yet.
+function _ageFromDob(dobStr) {
+  const dob = new Date(dobStr + 'T00:00:00');
+  if (isNaN(dob.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const monthDayNotYetReached = (now.getMonth() < dob.getMonth()) ||
+    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
+  if (monthDayNotYetReached) age--;
+  return age;
+}
+
 async function doSignup() {
   const name     = document.getElementById('su-name').value.trim();
   const email    = document.getElementById('su-email').value.trim().toLowerCase();
+  const dob      = document.getElementById('su-dob').value;
+  const agreed   = document.getElementById('su-agree').checked;
   const password = document.getElementById('su-password').value;
   const confirm  = document.getElementById('su-confirm').value;
   const errEl    = document.getElementById('auth-error');
@@ -4853,6 +4876,13 @@ async function doSignup() {
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
   if (!email)           return showErr('Email is required.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
+  if (!dob)              return showErr('Date of birth is required.');
+  const age = _ageFromDob(dob);
+  // COPPA: we cannot knowingly collect data from under-13s, so signup is
+  // blocked outright rather than merely warned — see PRIVACY_POLICY.md.
+  if (age === null || age < 0) return showErr('Please enter a valid date of birth.');
+  if (age < 13)          return showErr('You must be at least 13 years old to create a Slope Battles account.');
+  if (!agreed)           return showErr('Please confirm you agree to the Terms of Service and Privacy Policy.');
   if (!password)        return showErr('Password is required.');
   if (password.length < 6) return showErr('Password must be at least 6 characters.');
   if (password !== confirm) return showErr('Passwords do not match.');
@@ -4907,6 +4937,14 @@ async function doSignup() {
   // Write to Firestore users collection
   try {
     await db.collection('users').doc(newUser.id).set(newUser);
+    // Birth YEAR only (not full DOB) — enough to re-verify the 13+ gate later
+    // without retaining more precise birthdate PII than needed. Kept in a
+    // separate owner/admin-only collection because users/{uid} is publicly
+    // readable (login-by-email lookup, public rider profiles) — see
+    // firestore.rules' usersPrivate/{uid} rule.
+    await db.collection('usersPrivate').doc(newUser.id).set({
+      birthYear: parseInt(dob.slice(0, 4), 10)
+    });
   } catch(e) {
     return showErr('Failed to create account. Please try again.');
   }
