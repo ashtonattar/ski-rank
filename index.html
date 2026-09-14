@@ -427,7 +427,13 @@
       display:flex; flex-direction:column;
     }
     .more-sheet.open { transform:translateX(-50%) translateY(0); }
-    .more-sheet-handle { width:36px; height:4px; border-radius:2px; background:var(--border-light); margin:4px auto 6px; flex-shrink:0; }
+    /* The grabber bar itself is only 4px tall — too small to tap reliably, and
+       (unlike trick-lib-sheet/onboard-card/comments-drawer's handles) it had no
+       click handler at all, so it looked like a "hide this sheet" control but did
+       nothing. ::before pads out the actual hit area without changing how the bar
+       looks or affecting the flex layout (it's positioned out of flow). */
+    .more-sheet-handle { width:36px; height:4px; border-radius:2px; background:var(--border-light); margin:4px auto 6px; flex-shrink:0; position:relative; cursor:pointer; }
+    .more-sheet-handle::before { content:''; position:absolute; inset:-20px -24px; }
     .more-sheet-title {
       font-family:'Barlow Condensed',sans-serif;
       font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
@@ -2774,7 +2780,7 @@
   <!-- ═══ More sheet (overflow nav + account) ═══ -->
   <div class="more-sheet-overlay" id="more-sheet-overlay" onclick="closeMoreSheet()"></div>
   <div class="more-sheet" id="more-sheet">
-    <div class="more-sheet-handle"></div>
+    <div class="more-sheet-handle" onclick="closeMoreSheet()" role="button" aria-label="Close menu"></div>
     <div class="more-sheet-title">More</div>
     <div class="more-sheet-list">
       <button class="nav-btn" data-view="confirmations" onclick="nav('confirmations');closeMoreSheet()" id="nav-confirmations">
@@ -4394,7 +4400,17 @@ function startFirestoreSync() {
         }
         const listEl = document.getElementById('friends-list-items');
         if (listEl) renderFriendsView();
-        const safe = ['leaderboard','players','explore','friends','confirmations','tournaments'];
+        // 'explore' intentionally excluded: state/global is written by nearly everything
+        // (messages, friend requests, tournaments, ratings, etc. — see _saveToFirestore),
+        // so any other user's unrelated action fires this snapshot while a viewer is
+        // browsing the feed. Routing that through nav('explore') tore down and rebuilt
+        // every reel-card (via renderExplore()'s feed.innerHTML replace), paused playing
+        // videos, and reset scroll position mid-gesture — losing taps on the profile/like/
+        // comment action buttons (reported by Grant, peer review round 1). Likes and
+        // comments already patch their own DOM nodes in place (toggleLike/postComment/
+        // deleteComment), so they stay live without a full rebuild; new clips from other
+        // users simply show up next time the viewer (re)opens Explore.
+        const safe = ['leaderboard','players','friends','confirmations','tournaments'];
         if (safe.includes(_activeSection)) nav(_activeSection);
         if (_activeSection === 'profile') renderMyProfile();
         updateSidebarAvatar();
