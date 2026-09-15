@@ -2788,7 +2788,7 @@
   <!-- ═══ More sheet (overflow nav + account) ═══ -->
   <div class="more-sheet-overlay" id="more-sheet-overlay" onclick="closeMoreSheet()"></div>
   <div class="more-sheet" id="more-sheet">
-    <div class="more-sheet-handle" onclick="closeMoreSheet()" role="button" aria-label="Close menu"></div>
+    <div class="more-sheet-handle" id="more-sheet-drag" onclick="closeMoreSheet()" role="button" aria-label="Close menu"></div>
     <div class="more-sheet-title">More</div>
     <div class="more-sheet-list">
       <button class="nav-btn" data-view="confirmations" onclick="nav('confirmations');closeMoreSheet()" id="nav-confirmations">
@@ -6722,8 +6722,12 @@ function enableSheetDrag(handleEl, sheetEl, closeFn) {
 }
 
 // Same idea, but for sheets whose open/close is a persistent CSS-class transition
-// (comments drawer) rather than a one-shot keyframe animation.
-function enableDrawerDrag(handleEl, sheetEl, closeFn) {
+// (comments drawer, more sheet) rather than a one-shot keyframe animation.
+// baseTransform is prepended to every drag-driven transform — the more sheet is
+// horizontally centered via `left:50% + translateX(-50%)` baked into the same
+// `transform` property its open/close state uses, so a drag that just set
+// `translateY(...)` outright would blow away that centering mid-drag.
+function enableDrawerDrag(handleEl, sheetEl, closeFn, baseTransform = '') {
   if (!handleEl || !sheetEl || handleEl.dataset.dragWired) return;
   handleEl.dataset.dragWired = '1';
   let dragging = false, startY = 0, startTime = 0, dy = 0;
@@ -6735,7 +6739,7 @@ function enableDrawerDrag(handleEl, sheetEl, closeFn) {
   handleEl.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     dy = Math.max(0, e.clientY - startY);
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) sheetEl.style.transform = `translateY(${dy}px)`;
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) sheetEl.style.transform = `${baseTransform} translateY(${dy}px)`;
   });
   const onUp = () => {
     if (!dragging) return;
@@ -6744,7 +6748,7 @@ function enableDrawerDrag(handleEl, sheetEl, closeFn) {
     const velocity = dy / elapsed;
     sheetEl.style.transition = 'transform .3s cubic-bezier(.32,.72,0,1)';
     if (dy > 110 || velocity > 0.6) {
-      sheetEl.style.transform = 'translateY(100%)';
+      sheetEl.style.transform = `${baseTransform} translateY(100%)`;
       sheetEl.addEventListener('transitionend', () => { sheetEl.style.transform = ''; closeFn(); }, { once:true });
     } else {
       sheetEl.style.transform = '';
@@ -6790,6 +6794,7 @@ const _viewScroll = {};
 function openMoreSheet() {
   document.getElementById('more-sheet')?.classList.add('open');
   document.getElementById('more-sheet-overlay')?.classList.add('open');
+  enableDrawerDrag(document.getElementById('more-sheet-drag'), document.getElementById('more-sheet'), closeMoreSheet, 'translateX(-50%)');
 }
 function closeMoreSheet() {
   document.getElementById('more-sheet')?.classList.remove('open');
