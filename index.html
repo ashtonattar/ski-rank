@@ -2077,6 +2077,10 @@
     .resort-item-main { font-weight:600; }
     .resort-item-sub  { font-size:11px; color:var(--text-muted); margin-top:1px; }
     .resort-match     { color:var(--ice); }
+    .resort-item-freeform .resort-item-icon { opacity:.55; }
+    .resort-item-freeform .resort-item-main { font-weight:500; font-style:italic; color:var(--text-muted); }
+    .resort-item-freeform:hover, .resort-item-freeform.active { color:inherit; }
+    .resort-item-freeform:hover .resort-item-main, .resort-item-freeform.active .resort-item-main { color:var(--ice); }
 
     /* ── SIDEBAR USER FOOTER ── */
     .sidebar-user {
@@ -3058,7 +3062,7 @@
         <div class="play-hero-content">
           <div class="play-hero-eyebrow">Set It. Match It. Or Take A Letter.</div>
           <h1 class="play-hero-title">CHALLENGE<br>A RIDER</h1>
-          <p class="play-hero-sub">Set a trick. Your opponent copies it or collects a letter.<br>First to spell <strong>S·K·I</strong> loses.</p>
+          <p class="play-hero-sub">A real, in-person trick duel on the mountain — set a trick, your opponent copies it or collects a letter.<br>First to spell <strong>S·K·I</strong> loses.</p>
           <div class="play-hero-pills">
             <div class="play-pill"><span><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span> Instant invite</div>
             <div class="play-pill"><span>📱</span> Live scoring</div>
@@ -12609,6 +12613,7 @@ const RESORTS = [
   { name:'Jack Frost Mountain',        region:'Pennsylvania, USA',              pass:'epic' },
   { name:'Big Boulder',                region:'Pennsylvania, USA',              pass:'epic' },
   { name:'Afton Alps',                 region:'Minnesota, USA',                 pass:'epic' },
+  { name:'Mad River Mountain',         region:'Ohio, USA',                      pass:'epic' },
   { name:'Mt. Brighton',               region:'Michigan, USA',                  pass:'epic' },
   { name:'Wilmot Mountain',            region:'Wisconsin, USA',                 pass:'epic' },
   { name:'Whistler Blackcomb',         region:'British Columbia, Canada',       pass:'epic' },
@@ -12736,7 +12741,17 @@ function resortInput(el, ddId='resort-dropdown') {
     (r.pass && r.pass.includes(q))
   ).slice(0, 9);
 
-  if (!matches.length) { dd.classList.remove('open'); dd.innerHTML=''; return; }
+  if (!matches.length) {
+    dd.innerHTML = `<div class="resort-item resort-item-freeform" onmousedown="pickFreeform('${ddId}')">
+      <span class="resort-item-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span>
+      <div style="flex:1;min-width:0;">
+        <div class="resort-item-main">Use &ldquo;${escHtml(el.value.trim())}&rdquo;</div>
+        <div class="resort-item-sub">Not in our list yet — it'll still be saved</div>
+      </div>
+    </div>`;
+    dd.classList.add('open');
+    return;
+  }
 
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   dd.innerHTML = matches.map((r, i) => {
@@ -12792,6 +12807,12 @@ function pickResort(name, ddId='resort-dropdown') {
 
 function closeDropdown(ddId='resort-dropdown') {
   document.getElementById(ddId)?.classList.remove('open');
+}
+
+// No RESORTS entry matched — the typed value is already what gets saved,
+// this just confirms it and closes the dropdown.
+function pickFreeform(ddId='resort-dropdown') {
+  closeDropdown(ddId);
 }
 
 // Keep old name as alias for profile page which still calls it
