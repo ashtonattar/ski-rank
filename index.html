@@ -1889,6 +1889,14 @@
     .comment-author { font-size: 12px; font-weight: 700; color: var(--ice); margin-bottom: 3px; cursor: pointer; }
     .comment-text   { font-size: 13px; color: var(--text-primary); word-break: break-word; }
     .comment-time   { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
+    .comment-like-btn {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10.5px; color: var(--text-muted); cursor: pointer;
+      user-select: none; transition: color .15s;
+    }
+    .comment-like-btn svg { width: 12px; height: 12px; display: block; }
+    .comment-like-btn.liked { color: var(--ice); }
+    .comment-like-btn .comment-like-icon.pop { animation: likePop .45s cubic-bezier(.36,.07,.19,.97) forwards; }
     /* Scroll indicator */
     .reel-scroll-hint {
       position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
@@ -4093,11 +4101,13 @@ async function _saveToFirestore(pendingCopy) {
     // drop each other's write, same as the pre-fix messages bug.
     delete copy.friendRequests;
     delete copy.challenges;
-    // Explore-feed comments/likes are per-item maps ({itemId: [...]}), mutated via
-    // targeted dot-path arrayUnion/arrayRemove updates (see postComment/deleteComment/
-    // toggleLike) — same reasoning as messages/friendRequests/challenges above.
+    // Explore-feed comments/likes/commentLikes are per-item maps ({itemId: [...]}),
+    // mutated via targeted dot-path arrayUnion/arrayRemove updates (see postComment/
+    // deleteComment/toggleLike/toggleCommentLike) — same reasoning as messages/
+    // friendRequests/challenges above.
     delete copy.comments;
     delete copy.likes;
+    delete copy.commentLikes;
 
     // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
     // If we have fewer games or players than what's already saved in Firestore,
@@ -9566,6 +9576,9 @@ function renderCommentsList(itemId) {
           <div class="comment-text">${escHtml(c.text)}</div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="comment-time">${timeFmt(c.date)}</div>
+            <span class="comment-like-btn${iLikedComment(c.id) ? ' liked' : ''}" onclick="toggleCommentLike('${c.id}',this)">
+              <span class="comment-like-icon">${commentHeartSvg(iLikedComment(c.id))}</span><span class="comment-like-count">${getCommentLikeCount(c.id) || ''}</span>
+            </span>
             ${canDelete ? `<span onclick="deleteComment('${itemId}','${c.id}')" style="font-size:10.5px;color:var(--danger);cursor:pointer;">Delete</span>` : ''}
           </div>
         </div>
@@ -9607,15 +9620,73 @@ function deleteComment(itemId, commentId) {
   if (!S.comments?.[itemId]) return;
   const comment = S.comments[itemId].find(c => c.id === commentId);
   S.comments[itemId] = S.comments[itemId].filter(c => c.id !== commentId);
+  const hadLikes = !!S.commentLikes?.[commentId];
+  delete S.commentLikes?.[commentId];
   save();
   if (db && comment) {
     db.collection('state').doc('global').update({
       [`comments.${itemId}`]: firebase.firestore.FieldValue.arrayRemove(comment)
     }).catch(e => console.warn('Comment delete failed:', e));
+    if (hadLikes) {
+      db.collection('state').doc('global').update({
+        [`commentLikes.${commentId}`]: firebase.firestore.FieldValue.delete()
+      }).catch(e => console.warn('Comment-like cleanup failed:', e));
+    }
   }
   renderCommentsList(itemId);
   const countEl = document.getElementById(`comment-count-${itemId}`);
   if (countEl) countEl.textContent = getCommentCount(itemId) || '';
+}
+
+function commentHeartSvg(filled) {
+  return `<svg viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 6.1 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21Z"/></svg>`;
+}
+
+function getCommentLikeCount(commentId) {
+  return ((S.commentLikes || {})[commentId] || []).length;
+}
+
+function iLikedComment(commentId) {
+  return currentUser && ((S.commentLikes || {})[commentId] || []).includes(currentUser.id);
+}
+
+function toggleCommentLike(commentId, el) {
+  if (!currentUser) { toast('Sign in to like comments', 'err'); return; }
+  if (!S.commentLikes) S.commentLikes = {};
+  if (!S.commentLikes[commentId]) S.commentLikes[commentId] = [];
+  const arr    = S.commentLikes[commentId];
+  const idx    = arr.indexOf(currentUser.id);
+  const liking = idx === -1;
+  if (liking) arr.push(currentUser.id);
+  else arr.splice(idx, 1);
+  save();
+  // Same per-item dot-path arrayUnion/arrayRemove pattern as toggleLike/postComment —
+  // commentLikes is excluded from the regular full-document save (see _saveToFirestore)
+  // so two people liking the same comment in the same debounce window can't drop
+  // each other's like.
+  if (db) {
+    const fieldPath = `commentLikes.${commentId}`;
+    const op = liking ? firebase.firestore.FieldValue.arrayUnion(currentUser.id)
+                       : firebase.firestore.FieldValue.arrayRemove(currentUser.id);
+    db.collection('state').doc('global').update({ [fieldPath]: op })
+      .catch(e => console.warn('Comment like toggle failed:', e));
+  }
+  // Animate just the tapped button in place, same approach as toggleLike
+  const btn = el ? el.closest('.comment-like-btn') : null;
+  if (btn) {
+    btn.classList.toggle('liked', liking);
+    const icon  = btn.querySelector('.comment-like-icon');
+    const count = btn.querySelector('.comment-like-count');
+    if (icon) {
+      icon.innerHTML = commentHeartSvg(liking);
+      icon.classList.remove('pop');
+      void icon.offsetWidth;
+      if (liking) icon.classList.add('pop');
+    }
+    if (count) count.textContent = getCommentLikeCount(commentId) || '';
+  } else if (_commentsItemId) {
+    renderCommentsList(_commentsItemId);
+  }
 }
 
 function shareReel(itemId) {
