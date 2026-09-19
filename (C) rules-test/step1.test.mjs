@@ -11,6 +11,10 @@
 //   - legacy-migrated player can self-edit via mirrored firebaseUid
 //   - legacy player with no firebaseUid on doc is locked out (intended)
 //   - legacy self-heal CREATE of a missing player doc succeeds
+//   - firebaseUid is fully immutable via non-admin update (can't be added,
+//     changed, or cleared) — no owner can repoint/share ownership, and no
+//     stranger can squat an unlinked doc by claiming its absent field either;
+//     admin retains a correction path
 //   - admin can create/update a seeded demo player with a real rating
 //   - games create/update rejected for all non-admin clients
 //   - messages/friendRequests participant-only read/write enforced
@@ -121,6 +125,42 @@ async function main() {
       rating: 3000, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0,
     }));
   });
+
+  // ── players: firebaseUid must be set-once, never authorization-transferable ──
+  // Found in a follow-up review: firebaseUid is trusted by isOwner()/
+  // claimsOwnFirebaseUid() but was never protected against being changed —
+  // any current owner could repoint it to someone else (one-way ownership
+  // transfer, no undo) or add it as a second owner where absent.
+  await check('current owner cannot repoint their own doc\'s firebaseUid to someone else', async () => {
+    await assertFails(legacy.doc('players/legacy-old-id').update({ firebaseUid: 'eve-uid' }));
+  });
+  await check('...so the doc is never actually handed over: eve still cannot edit it', async () => {
+    await assertFails(eve.doc('players/legacy-old-id').update({ name: 'Hijacked' }));
+  });
+  await check('...and the real owner keeps access (never got locked out)', async () => {
+    await assertSucceeds(legacy.doc('players/legacy-old-id').update({ name: 'Legacy Lee 3' }));
+  });
+  await check('normal account (docId==uid) cannot add a second owner via firebaseUid', async () => {
+    await assertFails(bob.doc('players/bob-uid').update({ firebaseUid: 'eve-uid' }));
+  });
+  await check('a stranger cannot squat an unlinked legacy doc by claiming its absent firebaseUid via update', async () => {
+    // This is the rejected "obvious fix" — allowing ADD-when-absent via update
+    // would let anyone claim ANY not-yet-linked legacy player's doc with zero
+    // prior relationship to it. Must stay blocked; see firestore.rules comment.
+    const stranger = testEnv.authenticatedContext('stranger-uid', { email: 'stranger@example.com' }).firestore();
+    await assertFails(stranger.doc('players/legacy-unlinked-id').update({ firebaseUid: 'stranger-uid' }));
+  });
+  await check('not even claiming your own real uid makes an update-based claim safe to allow', async () => {
+    // Same call, but the "real" account this legacy doc actually belongs to —
+    // still rejected, because rules can't tell the two cases apart; the fix
+    // is a Cloud Function that verifies identity server-side, not a rule.
+    const trueOwner = testEnv.authenticatedContext('true-owner-uid', { email: 'trueowner@example.com' }).firestore();
+    await assertFails(trueOwner.doc('players/legacy-unlinked-id').update({ firebaseUid: 'true-owner-uid' }));
+  });
+  await check('admin can still correct firebaseUid on an already-linked doc (botched-migration escape hatch)', async () => {
+    await assertSucceeds(admin.doc('players/legacy-old-id').update({ firebaseUid: 'corrected-real-uid' }));
+  });
+
   await check('H. admin can CREATE a seeded demo player with a real (non-default) rating', async () => {
     await assertSucceeds(admin.doc('players/demo-judge').set({ id: 'demo-judge', name: 'Judge', rating: 1800, wins: 12, losses: 3, gamesPlayed: 15, peakRating: 1850 }));
   });

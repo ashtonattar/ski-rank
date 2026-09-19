@@ -172,19 +172,55 @@ service cloud.firestore {
       //
       // KNOWN DEPENDENCY, not previously written down anywhere: this
       // firebaseUid-mirroring decision only works if the migration script
-      // (rollout step 3/4) actually copies each player's `firebaseUid` field
-      // (where present in the state/global array) onto its players/{uid}
-      // doc. A legacy account whose array entry has no firebaseUid yet is
-      // correctly locked out of self-editing post-migration (see the "no
-      // firebaseUid on doc" case below) — that's the intended fallback, not
-      // a bug — but it means the migration script treats firebaseUid
-      // mirroring as a hard requirement, not a nice-to-have.
+      // (rollout step 3/4) populates it. Verified directly (index.html
+      // grep): `firebaseUid` is written in exactly two places — signup
+      // (~4907) and legacy-login migration (~5043) — and BOTH write only to
+      // `users/{uid}`, never to a `players` array entry or doc. It is NOT
+      // present on `state/global.players` elements today. So the migration
+      // script can't just copy the field across; for each player it must
+      // separately look up that id's `users/{id}.firebaseUid` (if any) and
+      // mirror it onto the new `players/{id}` doc at create time. A legacy
+      // account whose `users` doc has no firebaseUid yet is correctly locked
+      // out of self-editing post-migration (see the "no firebaseUid on doc"
+      // case below) — that's the intended fallback, not a bug.
+      //
+      // firebaseUid is authorization-bearing (isOwner()/claimsOwnFirebaseUid()
+      // below both trust it), so a non-admin must NEVER be able to touch it
+      // via update — not to change it, and not to add it where absent either.
+      // The obvious-looking alternative — "allow ADDING it via update when
+      // currently absent, as long as the caller claims their own real uid" —
+      // was tried and rejected: it would let ANY signed-in stranger claim
+      // ownership of ANY not-yet-linked legacy player's doc outright (no
+      // prior relationship to that doc required at all), which is a strictly
+      // worse hole than the one this closes. So there is currently NO safe
+      // client-side path to attach firebaseUid to an already-existing
+      // players/{id} doc after the fact — only at create (claimsOwnFirebaseUid()
+      // below, whose blast radius is bounded because the real migration
+      // script's set() overwrites a squatted doc outright) or via isAdmin().
+      // OPEN ITEM for a later rollout step: mirroring firebaseUid onto an
+      // existing doc the first time a legacy account links Firebase Auth
+      // (index.html:~5040, finishMigration() — today only writes users/{uid})
+      // needs a Cloud Function that verifies the caller's identity server-
+      // side and writes via the Admin SDK, not a bare client update — the
+      // same reasoning that pushed rating/wins/etc. server-side applies here
+      // too: an identity-bearing field can't be safely self-certified by an
+      // untrusted client through rules alone.
       allow read: if true; // public leaderboard/profile data, same as today
 
       function isOwner() {
         return isSignedIn() &&
           (request.auth.uid == playerId ||
            request.auth.uid == resource.data.firebaseUid);
+      }
+
+      function touchesFirebaseUid() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['firebaseUid']);
+      }
+
+      // Full stop: no non-admin update may touch this field at all, whether
+      // adding, changing, or clearing it.
+      function firebaseUidWriteIsValid() {
+        return !touchesFirebaseUid();
       }
 
       // rating/wins/losses/gamesPlayed/peakRating are locked to server-only
@@ -232,7 +268,7 @@ service cloud.firestore {
          (request.auth.uid == playerId || claimsOwnFirebaseUid()) &&
          lockedFieldsAtDefault());
 
-      allow update: if isAdmin() || (isOwner() && !touchesLockedFields());
+      allow update: if isAdmin() || (isOwner() && !touchesLockedFields() && firebaseUidWriteIsValid());
 
       allow delete: if isAdmin(); // bulk-delete carve-out for the admin wipe tool (Plan Pass 1 finding #2)
     }
