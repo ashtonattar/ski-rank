@@ -1,0 +1,25 @@
+{
+  "name": "slopebattles",
+  "version": "1.0.0",
+  "description": "Freestyle skiing game rating app",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashtonattar/ski-rank.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ashtonattar/ski-rank/issues"
+  },
+  "homepage": "https://github.com/ashtonattar/ski-rank#readme",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase-tools": "^15.30.2"
+  }
+}

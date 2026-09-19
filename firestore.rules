@@ -147,5 +147,106 @@ service cloud.firestore {
          isAdmin());
       allow delete: if isAdmin(); // only the "Wipe Game Data" admin tool deletes these
     }
+
+    // ── players/{playerId}, games/{gameId}, messages/{messageId}, ──────────
+    // ── friendRequests/{requestId}  ─────────────────────────────────────────
+    // Backend Migration Plan, sequenced rollout step 1 (see
+    // "01 Refinements/(C) Backend Migration Plan - Verified 2026-09-16.md" in
+    // the Obsidian vault). These four collections are the migration target for
+    // players/games/messages/friendRequests currently living as arrays on
+    // state/global. Nothing reads or writes them yet — no client code path
+    // touches these collections until the dual-write step (rollout step 6) —
+    // so shipping the rules alone here is safe.
+
+    match /players/{playerId} {
+      // Doc id is playerId = firebaseUid || uid() (index.html:4898): a
+      // Firebase-Auth signup's doc id equals request.auth.uid; a legacy/guest
+      // account's doc id is an unrelated random uid() with no auth uid match
+      // at all. DECISION (Plan Pass 2 finding #4, option a): mirror firebaseUid
+      // onto this doc so a migrated legacy account can still self-edit via
+      // resource.data.firebaseUid, instead of accepting that lockout. Seeded
+      // demo players (Alice/Bob/Judge — PROJECT_STATUS.md) have no auth
+      // identity at all; they're intentionally admin-only for writes.
+      allow read: if true; // public leaderboard/profile data, same as today
+
+      function isOwner() {
+        return isSignedIn() &&
+          (request.auth.uid == playerId ||
+           request.auth.uid == resource.data.firebaseUid);
+      }
+
+      // rating/wins/losses/gamesPlayed/peakRating are locked to server-only
+      // writes — submitMatchResult()/applyStrikePenalty() (Cloud Functions)
+      // write via the Admin SDK, which bypasses these rules entirely, so
+      // blocking these fields for every client write here (including the
+      // doc's own owner) is what actually closes the rating-forgery gap this
+      // migration exists for (Plan Pass 1 finding #1 / Pass 2 finding #2).
+      function touchesLockedFields() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating']);
+      }
+
+      // Same lock applies on create: a forged client create can't seed a
+      // vanity rating/win-count for a brand-new doc either.
+      allow create: if isSignedIn() &&
+        (request.auth.uid == playerId || isAdmin()) &&
+        (!('rating' in request.resource.data)      || request.resource.data.rating == 400) &&
+        (!('wins' in request.resource.data)         || request.resource.data.wins == 0) &&
+        (!('losses' in request.resource.data)       || request.resource.data.losses == 0) &&
+        (!('gamesPlayed' in request.resource.data)  || request.resource.data.gamesPlayed == 0) &&
+        (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0);
+
+      allow update: if isAdmin() || (isOwner() && !touchesLockedFields());
+
+      allow delete: if isAdmin(); // bulk-delete carve-out for the admin wipe tool (Plan Pass 1 finding #2)
+    }
+
+    match /games/{gameId} {
+      // Written exclusively by submitMatchResult() (Cloud Function, Admin SDK
+      // — bypasses these rules). No client path creates or edits a game doc
+      // directly at any point in this migration; only the admin wipe tool
+      // needs a client-side delete path (Plan Pass 1 finding #2).
+      allow read: if true; // public match history, same as state/global today
+      allow create, update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      // Participant-only. state/global's `allow read: if true` currently
+      // exposes every private DM to any unauthenticated request (Plan Pass 1
+      // finding #3) — this collection is what actually closes that hole.
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.fromId ||
+         request.auth.uid == resource.data.toId ||
+         isAdmin());
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.fromId &&
+        request.resource.data.toId is string && request.resource.data.toId != '';
+      allow update: if false; // messages are immutable once sent
+      allow delete: if isAdmin(); // bulk-delete carve-out for the admin wipe tool
+    }
+
+    match /friendRequests/{requestId} {
+      // Participant-only, same privacy rationale as messages/ above.
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.fromId ||
+         request.auth.uid == resource.data.toId ||
+         isAdmin());
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.fromId &&
+        request.resource.data.status == 'pending';
+      // Only the recipient may accept/decline, only while still pending, and
+      // only the status field may change (mirrors acceptFriendRequest()/
+      // declineFriendRequest(), index.html:8997/9017).
+      allow update: if isSignedIn() &&
+        request.auth.uid == resource.data.toId &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status in ['accepted', 'declined'] &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      // cancelFriendRequest() (index.html:8982) deletes the sender's own
+      // still-pending request.
+      allow delete: if isSignedIn() &&
+        (request.auth.uid == resource.data.fromId || isAdmin());
+    }
   }
 }
