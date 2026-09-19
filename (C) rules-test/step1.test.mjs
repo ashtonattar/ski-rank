@@ -1,13 +1,24 @@
 // (C) Emulator test for Backend Migration Plan, sequenced rollout step 1.
-// Covers exactly the verify criteria from "01 Refinements/(C) Backend Migration
-// Plan - Verified 2026-09-16.md" line 123:
+// Covers the verify criteria from "01 Refinements/(C) Backend Migration
+// Plan - Verified 2026-09-16.md" line 123, plus gaps found in a post-deploy
+// review (2026-09-18): the legacy-account firebaseUid decision (create path,
+// not just update), the admin create/update trust-model inconsistency for
+// seeded demo players, and the scoped-query shape required for step 7's
+// read cutover (a bare collection listener is rejected under participant-
+// only rules — see the messages/friendRequests comments in firestore.rules):
 //   - forged direct write to players/{other-uid}.rating rejected
 //   - own non-rating field update allowed
+//   - legacy-migrated player can self-edit via mirrored firebaseUid
+//   - legacy player with no firebaseUid on doc is locked out (intended)
+//   - legacy self-heal CREATE of a missing player doc succeeds
+//   - admin can create/update a seeded demo player with a real rating
 //   - games create/update rejected for all non-admin clients
 //   - messages/friendRequests participant-only read/write enforced
 //     (including the admin-bulk-delete carve-out)
+//   - messages/friendRequests: scoped fromId/toId queries succeed, a bare
+//     whole-collection query is rejected
 //
-// Run: npx firebase emulators:exec --project demo-test "node \"(C) rules-test/step1.test.mjs\""
+// Run: npm test  (or: npx firebase emulators:exec --project demo-test --only firestore "node \"(C) rules-test/step1.test.mjs\"")
 
 import {
   initializeTestEnvironment,
@@ -37,6 +48,11 @@ async function main() {
     const db = ctx.firestore();
     await db.doc('players/alice-uid').set({ id: 'alice-uid', name: 'Alice', rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0 });
     await db.doc('players/bob-uid').set({ id: 'bob-uid', name: 'Bob', rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0 });
+    // Migrated legacy account: doc id is the old random uid(), firebaseUid mirrors the
+    // real Firebase Auth uid the account linked to (Plan Pass 2 finding #4, option a).
+    await db.doc('players/legacy-old-id').set({ id: 'legacy-old-id', name: 'Legacy Lee', firebaseUid: 'legacy-real-uid', rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0 });
+    // Legacy account that has NOT linked a Firebase Auth identity yet — no firebaseUid field at all.
+    await db.doc('players/legacy-unlinked-id').set({ id: 'legacy-unlinked-id', name: 'Legacy Unlinked', rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0 });
     await db.doc('games/game1').set({ id: 'game1', winnerId: 'alice-uid', loserId: 'bob-uid', date: Date.now() });
     await db.doc('messages/msg1').set({ id: 'msg1', fromId: 'alice-uid', fromName: 'Alice', toId: 'bob-uid', text: 'hi', date: Date.now() });
     await db.doc('friendRequests/fr1').set({ id: 'fr1', fromId: 'alice-uid', fromName: 'Alice', toId: 'bob-uid', toName: 'Bob', status: 'pending', date: Date.now() });
@@ -47,6 +63,9 @@ async function main() {
   const eve = testEnv.authenticatedContext('eve-uid', { email: 'eve@example.com' }).firestore();
   const admin = testEnv.authenticatedContext('admin-uid', { email: 'ashtonattar@gmail.com' }).firestore();
   const anon = testEnv.unauthenticatedContext().firestore();
+  // The real Firebase Auth identity a legacy account linked to on migration — distinct
+  // from its players/{id} doc id (legacy-old-id / legacy-unlinked-id above).
+  const legacy = testEnv.authenticatedContext('legacy-real-uid', { email: 'legacy@example.com' }).firestore();
 
   // ── players ──
   await check('forged direct write to players/{other-uid}.rating rejected', async () => {
@@ -75,6 +94,38 @@ async function main() {
   });
   await check('players are publicly readable (leaderboard)', async () => {
     await assertSucceeds(anon.doc('players/alice-uid').get());
+  });
+
+  // ── players: legacy-account firebaseUid decision (Plan Pass 2 finding #4) ──
+  await check('A. legacy-migrated player CAN self-edit via mirrored firebaseUid', async () => {
+    await assertSucceeds(legacy.doc('players/legacy-old-id').update({ name: 'Legacy Lee 2' }));
+  });
+  await check('B. legacy player whose doc lacks firebaseUid is locked out entirely (intended fallback)', async () => {
+    await assertFails(legacy.doc('players/legacy-unlinked-id').update({ name: 'Nope' }));
+  });
+  await check('C. legacy self-heal CREATE of own missing player doc (myMissingRecord/_healPlayerDone)', async () => {
+    await assertSucceeds(legacy.doc('players/legacy-brand-new-id').set({
+      id: 'legacy-brand-new-id', name: 'Legacy New', firebaseUid: 'legacy-real-uid',
+      rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0,
+    }));
+  });
+  await check('cannot self-heal-create by claiming a firebaseUid that is not your own', async () => {
+    await assertFails(eve.doc('players/forged-legacy-id').set({
+      id: 'forged-legacy-id', name: 'Forged', firebaseUid: 'alice-uid',
+      rating: 400, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0,
+    }));
+  });
+  await check('self-heal create still can\'t seed an inflated rating via a firebaseUid claim', async () => {
+    await assertFails(legacy.doc('players/legacy-inflated-id').set({
+      id: 'legacy-inflated-id', name: 'Legacy Inflated', firebaseUid: 'legacy-real-uid',
+      rating: 3000, wins: 0, losses: 0, gamesPlayed: 0, peakRating: 0,
+    }));
+  });
+  await check('H. admin can CREATE a seeded demo player with a real (non-default) rating', async () => {
+    await assertSucceeds(admin.doc('players/demo-judge').set({ id: 'demo-judge', name: 'Judge', rating: 1800, wins: 12, losses: 3, gamesPlayed: 15, peakRating: 1850 }));
+  });
+  await check('admin can UPDATE a seeded demo player\'s rating directly', async () => {
+    await assertSucceeds(admin.doc('players/demo-judge').update({ rating: 1900 }));
   });
 
   // ── games ──
@@ -168,6 +219,30 @@ async function main() {
   });
   await check('cannot forge a friend request as someone else', async () => {
     await assertFails(eve.doc('friendRequests/fr7').set({ id: 'fr7', fromId: 'alice-uid', toId: 'bob-uid', status: 'pending', date: Date.now() }));
+  });
+
+  // ── listener/query shape for rollout step 7 (read cutover) ──
+  // Participant-only rules can't be satisfied by a bare collection-wide
+  // listener/query; Firestore rejects it because it can't prove every
+  // possible result satisfies the read rule. Step 7 must issue two scoped
+  // queries per collection (fromId==me, toId==me) merged client-side.
+  await check('D. whole-collection listener on messages is rejected', async () => {
+    await assertFails(alice.collection('messages').get());
+  });
+  await check('E. scoped query where toId == me succeeds (messages)', async () => {
+    await assertSucceeds(bob.collection('messages').where('toId', '==', 'bob-uid').get());
+  });
+  await check('F. scoped query where fromId == me succeeds (messages)', async () => {
+    await assertSucceeds(alice.collection('messages').where('fromId', '==', 'alice-uid').get());
+  });
+  await check('G. whole-collection listener on friendRequests is rejected', async () => {
+    await assertFails(alice.collection('friendRequests').get());
+  });
+  await check('scoped query where toId == me succeeds (friendRequests)', async () => {
+    await assertSucceeds(bob.collection('friendRequests').where('toId', '==', 'bob-uid').get());
+  });
+  await check('scoped query where fromId == me succeeds (friendRequests)', async () => {
+    await assertSucceeds(alice.collection('friendRequests').where('fromId', '==', 'alice-uid').get());
   });
 
   await testEnv.cleanup();

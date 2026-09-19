@@ -166,7 +166,19 @@ service cloud.firestore {
       // onto this doc so a migrated legacy account can still self-edit via
       // resource.data.firebaseUid, instead of accepting that lockout. Seeded
       // demo players (Alice/Bob/Judge — PROJECT_STATUS.md) have no auth
-      // identity at all; they're intentionally admin-only for writes.
+      // identity at all; they're admin-only for writes — isAdmin() is an
+      // unconditional bypass on BOTH create and update below (not just
+      // update), so an admin can actually seed/edit them with a real rating.
+      //
+      // KNOWN DEPENDENCY, not previously written down anywhere: this
+      // firebaseUid-mirroring decision only works if the migration script
+      // (rollout step 3/4) actually copies each player's `firebaseUid` field
+      // (where present in the state/global array) onto its players/{uid}
+      // doc. A legacy account whose array entry has no firebaseUid yet is
+      // correctly locked out of self-editing post-migration (see the "no
+      // firebaseUid on doc" case below) — that's the intended fallback, not
+      // a bug — but it means the migration script treats firebaseUid
+      // mirroring as a hard requirement, not a nice-to-have.
       allow read: if true; // public leaderboard/profile data, same as today
 
       function isOwner() {
@@ -186,15 +198,39 @@ service cloud.firestore {
           .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating']);
       }
 
-      // Same lock applies on create: a forged client create can't seed a
-      // vanity rating/win-count for a brand-new doc either.
-      allow create: if isSignedIn() &&
-        (request.auth.uid == playerId || isAdmin()) &&
-        (!('rating' in request.resource.data)      || request.resource.data.rating == 400) &&
-        (!('wins' in request.resource.data)         || request.resource.data.wins == 0) &&
-        (!('losses' in request.resource.data)       || request.resource.data.losses == 0) &&
-        (!('gamesPlayed' in request.resource.data)  || request.resource.data.gamesPlayed == 0) &&
-        (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0);
+      function lockedFieldsAtDefault() {
+        return (!('rating' in request.resource.data)      || request.resource.data.rating == 400) &&
+          (!('wins' in request.resource.data)         || request.resource.data.wins == 0) &&
+          (!('losses' in request.resource.data)       || request.resource.data.losses == 0) &&
+          (!('gamesPlayed' in request.resource.data)  || request.resource.data.gamesPlayed == 0) &&
+          (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0);
+      }
+
+      // Legacy self-heal create: myMissingRecord()/the _healPlayerDone heal
+      // (index.html:4303/4310) re-create a signed-in user's own players/{id}
+      // doc if it's ever found missing. For a normal Firebase-Auth account
+      // request.auth.uid == playerId already covers this. For a MIGRATED
+      // legacy account, playerId is still the old random uid() — there's no
+      // resource yet to read firebaseUid off (this is a create), so the only
+      // available proof of ownership is the create itself asserting
+      // firebaseUid == the caller's own real uid. This can't verify the
+      // *playerId* is genuinely theirs (rules have no way to check that on a
+      // brand-new doc) — someone could pre-create a stray players/{someId}
+      // doc claiming their own firebaseUid. Blast radius is bounded and
+      // self-correcting: locked fields still can't be seeded above default,
+      // and if that id later belongs to a real migrated legacy player, the
+      // migration script's own set() (Admin SDK, bypasses rules) overwrites
+      // it outright — this is not a merge, so a squatted doc doesn't survive
+      // the real migration write.
+      function claimsOwnFirebaseUid() {
+        return 'firebaseUid' in request.resource.data &&
+          request.resource.data.firebaseUid == request.auth.uid;
+      }
+
+      allow create: if isAdmin() ||
+        (isSignedIn() &&
+         (request.auth.uid == playerId || claimsOwnFirebaseUid()) &&
+         lockedFieldsAtDefault());
 
       allow update: if isAdmin() || (isOwner() && !touchesLockedFields());
 
@@ -215,6 +251,20 @@ service cloud.firestore {
       // Participant-only. state/global's `allow read: if true` currently
       // exposes every private DM to any unauthenticated request (Plan Pass 1
       // finding #3) — this collection is what actually closes that hole.
+      //
+      // READ-CUTOVER (rollout step 7) SHAPE, not yet written into the plan
+      // doc itself: because reads here are participant-scoped, a bare
+      // onSnapshot(collection('messages')) is rejected outright — Firestore
+      // rejects a collection-wide listener/query unless it can prove every
+      // possible result satisfies the rule, which it can't for an
+      // unfiltered query against a per-doc fromId/toId check. Step 7 must
+      // replace the single `state/global` listener with TWO scoped queries
+      // per collection — where('fromId','==',me) and where('toId','==',me)
+      // — merged client-side into S.messages, same shape for friendRequests
+      // below. This is more work than "point the listener at the new
+      // collection" as step 7 currently reads; the participant-only rule
+      // itself is correct and is the whole point of closing the finding #3
+      // hole, so the fix belongs in the client listener code, not here.
       allow read: if isSignedIn() &&
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
@@ -227,7 +277,10 @@ service cloud.firestore {
     }
 
     match /friendRequests/{requestId} {
-      // Participant-only, same privacy rationale as messages/ above.
+      // Participant-only, same privacy rationale as messages/ above — and
+      // the same step-7 consequence: scoped where('fromId','==',me) +
+      // where('toId','==',me) queries, merged client-side, not a bare
+      // collection listener (see the messages/ comment above for why).
       allow read: if isSignedIn() &&
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
