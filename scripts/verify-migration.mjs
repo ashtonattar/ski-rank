@@ -167,11 +167,28 @@ async function main() {
   const { initializeApp, getApps } = await import('firebase-admin/app');
   const { getFirestore } = await import('firebase-admin/firestore');
   if (!getApps().length) {
-    if (!process.env.FIRESTORE_EMULATOR_HOST) {
-      console.error('FIRESTORE_EMULATOR_HOST is not set — run under npm run migrate:dry-run, or point this at prod deliberately via GCLOUD_PROJECT + real credentials.');
+    const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+    const allowProd = process.argv.includes('--prod');
+
+    if (!emulatorHost && !allowProd) {
+      console.error('FIRESTORE_EMULATOR_HOST is not set — run under npm run migrate:dry-run, or pass --prod with GCLOUD_PROJECT set to point this at prod deliberately (read-only, no confirm flag needed).');
       process.exit(1);
     }
-    initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'demo-migration' });
+    if (emulatorHost && allowProd) {
+      console.error(`Refusing to run: --prod was passed but FIRESTORE_EMULATOR_HOST is set (${emulatorHost}) — contradictory intent. Unset it to actually run against prod.`);
+      process.exit(1);
+    }
+    if (allowProd) {
+      const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
+      if (!projectId) {
+        console.error('Set GCLOUD_PROJECT explicitly when running with --prod. Refusing to guess a project id.');
+        process.exit(1);
+      }
+      console.warn(`Verifying against REAL project "${projectId}" (read-only).`);
+      initializeApp({ projectId });
+    } else {
+      initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'demo-migration' });
+    }
   }
   const db = getFirestore();
   const results = await runVerification(db);

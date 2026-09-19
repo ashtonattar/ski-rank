@@ -27,6 +27,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { runMigration } from './migrate-to-collections.mjs';
 import { runVerification } from './verify-migration.mjs';
+import { runRollback } from './rollback-migration.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -121,6 +122,32 @@ async function main() {
 
   const globalAfter = (await db.doc('state/global').get()).data();
   record('state/global is unmodified by the migration', deepEqual(globalBefore, globalAfter), 'state/global changed between before and after');
+
+  console.log('\nRunning rollback (exercising the untested-until-now rollback path)...');
+  console.log('  ', await runRollback(db));
+  const emptyAfterRollback = await snapshotAll(db, ['players', 'games', 'messages', 'friendRequests']);
+  for (const collection of ['players', 'games', 'messages', 'friendRequests']) {
+    record(
+      `rollback: ${collection} is empty`,
+      Object.keys(emptyAfterRollback[collection]).length === 0,
+      `expected 0 docs, got ${Object.keys(emptyAfterRollback[collection]).length}`
+    );
+  }
+  const globalAfterRollback = (await db.doc('state/global').get()).data();
+  record(
+    'rollback: state/global is unmodified',
+    deepEqual(globalBefore, globalAfterRollback),
+    'state/global changed by rollback'
+  );
+
+  console.log('Running migration (pass 3 — re-migrating after rollback)...');
+  console.log('  ', await runMigration(db));
+  const snap3 = await snapshotAll(db, ['players', 'games', 'messages', 'friendRequests']);
+  record(
+    're-migrating after rollback reproduces the original migration exactly',
+    deepEqual(snap1, snap3),
+    'diff between pass-1 snapshot and post-rollback pass-3 snapshot'
+  );
 
   console.log('\nRunning verify-migration checks...');
   results.push(...(await runVerification(db)));

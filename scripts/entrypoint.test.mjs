@@ -37,6 +37,8 @@ const MIGRATE_REL = 'scripts/migrate-to-collections.mjs';
 const MIGRATE_ABS = path.join(__dirname, 'migrate-to-collections.mjs');
 const VERIFY_REL = 'scripts/verify-migration.mjs';
 const VERIFY_ABS = path.join(__dirname, 'verify-migration.mjs');
+const ROLLBACK_REL = 'scripts/rollback-migration.mjs';
+const ROLLBACK_ABS = path.join(__dirname, 'rollback-migration.mjs');
 const REPO_ROOT = path.join(__dirname, '..');
 
 let passed = 0;
@@ -145,6 +147,57 @@ async function main() {
     const r = await run(VERIFY_ABS, [], {});
     assertNonZero(r, 'verify, absolute, no env');
     assertContains(r.stderr, 'FIRESTORE_EMULATOR_HOST is not set', 'verify, absolute, no env');
+  });
+
+  await check('--prod, no GCLOUD_PROJECT -> refuses, non-zero exit', async () => {
+    const r = await run(VERIFY_REL, ['--prod'], {});
+    assertNonZero(r, 'verify --prod, no project id');
+    assertContains(r.stderr, 'Refusing to guess a project id', 'verify --prod, no project id');
+  });
+
+  await check('FIRESTORE_EMULATOR_HOST set + --prod -> refuses as contradictory intent, non-zero exit', async () => {
+    const r = await run(VERIFY_REL, ['--prod'], {
+      FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+      GCLOUD_PROJECT: 'demo-migration',
+    });
+    assertNonZero(r, 'verify emulator host + --prod');
+    assertContains(r.stderr, 'contradictory intent', 'verify emulator host + --prod');
+  });
+
+  console.log('\nrollback-migration.mjs:');
+
+  await check('no env, no flags, relative path -> refuses, non-zero exit', async () => {
+    const r = await run(ROLLBACK_REL, [], {});
+    assertNonZero(r, 'relative invocation');
+    assertContains(r.stderr, 'FIRESTORE_EMULATOR_HOST is not set', 'relative invocation');
+  });
+
+  await check('no env, no flags, ABSOLUTE path -> refuses, non-zero exit (the %20 case)', async () => {
+    const r = await run(ROLLBACK_ABS, [], {});
+    assertNonZero(r, 'absolute invocation');
+    assertContains(r.stderr, 'FIRESTORE_EMULATOR_HOST is not set', 'absolute invocation');
+  });
+
+  await check('--prod without MIGRATION_CONFIRM_PROD -> refuses, non-zero exit', async () => {
+    const r = await run(ROLLBACK_REL, ['--prod'], {});
+    assertNonZero(r, '--prod without confirm');
+    assertContains(r.stderr, 'FIRESTORE_EMULATOR_HOST is not set', '--prod without confirm');
+  });
+
+  await check('--prod + MIGRATION_CONFIRM_PROD, no GCLOUD_PROJECT -> refuses, non-zero exit', async () => {
+    const r = await run(ROLLBACK_REL, ['--prod'], { MIGRATION_CONFIRM_PROD: 'yes-i-am-sure' });
+    assertNonZero(r, '--prod + confirm, no project id');
+    assertContains(r.stderr, 'Refusing to guess a project id', '--prod + confirm, no project id');
+  });
+
+  await check('FIRESTORE_EMULATOR_HOST set + --prod -> refuses as contradictory intent, non-zero exit', async () => {
+    const r = await run(ROLLBACK_REL, ['--prod'], {
+      FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+      MIGRATION_CONFIRM_PROD: 'yes-i-am-sure',
+      GCLOUD_PROJECT: 'demo-migration',
+    });
+    assertNonZero(r, 'emulator host + --prod');
+    assertContains(r.stderr, 'contradictory intent', 'emulator host + --prod');
   });
 
   console.log(`\n${passed} check(s) passed${failed ? `, ${failed} FAILED` : ''}.`);
