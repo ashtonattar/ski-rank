@@ -1,0 +1,108 @@
+'use strict';
+
+const { requireAuth, requireNonEmptyString, HttpsError } = require('./validate');
+
+/**
+ * DELIBERATE DIVERGENCE from the spec's literal `{ playerId, gameId }` input:
+ * this takes `{ pendingId }` alone and resolves the WHOLE dispute atomically
+ * (both parties penalized/not in one transaction), rather than being called
+ * once per target uid.
+ *
+ * Why: a single dispute (disputeGame() in index.html:12130) always produces
+ * exactly two applyLogStrike() calls — one per party — sharing one cause.
+ * A `{playerId, gameId}` signature would need the client to make two
+ * separate calls for that one event, each independently "authorized," which
+ * either (a) lets a caller trigger just one half of a dispute's consequence
+ * (call it for the opponent, silently skip themselves), or (b) requires a
+ * second identifier scheme just to prove the two calls belong to the same
+ * dispute and neither has already fired — at which point it's simpler and
+ * strictly safer to key the whole thing off the one real event: the pending
+ * entry being disputed. This is the same reasoning the spec itself uses for
+ * the `?? 0` gamesPlayed fix in elo.js — flagging it here so step 6.5 (and
+ * whoever wires the client in step 6) doesn't mistake it for a transcription
+ * error.
+ *
+ * Idempotency: unlike submitMatchResult, there's no Cloud-Function-owned
+ * document whose mere existence already means "processed" (pending entries
+ * live in state/global, which this function must never write to — hard
+ * constraint). So a small owned collection, disputeResolutions/{pendingId},
+ * plays that role instead: its existence is the idempotency check, exactly
+ * mirroring the games/{gameId} pattern but for this event type. This is a
+ * different logical entity than a match, so it does not conflict with "no
+ * separate processedMatches collection" (that guidance was specifically
+ * about not needing a second idempotency doc *for match commits*).
+ *
+ * Missing-player handling here intentionally mirrors applyLogStrike()'s own
+ * `if (!p) return;` (index.html:12161) — a missing player is skipped
+ * entirely, not treated as an implicit START_RATING account the way
+ * calcRatings() does. That is the client's existing behavior for this
+ * specific function, not the ELO section's convention, and the two should
+ * not be unified into one "missing player" rule.
+ */
+async function applyStrikePenaltyHandler(db, request) {
+  const uid = requireAuth(request);
+  const data = request.data || {};
+  const pendingId = requireNonEmptyString(data.pendingId, 'pendingId');
+
+  return db.runTransaction(async (tx) => {
+    const resolutionRef = db.collection('disputeResolutions').doc(pendingId);
+    const resolutionSnap = await tx.get(resolutionRef);
+    if (resolutionSnap.exists) {
+      const r = resolutionSnap.data();
+      return {
+        pendingId,
+        reporterId: r.reporterId, opponentId: r.opponentId,
+        reporterPenalized: r.reporterPenalized, opponentPenalized: r.opponentPenalized,
+        duplicate: true
+      };
+    }
+
+    const globalSnap = await tx.get(db.collection('state').doc('global'));
+    const pending = (globalSnap.exists && Array.isArray(globalSnap.data().pending)) ? globalSnap.data().pending : [];
+    const entry = pending.find((r) => r.id === pendingId);
+    if (!entry) {
+      throw new HttpsError('permission-denied', 'No matching pending dispute found for this caller.');
+    }
+    if (uid !== entry.opponentId) {
+      throw new HttpsError('permission-denied', 'Only the opponent may dispute a pending result.');
+    }
+
+    const reporterRef = db.collection('players').doc(entry.reporterId);
+    const opponentRef = db.collection('players').doc(entry.opponentId);
+    const [reporterSnap, opponentSnap] = await Promise.all([tx.get(reporterRef), tx.get(opponentRef)]);
+
+    function applyOneStrike(ref, snap) {
+      if (!snap.exists) return { penalized: false, skipped: true };
+      const p = snap.data();
+      const logStrikes = (p.logStrikes ?? 0) + 1;
+      if (logStrikes >= 3) {
+        const rating = Math.max(0, (p.rating ?? 0) - 1);
+        tx.set(ref, { logStrikes: 0, rating }, { merge: true });
+        return { penalized: true, skipped: false };
+      }
+      tx.set(ref, { logStrikes }, { merge: true });
+      return { penalized: false, skipped: false };
+    }
+
+    const reporterResult = applyOneStrike(reporterRef, reporterSnap);
+    const opponentResult = applyOneStrike(opponentRef, opponentSnap);
+
+    tx.set(resolutionRef, {
+      pendingId,
+      reporterId: entry.reporterId,
+      opponentId: entry.opponentId,
+      reporterPenalized: reporterResult.penalized,
+      opponentPenalized: opponentResult.penalized,
+      resolvedAt: Date.now()
+    });
+
+    return {
+      pendingId,
+      reporterId: entry.reporterId, opponentId: entry.opponentId,
+      reporterPenalized: reporterResult.penalized, opponentPenalized: opponentResult.penalized,
+      duplicate: false
+    };
+  });
+}
+
+module.exports = { applyStrikePenaltyHandler };
