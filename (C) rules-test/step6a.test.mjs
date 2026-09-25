@@ -140,10 +140,7 @@ async function main() {
 
   // ── Report-only probes (not asserted) ──
   console.log('Report-only probes:');
-  await probe('legacy participant (p2 = legacy-old-id) updates their live game via saveLiveGame-style set()',
-    legacy.doc('liveGames/lg1').set({ id: 'lg1', p1: 'bob-uid', p2: 'legacy-old-id', judgeId: null, rev: 2 }));
-  await probe('native participant (p1 = bob-uid) updates the same live game',
-    bob.doc('liveGames/lg1').set({ id: 'lg1', p1: 'bob-uid', p2: 'legacy-old-id', judgeId: null, rev: 3 }));
+  // The legacy liveGames update probe became assertions in step6a-livegames.test.mjs (2026-09-25).
   await probe('self-heal create with rating: null (index.html ~4310 healedPlayer shape)',
     testEnv.authenticatedContext('heal-uid').firestore().doc('players/heal-uid').set({
       id: 'heal-uid', name: 'Heal', rating: null, wins: 0, losses: 0, gamesPlayed: 0, badges: [], friends: [], following: []

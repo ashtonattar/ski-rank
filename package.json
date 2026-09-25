@@ -5,7 +5,7 @@
   "main": "sw.js",
   "scripts": {
     "test": "npm run test:rules && npm run test:entrypoints && npm run migrate:dry-run",
-    "test:rules": "PATH=\"/opt/homebrew/opt/openjdk/bin:/usr/local/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-test --only firestore \"node '(C) rules-test/step1.test.mjs' && node '(C) rules-test/step6a.test.mjs'\"",
+    "test:rules": "PATH=\"/opt/homebrew/opt/openjdk/bin:/usr/local/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-test --only firestore \"node '(C) rules-test/step1.test.mjs' && node '(C) rules-test/step6a.test.mjs' && node '(C) rules-test/step6a-livegames.test.mjs'\"",
     "test:entrypoints": "node scripts/entrypoint.test.mjs",
     "migrate:dry-run": "PATH=\"/opt/homebrew/opt/openjdk/bin:/usr/local/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-migration --only firestore \"node scripts/dry-run-migration.mjs\""
   },

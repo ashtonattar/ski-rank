@@ -155,11 +155,15 @@ service cloud.firestore {
     match /liveGames/{gameId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() &&
-        (request.auth.uid == resource.data.p1 ||
-         request.auth.uid == resource.data.p2 ||
-         request.auth.uid == resource.data.judgeId ||
-         isAdmin());
+      // callerIsPlayer(), not auth.uid == p1/p2/judgeId: those hold PLAYER
+      // ids, so a legacy participant (player id != auth uid, e.g. mptze2pp/
+      // mptzm7c0) had every saveLiveGame() update denied. Confirmed by the
+      // step-6a emulator probe, fixed 2026-09-25. .get() because older docs
+      // may lack judgeId, and callerIsPlayer() rejects null/''.
+      allow update: if isAdmin() ||
+        callerIsPlayer(resource.data.get('p1', null)) ||
+        callerIsPlayer(resource.data.get('p2', null)) ||
+        callerIsPlayer(resource.data.get('judgeId', null));
       allow delete: if isAdmin(); // only the "Wipe Game Data" admin tool deletes these
 
       // Rollout step 6a forgery gate. submitMatchResult only records a live
