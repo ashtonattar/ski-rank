@@ -23,7 +23,8 @@ const { resolveCallerPlayerId } = require('./identity');
  * whoever wires the client in step 6) doesn't mistake it for a transcription
  * error.
  *
- * Idempotency: resolutions/pending_<pendingId> — the same Cloud-Function-
+ * Idempotency: resolutions/pending_<pendingId> (a 'cancelled' kind, from
+ * cancelPendingResult, is also already-exists here) — the same Cloud-Function-
  * only doc submitMatchResult writes when a pending entry is CONFIRMED. Its
  * existence means this pending entry is settled: kind 'disputed' → a benign
  * retry (return the stored outcome); kind 'confirmed' → already-exists, so
@@ -63,9 +64,11 @@ async function applyStrikePenaltyHandler(db, request) {
       };
     }
 
-    const globalSnap = await tx.get(db.collection('state').doc('global'));
-    const pending = (globalSnap.exists && Array.isArray(globalSnap.data().pending)) ? globalSnap.data().pending : [];
-    const entry = pending.find((r) => r.id === pendingId);
+    // Rollout step 6a forgery gate: authorize against the server-owned
+    // pendingResults/{id} (written only by reportPendingResult), not
+    // state/global.pending, which any signed-in user can append to.
+    const pendingSnap = await tx.get(db.collection('pendingResults').doc(pendingId));
+    const entry = pendingSnap.exists ? pendingSnap.data() : null;
     if (!entry) {
       throw new HttpsError('permission-denied', 'No matching pending dispute found for this caller.');
     }

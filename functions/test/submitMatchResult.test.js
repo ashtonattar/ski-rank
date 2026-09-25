@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getDb, clearEmulatorData, fakeRequest } = require('./testUtils');
+const { getDb, clearEmulatorData, fakeRequest, seedLive, seedPendingResult } = require('./testUtils');
 const { submitMatchResultHandler } = require('../lib/submitMatchResult');
 const { calcRatings } = require('../lib/elo');
 
@@ -21,7 +21,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('rejects a signed-in caller who is not a party to the live game', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('forger', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' })),
       (err) => err.code === 'permission-denied'
@@ -29,7 +29,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('rejects payload winnerId/loserId that do not match the live game', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'someoneElse', liveGameId: 'lg1' })),
       (err) => err.code === 'invalid-argument'
@@ -37,12 +37,14 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('a real participant succeeds and computes ratings matching lib/elo directly', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
+    // score in the payload is ignored on the live path (step 6a): the server
+    // always uses '' there, which is what finishLive() sends anyway.
     const result = await submitMatchResultHandler(db, fakeRequest('w', {
       gameId: 'g1', winnerId: 'w', loserId: 'l', score: '0 — SKI', liveGameId: 'lg1'
     }));
 
-    const expected = calcRatings({ gamesPlayed: 0 }, { gamesPlayed: 0 }, '0 — SKI');
+    const expected = calcRatings({ gamesPlayed: 0 }, { gamesPlayed: 0 }, '');
     assert.strictEqual(result.winnerNew, expected.winnerNew);
     assert.strictEqual(result.loserNew, expected.loserNew);
     assert.strictEqual(result.duplicate, false);
@@ -65,7 +67,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('idempotency: retrying the same gameId does not double-apply the rating change', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     const call = () => submitMatchResultHandler(db, fakeRequest('w', {
       gameId: 'g1', winnerId: 'w', loserId: 'l', score: '0 — SKI', liveGameId: 'lg1'
     }));
@@ -86,7 +88,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('a different gameId against an already-submitted live game is rejected, not silently reapplied', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     await submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' }));
 
     await assert.rejects(
@@ -96,7 +98,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('missing player docs do not throw and are created with defaults', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'ghost-w', p2: 'ghost-l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'ghost-w', p2: 'ghost-l', judgeId: null });
     const result = await submitMatchResultHandler(db, fakeRequest('ghost-w', {
       gameId: 'g1', winnerId: 'ghost-w', loserId: 'ghost-l', liveGameId: 'lg1'
     }));
@@ -109,7 +111,7 @@ test('submitMatchResult', async (t) => {
   await t.test('strike ordering: a 3-strike penalty is applied before calcRatings runs', async () => {
     await db.collection('players').doc('w').set({ rating: 500, gamesPlayed: 10 });
     await db.collection('players').doc('l').set({ rating: 500, gamesPlayed: 10 });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null, strikes: { w: 3 } });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null, strikes: { w: 3 } });
 
     const result = await submitMatchResultHandler(db, fakeRequest('w', {
       gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1'
@@ -123,9 +125,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('logged-game path: only the pending entry\'s opponent may confirm', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('reporter', { gameId: 'g1', winnerId: 'reporter', loserId: 'opponent', pendingId: 'p1' })),
       (err) => err.code === 'permission-denied'
@@ -138,7 +138,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('badges: first_game and first_win are awarded on a player\'s first win', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     const result = await submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' }));
     assert.ok(result.winnerBadgesEarned.includes('first_game'));
     assert.ok(result.winnerBadgesEarned.includes('first_win'));
@@ -151,7 +151,7 @@ test('submitMatchResult', async (t) => {
   await t.test('legacy account: caller whose player id != auth uid is resolved via firebaseUid (live path)', async () => {
     await db.collection('players').doc('legacyW').set({ rating: 500, gamesPlayed: 10, firebaseUid: 'authW' });
     await db.collection('players').doc('l').set({ rating: 500, gamesPlayed: 10 });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'legacyW', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'legacyW', p2: 'l', judgeId: null }, ['authW', 'l']);
     const result = await submitMatchResultHandler(db, fakeRequest('authW', {
       gameId: 'g1', winnerId: 'legacyW', loserId: 'l', liveGameId: 'lg1'
     }));
@@ -161,9 +161,7 @@ test('submitMatchResult', async (t) => {
 
   await t.test('legacy account: resolved via firebaseUid on the pending path', async () => {
     await db.collection('players').doc('legacyO').set({ rating: 500, gamesPlayed: 10, firebaseUid: 'authO' });
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'legacyO', winnerId: 'reporter', loserId: 'legacyO', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'legacyO', winnerId: 'reporter', loserId: 'legacyO', status: 'pending' });
     const result = await submitMatchResultHandler(db, fakeRequest('authO', {
       gameId: 'g1', winnerId: 'reporter', loserId: 'legacyO', pendingId: 'p1'
     }));
@@ -172,7 +170,7 @@ test('submitMatchResult', async (t) => {
 
   await t.test('an auth uid linked to nothing cannot act as a legacy player', async () => {
     await db.collection('players').doc('legacyW').set({ rating: 500, firebaseUid: 'authW' });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'legacyW', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'legacyW', p2: 'l', judgeId: null });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('someoneElse', { gameId: 'g1', winnerId: 'legacyW', loserId: 'l', liveGameId: 'lg1' })),
       (err) => err.code === 'permission-denied'
@@ -182,7 +180,7 @@ test('submitMatchResult', async (t) => {
   await t.test('two players linked to the same auth uid is refused, not guessed', async () => {
     await db.collection('players').doc('a').set({ firebaseUid: 'dup' });
     await db.collection('players').doc('b').set({ firebaseUid: 'dup' });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'a', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'a', p2: 'l', judgeId: null });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('dup', { gameId: 'g1', winnerId: 'a', loserId: 'l', liveGameId: 'lg1' })),
       (err) => err.code === 'failed-precondition'
@@ -190,9 +188,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('same pendingId confirmed twice with DIFFERENT gameIds applies ratings exactly once', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' });
     await submitMatchResultHandler(db, fakeRequest('opponent', { gameId: 'g1', winnerId: 'reporter', loserId: 'opponent', pendingId: 'p1' }));
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('opponent', { gameId: 'g2', winnerId: 'reporter', loserId: 'opponent', pendingId: 'p1' })),
@@ -203,7 +199,7 @@ test('submitMatchResult', async (t) => {
   });
 
   await t.test('live game: resetting resultSubmitted on the client-writable liveGames doc does not allow a second result', async () => {
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     await submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' }));
     await db.collection('liveGames').doc('lg1').set({ resultSubmitted: false, resultGameId: null }, { merge: true });
     await assert.rejects(
@@ -215,7 +211,7 @@ test('submitMatchResult', async (t) => {
 
   await t.test('a gameId that already belongs to another game is rejected', async () => {
     await db.collection('games').doc('g1').set({ winnerId: 'x', loserId: 'y' });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null });
     await assert.rejects(
       () => submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' })),
       (err) => err.code === 'already-exists'
@@ -224,7 +220,7 @@ test('submitMatchResult', async (t) => {
 
   await t.test('deliberate divergence #2: unrated player with 3 strikes starts ELO from 399, not the client\'s 0', async () => {
     await db.collection('players').doc('l').set({ rating: 500, gamesPlayed: 10 });
-    await db.collection('liveGames').doc('lg1').set({ p1: 'w', p2: 'l', judgeId: null, strikes: { w: 3 } });
+    await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null, strikes: { w: 3 } });
     const result = await submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' }));
     const expected = calcRatings({ rating: 399, gamesPlayed: 0 }, { rating: 500, gamesPlayed: 10 }, '');
     assert.strictEqual(result.winnerNew, expected.winnerNew);

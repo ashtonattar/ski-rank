@@ -39,4 +39,31 @@ async function resolveCallerPlayerId(tx, db, authUid) {
   return authUid;
 }
 
-module.exports = { resolveCallerPlayerId };
+/**
+ * True if player `playerId` has a join doc under liveGames/{liveGameId}/joins.
+ * Join docs are keyed by AUTH uid, and firestore.rules only lets a user
+ * create the one whose id is their own uid, so a join is proof that
+ * specific account showed up (rollout step 6a, forgery gate).
+ *
+ * Only the two auth uids that can belong to this player are looked up, not
+ * the whole subcollection: the player id itself (Firebase-native account)
+ * and players/{playerId}.firebaseUid (legacy account, set only by the
+ * migration or an admin). Each hit is then run back through
+ * resolveCallerPlayerId, so "who is this auth uid" has exactly one
+ * definition across the functions.
+ */
+async function hasPlayerJoined(tx, db, liveGameId, playerId) {
+  const playerSnap = await tx.get(db.collection('players').doc(playerId));
+  const linkedUid = playerSnap.exists ? playerSnap.data().firebaseUid : null;
+  const candidates = [...new Set([playerId, linkedUid].filter((c) => typeof c === 'string' && c))];
+
+  const joinsRef = db.collection('liveGames').doc(liveGameId).collection('joins');
+  const joinSnaps = await Promise.all(candidates.map((c) => tx.get(joinsRef.doc(c))));
+  for (let i = 0; i < candidates.length; i++) {
+    if (!joinSnaps[i].exists) continue;
+    if ((await resolveCallerPlayerId(tx, db, candidates[i])) === playerId) return true;
+  }
+  return false;
+}
+
+module.exports = { resolveCallerPlayerId, hasPlayerJoined };

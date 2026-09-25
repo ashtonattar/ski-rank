@@ -3,7 +3,7 @@
 const { requireAuth, requireNonEmptyString, optionalString, optionalArray, HttpsError } = require('./validate');
 const { calcRatings, START_RATING } = require('./elo');
 const { checkBadgesServer } = require('./badges');
-const { resolveCallerPlayerId } = require('./identity');
+const { resolveCallerPlayerId, hasPlayerJoined } = require('./identity');
 
 /**
  * Reads this player's games (both as winner and as loser) from the `games`
@@ -22,23 +22,33 @@ async function readPriorGames(tx, db, playerId) {
 
 /**
  * Authorization for the two supported call sites. Exactly one of
- * liveGameId / pendingId must be given — see the module doc comment in
- * index.js for why these two fields exist even though the original spec's
- * input list didn't name them: without an id pointing at the specific
- * liveGames/{id} or pending entry, there is nothing server-side to check
- * the caller against, and "is signed in" alone is not authorization.
+ * liveGameId / pendingId must be given: without an id pointing at a specific
+ * live game or pending result, there is nothing server-side to check the
+ * caller against, and "is signed in" alone is not authorization.
  *
  * callerId is the caller's resolved PLAYER id (lib/identity.js), not their
- * auth uid — the two differ for legacy accounts.
+ * auth uid; the two differ for legacy accounts.
  *
- * Returns { resolutionKey, resolutionKind, strikeUids } — resolutionKey
- * names the resolutions/{key} doc that records this live game / pending
- * entry as settled (see submitMatchResultHandler), and strikeUids are the
- * players the server itself determined hit 3 live-dispute strikes and must
- * lose 1 rating point before ELO runs. Never trusts a client-supplied
- * strikePenalties field for this.
+ * FORGERY GATE (rollout step 6a, 2026-09-24): both evidence documents used
+ * to be forgeable by any signed-in user (liveGames create is open to anyone;
+ * state/global.pending is appendable by anyone), so an attacker could name a
+ * victim and apply a loss to them. Now:
+ *   - live path: BOTH players must have a liveGames/{id}/joins/{authUid} doc
+ *     (only creatable by that account itself, per firestore.rules).
+ *   - pending path: authorizes against pendingResults/{id}, which only
+ *     reportPendingResult writes, with a server-resolved reporter who must be
+ *     one of the two players. state/global.pending is no longer trusted.
+ *
+ * Returns the match inputs from those trusted docs, not the payload.
+ * `score` feeds calcRatings (scoreMultiplier), so taking it from the payload
+ * let the caller pick their own rating swing. Live path: score is always ''
+ * (finishLive() in index.html always passes '') and the stored handicap
+ * comes from the liveGames doc. (calcRatings accepts a handicap argument but
+ * never reads it, here or in the client, so handicap is display-only.)
+ * Pending path: everything comes from the stored report. Only cosmetic
+ * fields (liveLog, resort) still come from the payload on the live path.
  */
-async function authorizeAndGetStrikes(tx, db, callerId, { liveGameId, pendingId, winnerId, loserId }) {
+async function authorizeAndGetMatch(tx, db, callerId, { liveGameId, pendingId, winnerId, loserId, payloadScore }) {
   if (liveGameId && pendingId) {
     throw new HttpsError('invalid-argument', 'Provide only one of liveGameId or pendingId, not both.');
   }
@@ -57,28 +67,66 @@ async function authorizeAndGetStrikes(tx, db, callerId, { liveGameId, pendingId,
     if (!players.has(winnerId) || !players.has(loserId) || winnerId === loserId) {
       throw new HttpsError('invalid-argument', 'winnerId/loserId do not match this live game.');
     }
+    const [p1Joined, p2Joined] = await Promise.all([
+      hasPlayerJoined(tx, db, liveGameId, live.p1),
+      hasPlayerJoined(tx, db, liveGameId, live.p2)
+    ]);
+    if (!p1Joined || !p2Joined) {
+      throw new HttpsError('failed-precondition', 'Both players must have joined this live game before a result can be recorded.');
+    }
+    // The game must actually be over for the named loser. Every client
+    // end-of-game path sets the loser's letters to 3 before finishLive():
+    // the letter paths (index.html:8292/8307/8468/8474) and the forfeit
+    // paths (:4605, :6765, :8781). This doesn't stop a participant editing
+    // the live doc (out of scope), but it does stop a one-call "I won"
+    // mid-game, and forces any cheating into the doc the opponent is
+    // watching.
+    // 6b ORDERING REQUIREMENT: the client must persist the live doc with the
+    // final letters (saveLiveGame) BEFORE calling this function. Today
+    // finishLive() calls commitGame() before saveLiveGame().
+    const letters = live.letters || {};
+    if ((letters[loserId] || 0) < 3 || (letters[winnerId] || 0) >= 3) {
+      throw new HttpsError('failed-precondition', 'This live game is not finished for the named loser.');
+    }
     const strikes = live.strikes || {};
     const strikeUids = new Set();
     for (const pid of [live.p1, live.p2]) {
       if ((strikes[pid] || 0) >= 3) strikeUids.add(pid);
     }
-    return { resolutionKey: `live_${liveGameId}`, resolutionKind: 'live', strikeUids };
+    return {
+      resolutionKey: `live_${liveGameId}`, resolutionKind: 'live', strikeUids,
+      match: { score: '', handicap: live.handicap || null, tricks: [], notes: '', clipUrl: '', fromPayload: ['liveLog', 'resort'] }
+    };
   }
 
   if (pendingId) {
-    const globalSnap = await tx.get(db.collection('state').doc('global'));
-    const pending = (globalSnap.exists && Array.isArray(globalSnap.data().pending)) ? globalSnap.data().pending : [];
-    const entry = pending.find((r) => r.id === pendingId);
-    if (!entry || entry.status !== 'pending') {
+    const pendingSnap = await tx.get(db.collection('pendingResults').doc(pendingId));
+    if (!pendingSnap.exists) {
       throw new HttpsError('permission-denied', 'No matching pending result found for this caller.');
     }
+    const entry = pendingSnap.data();
     if (callerId !== entry.opponentId) {
       throw new HttpsError('permission-denied', 'Only the opponent may confirm a pending result.');
     }
     if (entry.winnerId !== winnerId || entry.loserId !== loserId) {
-      throw new HttpsError('invalid-argument', 'winnerId/loserId do not match the pending entry being confirmed.');
+      throw new HttpsError('invalid-argument', 'winnerId/loserId do not match the pending result being confirmed.');
     }
-    return { resolutionKey: `pending_${pendingId}`, resolutionKind: 'confirmed', strikeUids: new Set() };
+    // state/global.pending (what the opponent's UI shows) is display-only
+    // and reporter-written, so nothing ties it to this stored copy. Without
+    // this check the opponent could confirm "S — SKI" while the server
+    // applies "0 — SKI" (1.25x vs 1.5x scoreMultiplier). The math still
+    // uses the STORED score; this only proves the confirmer agreed to it.
+    // 6b: the confirm call must send the score exactly as the opponent saw it.
+    if (payloadScore !== (entry.score || '')) {
+      throw new HttpsError('invalid-argument', 'score does not match the pending result being confirmed.');
+    }
+    return {
+      resolutionKey: `pending_${pendingId}`, resolutionKind: 'confirmed', strikeUids: new Set(),
+      match: {
+        score: entry.score || '', handicap: null, tricks: entry.tricks || [], notes: entry.notes || '',
+        clipUrl: entry.clipUrl || '', resort: entry.resort || '', liveLog: [], fromPayload: []
+      }
+    };
   }
 
   throw new HttpsError('invalid-argument', 'Must provide liveGameId or pendingId to authorize this call.');
@@ -94,21 +142,20 @@ async function submitMatchResultHandler(db, request) {
   if (winnerId === loserId) {
     throw new HttpsError('invalid-argument', 'winnerId and loserId must differ.');
   }
-  const tricksStr = optionalString(data.tricks, '');
-  const notes = optionalString(data.notes, '');
-  const liveLog = optionalArray(data.liveLog, []);
-  const score = optionalString(data.score, '');
-  const clipUrl = optionalString(data.clipUrl, '');
-  const resort = optionalString(data.resort, '');
-  const handicap = data.handicap ?? null;
+  const payloadLiveLog = optionalArray(data.liveLog, []);
+  const payloadResort = optionalString(data.resort, '');
+  const payloadScore = optionalString(data.score, '');
   const liveGameId = typeof data.liveGameId === 'string' && data.liveGameId ? data.liveGameId : null;
   const pendingId = typeof data.pendingId === 'string' && data.pendingId ? data.pendingId : null;
 
   return db.runTransaction(async (tx) => {
     const callerId = await resolveCallerPlayerId(tx, db, uid);
-    const { resolutionKey, resolutionKind, strikeUids } = await authorizeAndGetStrikes(tx, db, callerId, {
-      liveGameId, pendingId, winnerId, loserId
+    const { resolutionKey, resolutionKind, strikeUids, match } = await authorizeAndGetMatch(tx, db, callerId, {
+      liveGameId, pendingId, winnerId, loserId, payloadScore
     });
+    const { score, handicap, tricks, notes, clipUrl } = match;
+    const liveLog = match.fromPayload.includes('liveLog') ? payloadLiveLog : match.liveLog;
+    const resort = match.fromPayload.includes('resort') ? payloadResort : match.resort;
 
     // Idempotency is keyed on the EVENT (this live game / pending entry), not
     // just the client-generated gameId. A gameId-only check let the same
@@ -186,7 +233,7 @@ async function submitMatchResultHandler(db, request) {
       player1EndRating: ratings.winnerNew, player2EndRating: ratings.loserNew,
       winnerDelta: ratings.winnerDelta, loserDelta: ratings.loserDelta,
       handicap: handicap || null,
-      tricks: tricksStr.split(',').map((t) => t.trim()).filter(Boolean),
+      tricks,
       liveLog, notes, score, clipUrl, resort,
       date: Date.now()
     };

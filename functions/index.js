@@ -15,6 +15,10 @@ setGlobalOptions({ maxInstances: 10 });
 
 const { submitMatchResultHandler } = require('./lib/submitMatchResult');
 const { applyStrikePenaltyHandler } = require('./lib/applyStrikePenalty');
+const { reportPendingResultHandler } = require('./lib/reportPendingResult');
+const { cancelPendingResultHandler } = require('./lib/cancelPendingResult');
 
 exports.submitMatchResult = onCall((request) => submitMatchResultHandler(db, request));
 exports.applyStrikePenalty = onCall((request) => applyStrikePenaltyHandler(db, request));
+exports.reportPendingResult = onCall((request) => reportPendingResultHandler(db, request));
+exports.cancelPendingResult = onCall((request) => cancelPendingResultHandler(db, request));

@@ -22,6 +22,21 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email == 'ashtonattar@gmail.com';
     }
 
+    // True if the caller IS player `pid`. Player ids are not auth uids in
+    // general (index.html:4898, playerId = firebaseUid || uid()): a native
+    // signup's player id equals its auth uid, but a legacy account keeps its
+    // old random id and is linked via players/{pid}.firebaseUid, which only
+    // the migration or an admin can set (see players/ below). Comparing
+    // request.auth.uid to a player id directly rejects legacy accounts,
+    // including the two most active real ones (rollout step 6a finding 1).
+    // Same resolution as functions/lib/identity.js.
+    function callerIsPlayer(pid) {
+      return isSignedIn() && pid is string && pid != '' &&
+        (request.auth.uid == pid ||
+         (exists(/databases/$(database)/documents/players/$(pid)) &&
+          get(/databases/$(database)/documents/players/$(pid)).data.get('firebaseUid', null) == request.auth.uid));
+    }
+
     // ── state/global ──────────────────────────────────────────────────────
     // Almost everything lives in this one document (players, games, chat,
     // reports, tournaments, etc.), written via targeted arrayUnion updates
@@ -146,6 +161,22 @@ service cloud.firestore {
          request.auth.uid == resource.data.judgeId ||
          isAdmin());
       allow delete: if isAdmin(); // only the "Wipe Game Data" admin tool deletes these
+
+      // Rollout step 6a forgery gate. submitMatchResult only records a live
+      // result once BOTH players have a join doc here. The doc id is the
+      // creator's own auth uid and nothing else can be written, so a join is
+      // proof that account showed up. An outsider can create a liveGames doc
+      // naming a victim, but can't create the victim's join. Kept as a
+      // subcollection, not a field on the game doc, because saveLiveGame()
+      // overwrites the whole doc from each client's local copy, and a stale
+      // copy would clobber a join map.
+      match /joins/{authUid} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.auth.uid == authUid &&
+          request.resource.data.keys().hasOnly(['joinedAt']);
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
     }
 
     // ── players/{playerId}, games/{gameId}, messages/{messageId}, ──────────
@@ -223,6 +254,10 @@ service cloud.firestore {
         return !touchesFirebaseUid();
       }
 
+      // logStrikes/badges added in rollout step 6a: both are now owned by the
+      // Cloud Functions, and a client-writable logStrikes let a player reset
+      // their own strikes to dodge the 3-strike penalty.
+      //
       // rating/wins/losses/gamesPlayed/peakRating are locked to server-only
       // writes — submitMatchResult()/applyStrikePenalty() (Cloud Functions)
       // write via the Admin SDK, which bypasses these rules entirely, so
@@ -231,7 +266,7 @@ service cloud.firestore {
       // migration exists for (Plan Pass 1 finding #1 / Pass 2 finding #2).
       function touchesLockedFields() {
         return request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating']);
+          .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges']);
       }
 
       function lockedFieldsAtDefault() {
@@ -239,7 +274,9 @@ service cloud.firestore {
           (!('wins' in request.resource.data)         || request.resource.data.wins == 0) &&
           (!('losses' in request.resource.data)       || request.resource.data.losses == 0) &&
           (!('gamesPlayed' in request.resource.data)  || request.resource.data.gamesPlayed == 0) &&
-          (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0);
+          (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0) &&
+          (!('logStrikes' in request.resource.data)   || request.resource.data.logStrikes == 0) &&
+          (!('badges' in request.resource.data)       || request.resource.data.badges == []);
       }
 
       // Legacy self-heal create: myMissingRecord()/the _healPlayerDone heal
@@ -305,8 +342,9 @@ service cloud.firestore {
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
          isAdmin());
-      allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.fromId &&
+      // callerIsPlayer(), not auth.uid == fromId: fromId is the sender's
+      // player id, which isn't their auth uid for legacy accounts (step 6a).
+      allow create: if callerIsPlayer(request.resource.data.fromId) &&
         request.resource.data.toId is string && request.resource.data.toId != '';
       allow update: if false; // messages are immutable once sent
       allow delete: if isAdmin(); // bulk-delete carve-out for the admin wipe tool
@@ -321,21 +359,36 @@ service cloud.firestore {
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
          isAdmin());
-      allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.fromId &&
+      allow create: if callerIsPlayer(request.resource.data.fromId) &&
         request.resource.data.status == 'pending';
       // Only the recipient may accept/decline, only while still pending, and
       // only the status field may change (mirrors acceptFriendRequest()/
       // declineFriendRequest(), index.html:8997/9017).
-      allow update: if isSignedIn() &&
-        request.auth.uid == resource.data.toId &&
+      allow update: if callerIsPlayer(resource.data.toId) &&
         resource.data.status == 'pending' &&
         request.resource.data.status in ['accepted', 'declined'] &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
       // cancelFriendRequest() (index.html:8982) deletes the sender's own
-      // still-pending request.
-      allow delete: if isSignedIn() &&
-        (request.auth.uid == resource.data.fromId || isAdmin());
+      // still-pending request. unfriend() (index.html:9031) deletes a settled
+      // request from EITHER side, so once it's no longer pending both parties
+      // may delete it (rollout step 6a finding 2).
+      allow delete: if isAdmin() ||
+        (resource.data.status == 'pending' && callerIsPlayer(resource.data.fromId)) ||
+        (resource.data.status != 'pending' &&
+          (callerIsPlayer(resource.data.fromId) || callerIsPlayer(resource.data.toId)));
+    }
+
+    // ── pendingResults/{pendingId} ────────────────────────────────────────
+    // Rollout step 6a forgery gate. The server-trusted twin of a
+    // state/global.pending entry, written only by the reportPendingResult
+    // Cloud Function (Admin SDK) with a server-resolved reporter. The
+    // functions authorize against this, never against state/global.pending.
+    // Read rule is written for single-doc gets; a list query would need
+    // a filter on reporterId/opponentId.
+    match /pendingResults/{pendingId} {
+      allow read: if isAdmin() ||
+        callerIsPlayer(resource.data.reporterId) || callerIsPlayer(resource.data.opponentId);
+      allow write: if false;
     }
 
     // ── resolutions/{key} ─────────────────────────────────────────────────

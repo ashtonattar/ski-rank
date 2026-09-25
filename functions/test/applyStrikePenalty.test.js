@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getDb, clearEmulatorData, fakeRequest } = require('./testUtils');
+const { getDb, clearEmulatorData, fakeRequest, seedLive, seedPendingResult } = require('./testUtils');
 const { applyStrikePenaltyHandler } = require('../lib/applyStrikePenalty');
 const { submitMatchResultHandler } = require('../lib/submitMatchResult');
 
@@ -21,9 +21,7 @@ test('applyStrikePenalty', async (t) => {
   });
 
   await t.test('rejects a caller who is not the pending entry\'s opponent', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
     await assert.rejects(
       () => applyStrikePenaltyHandler(db, fakeRequest('forger', { pendingId: 'p1' })),
       (err) => err.code === 'permission-denied'
@@ -31,9 +29,7 @@ test('applyStrikePenalty', async (t) => {
   });
 
   await t.test('increments logStrikes on both parties without penalizing below 3', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
     await db.collection('players').doc('reporter').set({ rating: 500, logStrikes: 0 });
     await db.collection('players').doc('opponent').set({ rating: 500, logStrikes: 0 });
 
@@ -50,9 +46,7 @@ test('applyStrikePenalty', async (t) => {
   });
 
   await t.test('the 3rd strike costs 1 rating point and resets logStrikes to 0', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
     await db.collection('players').doc('reporter').set({ rating: 500, logStrikes: 2 });
     await db.collection('players').doc('opponent').set({ rating: 500, logStrikes: 2 });
 
@@ -69,9 +63,7 @@ test('applyStrikePenalty', async (t) => {
   });
 
   await t.test('idempotency: retrying the same pendingId does not double-penalize', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
     await db.collection('players').doc('reporter').set({ rating: 500, logStrikes: 2 });
     await db.collection('players').doc('opponent').set({ rating: 500, logStrikes: 2 });
 
@@ -87,9 +79,7 @@ test('applyStrikePenalty', async (t) => {
   });
 
   await t.test('missing player doc is skipped, not created, mirroring applyLogStrike\'s "if (!p) return"', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'ghost-reporter', opponentId: 'opponent', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'ghost-reporter', opponentId: 'opponent', status: 'pending' });
     await db.collection('players').doc('opponent').set({ rating: 500, logStrikes: 2 });
 
     const result = await applyStrikePenaltyHandler(db, fakeRequest('opponent', { pendingId: 'p1' }));
@@ -102,14 +92,10 @@ test('applyStrikePenalty', async (t) => {
 
   // ── Step 5 review fixes (2026-09-24) ──────────────────────────────────
 
-  const seedPending = () => db.collection('state').doc('global').set({
-    pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' }]
-  });
+  const seedPending = () => seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' });
 
   await t.test('legacy account: opponent whose player id != auth uid can dispute', async () => {
-    await db.collection('state').doc('global').set({
-      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'legacyO', status: 'pending' }]
-    });
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'legacyO', status: 'pending' });
     await db.collection('players').doc('legacyO').set({ rating: 500, logStrikes: 0, firebaseUid: 'authO' });
     const result = await applyStrikePenaltyHandler(db, fakeRequest('authO', { pendingId: 'p1' }));
     assert.strictEqual(result.duplicate, false);
