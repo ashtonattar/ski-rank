@@ -2481,6 +2481,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -3917,14 +3918,103 @@ const _fbConfig = {
 let db       = null;
 let _storage = null;
 let _fbAuth  = null;
+let _fns     = null; // Cloud Functions (backend migration rollout step 6b dual-write)
 try {
   firebase.initializeApp(_fbConfig);
   db       = firebase.firestore();
   _storage = firebase.storage();
   _fbAuth  = firebase.auth();
+  _fns     = firebase.functions(); // us-central1, where functions/ deploys
   // Use LOCAL persistence so Firebase Auth token survives page reloads
   _fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
 } catch(e) { console.warn('Firebase init failed:', e); }
+
+// ── Backend migration dual-write (rollout step 6b) ──────────────────────────
+// Every rating/social write below still goes through the old state/global
+// path first, exactly as before; these helpers ADD a parallel write to the
+// new players/games/messages/friendRequests collections and Cloud Functions.
+// Nothing reads the new collections yet (that's step 7), so a failure here
+// must never block or change what the user sees: log it and move on. Step
+// 6.5 diffs the two copies, which is where a dropped write shows up.
+// Plan: 01 Refinements/(C) Backend Migration Plan - Verified 2026-09-16.md
+function _fnErrCode(e) { return String(e?.code || '').replace(/^functions\//, ''); }
+
+function _callFn(name, data) {
+  if (!_fns || !_fbAuth?.currentUser) return Promise.resolve(null);
+  return _fns.httpsCallable(name)(data)
+    .then(res => res.data)
+    .catch(e => {
+      console.warn(`[dual-write] ${name} failed (${_fnErrCode(e)}):`, e.message);
+      throw e;
+    });
+}
+
+// Fire-and-forget variant for the call sites that don't need the result.
+function _callFnQuiet(name, data) { _callFn(name, data).catch(() => {}); }
+
+function _mirrorWrite(label, promiseFn) {
+  if (!db || !_fbAuth?.currentUser) return;
+  try {
+    promiseFn().catch(e => console.warn(`[dual-write] ${label} failed:`, e.code || e.message));
+  } catch (e) { console.warn(`[dual-write] ${label} failed:`, e.message); }
+}
+
+// Forgery gate (rollout step 6a): submitMatchResult only records a live game
+// once BOTH players have a liveGames/{id}/joins/{authUid} doc. Written only on
+// an explicit action by this user (sending the invite, or accepting it), never
+// just because a liveGames doc naming them showed up, since anyone can append
+// a liveInvite claiming to be from someone else and pull their client into a
+// game. The rules don't need the parent doc to exist yet, so the sender can
+// join before the accepter creates the game. Create-only (update is denied),
+// so this is a no-op if the doc is already there.
+const _liveJoinsWritten = new Set();
+function _writeLiveJoin(gameId, p1Id, p2Id) {
+  if (!gameId || !currentUser || (currentUser.id !== p1Id && currentUser.id !== p2Id)) return;
+  const authUid = _fbAuth?.currentUser?.uid;
+  if (!db || !authUid || _liveJoinsWritten.has(gameId)) return;
+  _liveJoinsWritten.add(gameId);
+  const ref = db.collection('liveGames').doc(gameId).collection('joins').doc(authUid);
+  ref.get()
+    .then(snap => snap.exists ? null : ref.set({ joinedAt: Date.now() }))
+    .catch(e => {
+      _liveJoinsWritten.delete(gameId);
+      console.warn('[dual-write] live join failed:', e.code || e.message);
+    });
+}
+
+// Mirrors the current user's OWN player entry onto players/{id}. Rules only
+// let a client write its own doc, and never the server-owned fields (rating,
+// wins, losses, gamesPlayed, peakRating, logStrikes, badges), so those are
+// stripped rather than sent. This also covers the self-heal/signup shape,
+// whose `rating: null` the players create rule would reject. firebaseUid is
+// immutable to clients, and avatarUrl is a local cache (avatars/{id} holds
+// the real one). Called after every successful state/global save and every
+// snapshot, and skipped when nothing changed since the last mirror, so one
+// write per actual profile change.
+//
+// Other players' entries are NOT mirrored, even when this client edits them
+// (acceptFriendRequest/unfriend touch the other side's `friends`). Their own
+// client mirrors that the next time it syncs. Until step 8 retires the
+// arrays, these profile fields are only as trustworthy as state/global.
+const _PLAYER_MIRROR_SKIP = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges', 'firebaseUid', 'avatarUrl'];
+let _lastPlayerMirror = null;
+function _mirrorMyPlayer() {
+  if (!db || !currentUser || !_fbAuth?.currentUser) return;
+  const me = S.players.find(p => p.id === currentUser.id);
+  if (!me) return;
+  const data = JSON.parse(JSON.stringify(me));
+  _PLAYER_MIRROR_SKIP.forEach(k => delete data[k]);
+  const key = JSON.stringify(data);
+  if (key === _lastPlayerMirror) return;
+  _lastPlayerMirror = key;
+  db.collection('players').doc(me.id).set(data, { merge: true })
+    .catch(e => {
+      // Retry on the next save/snapshot, except a rules denial, which would
+      // just fail again on every snapshot until the data itself changes.
+      if (e.code !== 'permission-denied') _lastPlayerMirror = null;
+      console.warn('[dual-write] player mirror failed:', e.code || e.message);
+    });
+}
 
 // Upload a video File to Firebase Storage and return its public download URL.
 // Shows upload progress via the Post Clip button text.
@@ -4113,6 +4203,7 @@ async function _saveToFirestore(pendingCopy) {
     }
     await batch.commit();
     _dirtyAvatars.clear();
+    _mirrorMyPlayer(); // rollout step 6b: covers signup, self-heal and profile edits
 
     // ── Rolling backup: keep a snapshot of the largest state we've ever saved ──
     try {
@@ -4329,6 +4420,7 @@ function startFirestoreSync() {
           _saveToFirestore();
         }
         try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+        _mirrorMyPlayer(); // rollout step 6b: no-op unless my own entry changed
 
         // Refresh UI in non-destructive views
         checkNotifications();
@@ -4615,24 +4707,31 @@ async function resolveAbandonIfStillPending(gameId, abId) {
 // Retries with backoff on failure — a completed-game write that silently drops
 // leaves the opponent stuck staring at a live board forever with nothing to
 // tell either side something went wrong, so this can't be fire-and-forget.
+// With `immediate`, returns a promise that resolves true once this write (or
+// one of its retries) lands, false if every retry failed. finishLive() waits
+// on it before asking the server to record the result (rollout step 6b).
 function saveLiveGame(liveObj, immediate, attempt = 0) {
-  if (!db || !liveObj || !liveObj.id) return;
+  if (!db || !liveObj || !liveObj.id) return Promise.resolve(false);
   // Bump the local rev on the original (not the retry attempt) — see
   // _isRemoteLiveGameStale() below for why this exists.
   if (attempt === 0) liveObj.rev = (liveObj.rev || 0) + 1;
   const copy = JSON.parse(JSON.stringify(liveObj));
   const write = () => db.collection('liveGames').doc(copy.id).set(copy)
+    .then(() => true)
     .catch(e => {
       console.warn('Live game save error:', e);
       if (attempt < 4) {
-        setTimeout(() => saveLiveGame(liveObj, true, attempt + 1), 1000 * Math.pow(2, attempt));
+        return new Promise(resolve => setTimeout(
+          () => resolve(saveLiveGame(liveObj, true, attempt + 1)), 1000 * Math.pow(2, attempt)));
       } else if (copy.over) {
         toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Result may not have synced — check your connection and reopen the game.', 'err');
       }
+      return false;
     });
   clearTimeout(_liveSaveTimer);
-  if (immediate) write();
-  else _liveSaveTimer = setTimeout(write, 300);
+  if (immediate) return write();
+  _liveSaveTimer = setTimeout(write, 300);
+  return Promise.resolve(false);
 }
 
 // Single gate both the onSnapshot listener and the poll fallback route through
@@ -4962,6 +5061,7 @@ async function doSignup() {
         id: uid(), fromId: newUser.id, fromName: newUser.name,
         toId: refId, toName: referrer.name, status: 'pending', date: Date.now()
       };
+      _mirrorWrite('referral friend request', () => db.collection('friendRequests').doc(request.id).set(request)); // rollout step 6b
       return db.collection('state').doc('global').update({
         friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
       }).then(() => toast(`You're in! Friend request sent to ${referrer.name}.`, 'ok'));
@@ -7671,6 +7771,12 @@ async function submitLog() {
   const _p1rt = (byId(p1Id)?.riderType || 'skier'), _p2rt = (byId(p2Id)?.riderType || 'skier');
   if (_p1rt !== _p2rt) { toast('Skiers can only play skiers; snowboarders can only play snowboarders.','err'); return; }
   if (winnerLetters === 'SKI') { toast("Score can't be SKI–SKI — the loser always spells SKI last.", 'err'); return; }
+  // Decision (2026-09-24): whoever logs a match must have played in it. The
+  // server (reportPendingResult) rejects anything else, so a third-party log
+  // could never be confirmed there.
+  if (currentUser && p1Id !== currentUser.id && p2Id !== currentUser.id) {
+    toast('You can only log a match you played in.', 'err'); return;
+  }
 
   // Upload any attached clip to Cloudinary now (rather than at file-select
   // time) so opponents/judges/other clients can actually see it — a local
@@ -7725,6 +7831,13 @@ async function submitLog() {
   // same ~500ms window would otherwise silently drop each other's submission, since
   // each client's full-document write only knows about its own local copy.
   if (db) _syncPendingRequest(request);
+  // Rollout step 6b: the server-trusted copy the opponent's confirm/dispute is
+  // checked against. Same id as the state/global.pending entry.
+  _callFnQuiet('reportPendingResult', {
+    pendingId: request.id, winnerId: wId, loserId: lId,
+    tricks: request.tricks, score: request.score, notes: request.notes,
+    clipUrl: request.clipUrl, resort: request.resort
+  });
 
   resetPicker('pp-lg-p2');
   document.getElementById('lg-winner').value='';
@@ -7752,6 +7865,29 @@ async function submitLog() {
     toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> No connection — result saved on this device only. Reconnect and log it again to notify your opponent.', 'err');
   }
   nav('profile');
+}
+
+// Rollout step 6b dual-write for a finished live game. The server only
+// accepts it once the liveGames doc shows the loser on 3 letters, and
+// finishLive() sets that locally, so the final saveLiveGame() write has to
+// land first. gameId is the local game's id, so the state/global copy and the
+// games/{id} doc share one key (step 6.5 diffs them). A failed-precondition
+// can mean the doc write is still retrying, so retry a few times; any other
+// error (a game started before 6b, with no join docs) is logged and dropped.
+async function _submitLiveResult(liveSaved, liveGameId, game) {
+  await liveSaved;
+  const payload = {
+    gameId: game.id, liveGameId,
+    winnerId: game.winnerId, loserId: game.loserId,
+    liveLog: game.liveLog || [], resort: game.resort || ''
+  };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try { return await _callFn('submitMatchResult', payload); }
+    catch (e) {
+      if (_fnErrCode(e) !== 'failed-precondition' || attempt === 3) return null;
+      await new Promise(r => setTimeout(r, 2000 * Math.pow(2, attempt)));
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -8553,7 +8689,8 @@ function finishLive(winnerId, loserId) {
   // all clients before the local player can click "New Game" and wipe S.live to null.
   clearTimeout(_saveTimer);
   _saveToFirestore();
-  saveLiveGame(g, true);
+  const liveSaved = saveLiveGame(g, true);
+  _submitLiveResult(liveSaved, g.id, game);
   stopLiveGamePoll();
   // Only show rating animation to the two players, not the judge
   showGameOver(winnerId, loserId, game);
@@ -8973,6 +9110,7 @@ function sendFriendRequest(toId) {
       friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
     }).catch(e => console.warn('Friend request send failed:', e));
   }
+  _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request)); // rollout step 6b
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -8988,6 +9126,7 @@ function cancelFriendRequest(toId) {
   S.friendRequests = S.friendRequests.filter(r => r.id !== req.id);
   save();
   _updateArrayField('friendRequests', req.id, () => null);
+  _mirrorWrite('friend request cancel', () => db.collection('friendRequests').doc(req.id).delete()); // rollout step 6b
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -9008,6 +9147,7 @@ function acceptFriendRequest(fromId) {
   if (other) { if (!Array.isArray(other.friends)) other.friends = []; if (!other.friends.includes(currentUser.id)) other.friends.push(currentUser.id); }
   save();
   _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'accepted' }));
+  _mirrorWrite('friend request accept', () => db.collection('friendRequests').doc(req.id).update({ status: 'accepted' })); // rollout step 6b
   checkNotifications();
   renderConfirmations();
   refreshModalFriendBtn(fromId);
@@ -9023,6 +9163,7 @@ function declineFriendRequest(fromId) {
   req.status = 'declined';
   save();
   _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'declined' }));
+  _mirrorWrite('friend request decline', () => db.collection('friendRequests').doc(req.id).update({ status: 'declined' })); // rollout step 6b
   checkNotifications();
   renderConfirmations();
   toast('Friend request declined.');
@@ -9042,6 +9183,7 @@ function unfriend(otherId) {
         (r.fromId === otherId && r.toId === currentUser.id))
     );
     if (req) _updateArrayField('friendRequests', req.id, () => null);
+    if (req) _mirrorWrite('unfriend', () => db.collection('friendRequests').doc(req.id).delete()); // rollout step 6b
     // Remove from both players' friends arrays
     const me    = S.players.find(p => p.id === currentUser.id);
     const them  = S.players.find(p => p.id === otherId);
@@ -10012,6 +10154,7 @@ function sendMessage() {
       messages: firebase.firestore.FieldValue.arrayUnion(msg)
     }).catch(e => console.warn('Message send failed:', e));
   }
+  _mirrorWrite('message', () => db.collection('messages').doc(msg.id).set(msg)); // rollout step 6b
   openChat(_activeChatId);
   renderFriendsView();
 }
@@ -11148,6 +11291,7 @@ function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
     tournamentMatchIdx: matchIdx
   };
   S.liveInvites.push(invite);
+  _writeLiveJoin(invite.id, invite.p1Id, invite.p2Id); // rollout step 6b forgery gate
   save();
   checkNotifications();
 
@@ -12113,6 +12257,13 @@ function confirmGame(id) {
   if (!req) return;
 
   const game = commitGame(req.winnerId, req.loserId, req.tricks.join(','), req.notes, [], req.score || '', req.clipUrl || '', req.resort || '');
+  // Rollout step 6b dual-write. The server applies the score stored by
+  // reportPendingResult and rejects a payload score that differs, so send
+  // exactly what this confirmer was shown (req.score).
+  _callFnQuiet('submitMatchResult', {
+    gameId: game.id, pendingId: req.id,
+    winnerId: req.winnerId, loserId: req.loserId, score: req.score || ''
+  });
   S.pending = S.pending.filter(r => r.id !== id);
   save();
   if (db) {
@@ -12143,6 +12294,9 @@ function disputeGame(id) {
       // Apply a strike to both players
       applyLogStrike(req.reporterId);
       applyLogStrike(currentUser.id);
+      // Rollout step 6b dual-write: one call settles the whole dispute (both
+      // strikes) server-side, keyed on the pending entry.
+      _callFnQuiet('applyStrikePenalty', { pendingId: req.id });
 
       S.pending = S.pending.filter(r => r.id !== id);
       save();
@@ -12176,6 +12330,8 @@ function cancelPending(id) {
       const req = S.pending.find(r => r.id === id);
       S.pending = S.pending.filter(r => r.id !== id);
       save();
+      // Rollout step 6b: settle it server-side too, so it can't be confirmed later.
+      if (req) _callFnQuiet('cancelPendingResult', { pendingId: id });
       if (db && req) {
         db.collection('state').doc('global').update({
           pending: firebase.firestore.FieldValue.arrayRemove(req)
@@ -12224,6 +12380,8 @@ function sendLiveInvite() {
     handicap: (_hcap?.hcap > 0) ? { higherId: _hcap.higherId, hcap: _hcap.hcap } : null
   };
   S.liveInvites.push(invite);
+  // The invite's id becomes the liveGames doc id (acceptLiveInvite).
+  _writeLiveJoin(invite.id, p1, p2); // rollout step 6b forgery gate
 
   // Also send a separate judge invite if a judge was selected
   if (judgeId) {
@@ -12314,6 +12472,7 @@ function acceptLiveInvite(inviteId) {
   }
 
   const gameId = inv.gameId || inv.id;
+  _writeLiveJoin(gameId, inv.p1Id, inv.p2Id); // rollout step 6b forgery gate
 
   const _finishAccept = () => {
     // Targeted per-item write (see _updateArrayField) instead of the whole-document
