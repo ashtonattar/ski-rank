@@ -337,5 +337,16 @@ service cloud.firestore {
       allow delete: if isSignedIn() &&
         (request.auth.uid == resource.data.fromId || isAdmin());
     }
+
+    // ── resolutions/{key} ─────────────────────────────────────────────────
+    // Cloud-Function-only record that a live game (live_<liveGameId>) or
+    // pending entry (pending_<pendingId>) has been settled — the idempotency
+    // guard for submitMatchResult/applyStrikePenalty (functions/lib). Written
+    // only via the Admin SDK, which bypasses these rules; no client may write
+    // it, or a participant could clear it and re-apply a result.
+    match /resolutions/{key} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }

@@ -1,6 +1,7 @@
 'use strict';
 
 const { requireAuth, requireNonEmptyString, HttpsError } = require('./validate');
+const { resolveCallerPlayerId } = require('./identity');
 
 /**
  * DELIBERATE DIVERGENCE from the spec's literal `{ playerId, gameId }` input:
@@ -22,15 +23,16 @@ const { requireAuth, requireNonEmptyString, HttpsError } = require('./validate')
  * whoever wires the client in step 6) doesn't mistake it for a transcription
  * error.
  *
- * Idempotency: unlike submitMatchResult, there's no Cloud-Function-owned
- * document whose mere existence already means "processed" (pending entries
- * live in state/global, which this function must never write to — hard
- * constraint). So a small owned collection, disputeResolutions/{pendingId},
- * plays that role instead: its existence is the idempotency check, exactly
- * mirroring the games/{gameId} pattern but for this event type. This is a
- * different logical entity than a match, so it does not conflict with "no
- * separate processedMatches collection" (that guidance was specifically
- * about not needing a second idempotency doc *for match commits*).
+ * Idempotency: resolutions/pending_<pendingId> — the same Cloud-Function-
+ * only doc submitMatchResult writes when a pending entry is CONFIRMED. Its
+ * existence means this pending entry is settled: kind 'disputed' → a benign
+ * retry (return the stored outcome); kind 'confirmed' → already-exists, so
+ * one pending entry can never be both confirmed and disputed. (Replaces the
+ * original disputeResolutions/{pendingId}, which only guarded against a
+ * repeated dispute, not a confirm+dispute of the same entry.)
+ *
+ * The caller check uses the caller's resolved player id (lib/identity.js),
+ * not their auth uid — they differ for legacy accounts.
  *
  * Missing-player handling here intentionally mirrors applyLogStrike()'s own
  * `if (!p) return;` (index.html:12161) — a missing player is skipped
@@ -45,10 +47,14 @@ async function applyStrikePenaltyHandler(db, request) {
   const pendingId = requireNonEmptyString(data.pendingId, 'pendingId');
 
   return db.runTransaction(async (tx) => {
-    const resolutionRef = db.collection('disputeResolutions').doc(pendingId);
+    const callerId = await resolveCallerPlayerId(tx, db, uid);
+    const resolutionRef = db.collection('resolutions').doc(`pending_${pendingId}`);
     const resolutionSnap = await tx.get(resolutionRef);
     if (resolutionSnap.exists) {
       const r = resolutionSnap.data();
+      if (r.kind !== 'disputed') {
+        throw new HttpsError('already-exists', 'This result has already been settled.');
+      }
       return {
         pendingId,
         reporterId: r.reporterId, opponentId: r.opponentId,
@@ -63,7 +69,7 @@ async function applyStrikePenaltyHandler(db, request) {
     if (!entry) {
       throw new HttpsError('permission-denied', 'No matching pending dispute found for this caller.');
     }
-    if (uid !== entry.opponentId) {
+    if (callerId !== entry.opponentId) {
       throw new HttpsError('permission-denied', 'Only the opponent may dispute a pending result.');
     }
 
@@ -88,6 +94,8 @@ async function applyStrikePenaltyHandler(db, request) {
     const opponentResult = applyOneStrike(opponentRef, opponentSnap);
 
     tx.set(resolutionRef, {
+      kind: 'disputed',
+      byPlayerId: callerId,
       pendingId,
       reporterId: entry.reporterId,
       opponentId: entry.opponentId,

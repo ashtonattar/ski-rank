@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { getDb, clearEmulatorData, fakeRequest } = require('./testUtils');
 const { applyStrikePenaltyHandler } = require('../lib/applyStrikePenalty');
+const { submitMatchResultHandler } = require('../lib/submitMatchResult');
 
 test('applyStrikePenalty', async (t) => {
   const db = getDb();
@@ -97,5 +98,40 @@ test('applyStrikePenalty', async (t) => {
 
     const ghostDoc = await db.collection('players').doc('ghost-reporter').get();
     assert.strictEqual(ghostDoc.exists, false);
+  });
+
+  // ── Step 5 review fixes (2026-09-24) ──────────────────────────────────
+
+  const seedPending = () => db.collection('state').doc('global').set({
+    pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'opponent', winnerId: 'reporter', loserId: 'opponent', status: 'pending' }]
+  });
+
+  await t.test('legacy account: opponent whose player id != auth uid can dispute', async () => {
+    await db.collection('state').doc('global').set({
+      pending: [{ id: 'p1', reporterId: 'reporter', opponentId: 'legacyO', status: 'pending' }]
+    });
+    await db.collection('players').doc('legacyO').set({ rating: 500, logStrikes: 0, firebaseUid: 'authO' });
+    const result = await applyStrikePenaltyHandler(db, fakeRequest('authO', { pendingId: 'p1' }));
+    assert.strictEqual(result.duplicate, false);
+    assert.strictEqual((await db.collection('players').doc('legacyO').get()).data().logStrikes, 1);
+  });
+
+  await t.test('confirm then dispute the same pendingId: the dispute is rejected', async () => {
+    await seedPending();
+    await submitMatchResultHandler(db, fakeRequest('opponent', { gameId: 'g1', winnerId: 'reporter', loserId: 'opponent', pendingId: 'p1' }));
+    await assert.rejects(
+      () => applyStrikePenaltyHandler(db, fakeRequest('opponent', { pendingId: 'p1' })),
+      (err) => err.code === 'already-exists'
+    );
+  });
+
+  await t.test('dispute then confirm the same pendingId: the confirm is rejected', async () => {
+    await seedPending();
+    await applyStrikePenaltyHandler(db, fakeRequest('opponent', { pendingId: 'p1' }));
+    await assert.rejects(
+      () => submitMatchResultHandler(db, fakeRequest('opponent', { gameId: 'g1', winnerId: 'reporter', loserId: 'opponent', pendingId: 'p1' })),
+      (err) => err.code === 'already-exists'
+    );
+    assert.strictEqual((await db.collection('games').doc('g1').get()).exists, false);
   });
 });

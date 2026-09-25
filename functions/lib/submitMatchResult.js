@@ -3,6 +3,7 @@
 const { requireAuth, requireNonEmptyString, optionalString, optionalArray, HttpsError } = require('./validate');
 const { calcRatings, START_RATING } = require('./elo');
 const { checkBadgesServer } = require('./badges');
+const { resolveCallerPlayerId } = require('./identity');
 
 /**
  * Reads this player's games (both as winner and as loser) from the `games`
@@ -27,23 +28,28 @@ async function readPriorGames(tx, db, playerId) {
  * liveGames/{id} or pending entry, there is nothing server-side to check
  * the caller against, and "is signed in" alone is not authorization.
  *
- * Returns { strikeUids: Set<string> } — uids the server itself determined
- * hit 3 live-dispute strikes and must lose 1 rating point before ELO runs.
- * Never trusts a client-supplied strikePenalties field for this.
+ * callerId is the caller's resolved PLAYER id (lib/identity.js), not their
+ * auth uid — the two differ for legacy accounts.
+ *
+ * Returns { resolutionKey, resolutionKind, strikeUids } — resolutionKey
+ * names the resolutions/{key} doc that records this live game / pending
+ * entry as settled (see submitMatchResultHandler), and strikeUids are the
+ * players the server itself determined hit 3 live-dispute strikes and must
+ * lose 1 rating point before ELO runs. Never trusts a client-supplied
+ * strikePenalties field for this.
  */
-async function authorizeAndGetStrikes(tx, db, uid, { liveGameId, pendingId, winnerId, loserId, gameId }) {
+async function authorizeAndGetStrikes(tx, db, callerId, { liveGameId, pendingId, winnerId, loserId }) {
   if (liveGameId && pendingId) {
     throw new HttpsError('invalid-argument', 'Provide only one of liveGameId or pendingId, not both.');
   }
 
   if (liveGameId) {
-    const liveRef = db.collection('liveGames').doc(liveGameId);
-    const liveSnap = await tx.get(liveRef);
+    const liveSnap = await tx.get(db.collection('liveGames').doc(liveGameId));
     if (!liveSnap.exists) {
       throw new HttpsError('permission-denied', 'No matching live game found for this caller.');
     }
     const live = liveSnap.data();
-    const isParty = uid === live.p1 || uid === live.p2 || uid === live.judgeId;
+    const isParty = callerId === live.p1 || callerId === live.p2 || callerId === live.judgeId;
     if (!isParty) {
       throw new HttpsError('permission-denied', 'Caller is not a participant in this live game.');
     }
@@ -51,20 +57,12 @@ async function authorizeAndGetStrikes(tx, db, uid, { liveGameId, pendingId, winn
     if (!players.has(winnerId) || !players.has(loserId) || winnerId === loserId) {
       throw new HttpsError('invalid-argument', 'winnerId/loserId do not match this live game.');
     }
-    if (live.resultSubmitted === true) {
-      if (live.resultGameId === gameId) {
-        // Same gameId as before: benign retry, the games/{gameId} existence
-        // check below handles returning a safe duplicate response.
-      } else {
-        throw new HttpsError('already-exists', 'A result has already been submitted for this live game.');
-      }
-    }
     const strikes = live.strikes || {};
     const strikeUids = new Set();
     for (const pid of [live.p1, live.p2]) {
       if ((strikes[pid] || 0) >= 3) strikeUids.add(pid);
     }
-    return { liveRef, strikeUids };
+    return { resolutionKey: `live_${liveGameId}`, resolutionKind: 'live', strikeUids };
   }
 
   if (pendingId) {
@@ -74,13 +72,13 @@ async function authorizeAndGetStrikes(tx, db, uid, { liveGameId, pendingId, winn
     if (!entry || entry.status !== 'pending') {
       throw new HttpsError('permission-denied', 'No matching pending result found for this caller.');
     }
-    if (uid !== entry.opponentId) {
+    if (callerId !== entry.opponentId) {
       throw new HttpsError('permission-denied', 'Only the opponent may confirm a pending result.');
     }
     if (entry.winnerId !== winnerId || entry.loserId !== loserId) {
       throw new HttpsError('invalid-argument', 'winnerId/loserId do not match the pending entry being confirmed.');
     }
-    return { liveRef: null, strikeUids: new Set() };
+    return { resolutionKey: `pending_${pendingId}`, resolutionKind: 'confirmed', strikeUids: new Set() };
   }
 
   throw new HttpsError('invalid-argument', 'Must provide liveGameId or pendingId to authorize this call.');
@@ -107,15 +105,30 @@ async function submitMatchResultHandler(db, request) {
   const pendingId = typeof data.pendingId === 'string' && data.pendingId ? data.pendingId : null;
 
   return db.runTransaction(async (tx) => {
-    const { liveRef, strikeUids } = await authorizeAndGetStrikes(tx, db, uid, {
-      liveGameId, pendingId, winnerId, loserId, gameId
+    const callerId = await resolveCallerPlayerId(tx, db, uid);
+    const { resolutionKey, resolutionKind, strikeUids } = await authorizeAndGetStrikes(tx, db, callerId, {
+      liveGameId, pendingId, winnerId, loserId
     });
 
+    // Idempotency is keyed on the EVENT (this live game / pending entry), not
+    // just the client-generated gameId. A gameId-only check let the same
+    // pending entry be applied N times with fresh gameIds (the server can't
+    // consume the entry — it lives on state/global, which this function must
+    // never write), and let a pending entry be both confirmed and disputed.
+    // The live game's own resultSubmitted flag can't serve either: liveGames
+    // is participant-writable, so it can be reset. resolutions/{key} is
+    // Cloud-Function-only (firestore.rules), shared with applyStrikePenalty.
+    const resolutionRef = db.collection('resolutions').doc(resolutionKey);
     const gameRef = db.collection('games').doc(gameId);
-    const gameSnap = await tx.get(gameRef);
-    if (gameSnap.exists) {
-      // Idempotent retry: same gameId already committed. Return success-
-      // shaped output from what's already stored, write nothing.
+    const [resolutionSnap, gameSnap] = await Promise.all([tx.get(resolutionRef), tx.get(gameRef)]);
+
+    if (resolutionSnap.exists) {
+      const r = resolutionSnap.data();
+      if (r.kind !== resolutionKind || r.gameId !== gameId || !gameSnap.exists) {
+        throw new HttpsError('already-exists', 'This result has already been settled.');
+      }
+      // Benign retry of the exact same submission: return success-shaped
+      // output from what's already stored, write nothing.
       const g = gameSnap.data();
       return {
         gameId, winnerId: g.winnerId, loserId: g.loserId,
@@ -123,6 +136,10 @@ async function submitMatchResultHandler(db, request) {
         winnerDelta: g.winnerDelta, loserDelta: g.loserDelta,
         duplicate: true
       };
+    }
+    if (gameSnap.exists) {
+      // gameId already belongs to some other game (e.g. a migrated one).
+      throw new HttpsError('already-exists', 'gameId is already in use.');
     }
 
     const winnerRef = db.collection('players').doc(winnerId);
@@ -139,6 +156,14 @@ async function submitMatchResultHandler(db, request) {
     // Strike penalty applied BEFORE calcRatings, matching finishLive()
     // (index.html:8507-8521): the ELO math starts from the post-penalty
     // rating, not the pre-penalty one.
+    //
+    // SECOND DELIBERATE DIVERGENCE (step 5 review, 2026-09-24): the client
+    // computes `Math.max(0, (p.rating || 0) - 1)`, so an UNRATED player who
+    // hits 3 strikes starts the ELO math from 0 (clamped to 100 afterwards),
+    // a ~300-point loss for a new player. That's a client bug; here an
+    // unrated player is START_RATING like everywhere else, so the math starts
+    // from 399. Step 6.5's diff will show a mismatch ONLY for an unrated
+    // player finishing a live game with 3 strikes, and that one is expected.
     const winnerRatingForElo = strikeUids.has(winnerId)
       ? Math.max(0, (winnerBefore.rating ?? START_RATING) - 1)
       : (winnerBefore.rating ?? START_RATING);
@@ -187,9 +212,7 @@ async function submitMatchResultHandler(db, request) {
     tx.set(winnerRef, { ...winnerAfter, badges: winnerBadges.badges }, { merge: true });
     tx.set(loserRef, { ...loserAfter, badges: loserBadges.badges }, { merge: true });
     tx.set(gameRef, game);
-    if (liveRef) {
-      tx.update(liveRef, { resultSubmitted: true, resultGameId: gameId });
-    }
+    tx.set(resolutionRef, { kind: resolutionKind, gameId, byPlayerId: callerId, resolvedAt: Date.now() });
 
     return {
       gameId, winnerId, loserId,
