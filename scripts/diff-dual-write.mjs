@@ -33,6 +33,12 @@ import { pathToFileURL } from 'url';
 // dated after this are the real step-6.5 sample.
 export const DUAL_WRITE_LIVE_AT = Date.parse('2026-09-25T15:19:33Z');
 
+// Step 7 gate (Ashton, 2026-09-25): 20-30 clean real matches since 6b went
+// live, with at least one live game, one handicap game and one dispute
+// among them. 20 is the minimum to pass; 30 is the target.
+export const GATE_MIN_GAMES = 20;
+export const GATE_TARGET_GAMES = 30;
+
 const PLAYER_STAT_FIELDS = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes'];
 const GAME_MATH_FIELDS = ['winnerId', 'loserId', 'player1StartRating', 'player1EndRating',
   'player2StartRating', 'player2EndRating', 'winnerDelta', 'loserDelta', 'score', 'handicap'];
@@ -83,6 +89,7 @@ export function compareDualWrite(state, cols) {
   let gamesMatched = 0;
   let sampleMatched = 0;
   let sampleTotal = 0;
+  const coverage = { live: 0, handicap: 0, disputes: 0 };
   for (const [id, a] of arrayGames) {
     const isSample = (a.date || 0) >= DUAL_WRITE_LIVE_AT;
     if (isSample) sampleTotal++;
@@ -98,7 +105,11 @@ export function compareDualWrite(state, cols) {
     if (cosmetic.length) add('COSMETIC', 'games', label, cosmetic.join('; '));
     if (!math.length) {
       gamesMatched++;
-      if (isSample) sampleMatched++;
+      if (isSample) {
+        sampleMatched++;
+        if (Array.isArray(a.liveLog) && a.liveLog.length) coverage.live++;
+        if (a.handicap) coverage.handicap++;
+      }
     }
   }
   for (const [id, s] of cols.games) {
@@ -134,6 +145,7 @@ export function compareDualWrite(state, cols) {
 
   // ── resolutions → games ──
   for (const [key, r] of cols.resolutions) {
+    if (r.kind === 'disputed' && (r.resolvedAt || 0) >= DUAL_WRITE_LIVE_AT) coverage.disputes++;
     if ((r.kind === 'confirmed' || r.kind === 'live') && !cols.games.has(r.gameId)) {
       add('MISMATCH', 'resolutions', key, `settled as ${r.kind} with gameId ${r.gameId}, but games/${r.gameId} does not exist`);
     }
@@ -158,8 +170,18 @@ export function compareDualWrite(state, cols) {
   const messagesMatched = compareSimple('messages', state.messages, cols.messages, MESSAGE_FIELDS);
   const friendRequestsMatched = compareSimple('friendRequests', state.friendRequests, cols.friendRequests, FRIEND_REQUEST_FIELDS);
 
+  const mismatchCount = findings.filter((f) => f.severity === 'MISMATCH').length;
+  const gate = {
+    clean: mismatchCount === 0,
+    enoughGames: sampleMatched >= GATE_MIN_GAMES,
+    coverage,
+    covered: coverage.live > 0 && coverage.handicap > 0 && coverage.disputes > 0
+  };
+  gate.passed = gate.clean && gate.enoughGames && gate.covered;
+
   return {
     findings,
+    gate,
     stats: {
       games: { array: arrayGames.size, server: cols.games.size, matched: gamesMatched },
       sinceDualWrite: { games: sampleTotal, matched: sampleMatched },
@@ -182,7 +204,7 @@ export async function loadFromFirestore(db) {
   return { state: globalSnap.data(), cols };
 }
 
-export function printReport({ findings, stats }) {
+export function printReport({ findings, stats, gate }) {
   const s = stats;
   console.log('Counts (array / server / matched):');
   for (const k of ['games', 'players', 'messages', 'friendRequests']) {
@@ -200,6 +222,16 @@ export function printReport({ findings, stats }) {
   }
   const mismatches = findings.filter((f) => f.severity === 'MISMATCH').length;
   console.log(mismatches ? `${mismatches} MISMATCH(ES): not clean for step 7.` : 'CLEAN: no mismatches.');
+
+  const c = gate.coverage;
+  const tick = (ok) => (ok ? 'x' : ' ');
+  console.log(`\nStep 7 gate (${GATE_MIN_GAMES}-${GATE_TARGET_GAMES} clean matches):`);
+  console.log(`  [${tick(gate.clean)}] no mismatches`);
+  console.log(`  [${tick(gate.enoughGames)}] ${s.sinceDualWrite.matched}/${GATE_MIN_GAMES} clean matches since 6b (target ${GATE_TARGET_GAMES})`);
+  console.log(`  [${tick(c.live > 0)}] live game (${c.live})`);
+  console.log(`  [${tick(c.handicap > 0)}] handicap game (${c.handicap})`);
+  console.log(`  [${tick(c.disputes > 0)}] dispute (${c.disputes})`);
+  console.log(gate.passed ? '  GATE PASSED: step 7 (read cutover) is unblocked.' : '  Gate not passed yet.');
   return mismatches;
 }
 

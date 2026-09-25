@@ -68,6 +68,28 @@ const sev = (r, s, section) => r.findings.filter((f) => f.severity === s && (!se
   check('sample counts only games since 6b went live', r.stats.sinceDualWrite.games === 1 && r.stats.sinceDualWrite.matched === 1);
 }
 
+{
+  // Fixture sample: g-new is 1 clean, handicapped, live-logged game; no
+  // disputes after the go-live time (pending_p2 has no resolvedAt).
+  const r = compareDualWrite(...Object.values(fixture()));
+  check('gate: coverage counts live + handicap from clean sample games', r.gate.coverage.live === 1 && r.gate.coverage.handicap === 1 && r.gate.coverage.disputes === 0);
+  check('gate: 1 game and no dispute does not pass', !r.gate.passed && !r.gate.enoughGames && !r.gate.covered);
+
+  const f = fixture();
+  for (let i = 0; i < 19; i++) {
+    const g = { ...JSON.parse(JSON.stringify(f.state.games[1])), id: `g-extra-${i}`, handicap: null, liveLog: [] };
+    f.state.games.push(g);
+    f.cols.games.set(g.id, JSON.parse(JSON.stringify(g)));
+  }
+  f.cols.resolutions.set('pending_d', { kind: 'disputed', resolvedAt: DUAL_WRITE_LIVE_AT + 1 });
+  const r2 = compareDualWrite(f.state, f.cols);
+  check('gate: 20 clean games + live + handicap + dispute passes', r2.gate.passed, JSON.stringify(r2.gate));
+
+  f.cols.games.get('g-extra-0').player1EndRating = 1;
+  const r3 = compareDualWrite(f.state, f.cols);
+  check('gate: one mismatch fails the gate even with enough games', !r3.gate.passed && !r3.gate.clean);
+}
+
 const cases = [
   ['game rating math differs', ({ cols }) => { cols.games.get('g-new').player1EndRating = 420; }, 'MISMATCH', 'games'],
   ['game handicap value differs', ({ cols }) => { cols.games.get('g-new').handicap = { hcap: 2, higherId: 'legacy-1' }; }, 'MISMATCH', 'games'],
