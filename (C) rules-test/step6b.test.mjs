@@ -152,6 +152,28 @@ async function main() {
     await assertSucceeds(as('bob-uid').doc('friendRequests/fr-pending-in').delete());
   });
 
+  // ── adminDeleteGame(): targeted transaction on state/global + games/{id} ──
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await db.doc('state/global').set({
+      players: [{ id: 'bob-uid' }],
+      games: [{ id: 'g-keep', winnerId: 'bob-uid' }, { id: 'g-del', winnerId: 'bob-uid' }],
+      reports: []
+    });
+    await db.doc('games/g-del').set({ id: 'g-del' });
+  });
+  const adminDb = testEnv.authenticatedContext('admin-uid', { email: 'ashtonattar@gmail.com' }).firestore();
+  await check('admin: targeted transaction removes one game from state/global.games', async () => {
+    const ref = adminDb.doc('state/global');
+    await assertSucceeds(adminDb.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      tx.update(ref, { games: snap.data().games.filter((g) => g.id !== 'g-del') });
+    }));
+  });
+  await check('admin: games/{id} delete', async () => {
+    await assertSucceeds(adminDb.doc('games/g-del').delete());
+  });
+
   console.log(`\n${passed} checks passed.\n`);
   await testEnv.cleanup();
 }

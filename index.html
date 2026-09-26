@@ -13809,10 +13809,38 @@ function renderAdminGames(panel) {
     </div>`;
 }
 
+// Deletes the game from BOTH copies (rollout step 6b dual-write). It used to
+// drop it locally and call save(), but _saveToFirestore()'s safety guard
+// blocks any save with fewer games than the server, so the delete never
+// landed and the game reappeared on the next snapshot. Now: a targeted
+// transaction on state/global's games array (same idea as _updateArrayField,
+// not a full-doc save, so the guard isn't involved), plus a delete of
+// games/{id} (admin-only in firestore.rules). Ratings are not recalculated in
+// either copy, as the dialog says.
 function adminDeleteGame(id) {
-  confirm_('Delete Game', 'Ratings will NOT be recalculated — only the record is removed.', () => {
+  confirm_('Delete Game', 'Ratings will NOT be recalculated — only the record is removed.', async () => {
+    if (!db) { toast('No connection — game not deleted.', 'err'); return; }
+    const ref = db.collection('state').doc('global');
+    try {
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const games = (snap.data() && snap.data().games) || [];
+        if (games.some(g => g.id === id)) tx.update(ref, { games: games.filter(g => g.id !== id) });
+      });
+    } catch (e) {
+      console.warn('Admin game delete failed:', e);
+      toast('Delete failed — the game was not removed.', 'err');
+      return;
+    }
+    // After the state/global delete, so a failure here leaves a server-only
+    // copy that npm run diff:prod reports, never a silently half-done delete.
+    try { await db.collection('games').doc(id).delete(); }
+    catch (e) {
+      console.warn('[dual-write] games/ delete failed:', e.code || e.message);
+      toast(`Removed from rankings, but games/${id} could not be deleted — the step 6.5 diff will flag it.`, 'err');
+    }
     S.games = S.games.filter(g => g.id !== id);
-    save();
+    try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
     toast('Game deleted.', 'ok');
     renderAdminStats();
     adminTab('games');
