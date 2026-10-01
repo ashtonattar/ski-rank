@@ -2,6 +2,7 @@
 
 const { requireAuth, requireNonEmptyString, HttpsError } = require('./validate');
 const { resolveCallerPlayerId } = require('./identity');
+const { START_RATING } = require('./elo');
 
 /**
  * DELIBERATE DIVERGENCE from the spec's literal `{ playerId, gameId }` input:
@@ -85,7 +86,11 @@ async function applyStrikePenaltyHandler(db, request) {
       const p = snap.data();
       const logStrikes = (p.logStrikes ?? 0) + 1;
       if (logStrikes >= 3) {
-        const rating = Math.max(0, (p.rating ?? 0) - 1);
+        // Unrated (absent/null) counts as START_RATING, matching calcRatings
+        // and applyLogStrike() in index.html. `?? 0` used to drop a new
+        // player from 4.00 to 0.00 for one strike (found by the step-6.5
+        // emulator sim, 2026-10-01).
+        const rating = Math.max(0, (p.rating ?? START_RATING) - 1);
         tx.set(ref, { logStrikes: 0, rating }, { merge: true });
         return { penalized: true, skipped: false };
       }

@@ -8648,7 +8648,9 @@ function finishLive(winnerId, loserId) {
     if ((strikes[pid] || 0) >= 3) {
       const p = byId(pid);
       if (p) {
-        p.rating = Math.max(0, (p.rating || 0) - 1);
+        // Unrated (null) counts as START_RATING, same as calcRatings: `|| 0`
+        // here used to drop a new player from 4.00 to 0.00 for one strike.
+        p.rating = Math.max(0, (p.rating ?? START_RATING) - 1);
         addLog('<svg class="icon icon-bolt"><use href="#i-bolt"/></svg>', `${p.name} hit 3 strikes — loses 1 rating point!`);
       }
     }
@@ -12317,7 +12319,8 @@ function applyLogStrike(playerId) {
   if (!p) return;
   p.logStrikes = (p.logStrikes || 0) + 1;
   if (p.logStrikes >= 3) {
-    p.rating = Math.max(0, (p.rating || 0) - 1);
+    // Unrated (null) counts as START_RATING, same as calcRatings (see finishLive).
+    p.rating = Math.max(0, (p.rating ?? START_RATING) - 1);
     p.logStrikes = 0; // reset after penalty
     toast(`${p.name} hit 3 dispute strikes — lost 1 rating point! <svg class="icon icon-bolt"><use href="#i-bolt"/></svg>`, p.id === currentUser?.id ? 'err' : 'ok');
   }

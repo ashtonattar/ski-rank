@@ -218,13 +218,11 @@ test('submitMatchResult', async (t) => {
     );
   });
 
-  await t.test('deliberate divergence #2: unrated player with 3 strikes starts ELO from 399, not the client\'s 0', async () => {
+  await t.test('unrated player with 3 strikes starts ELO from 399 (START_RATING - 1), same as finishLive()', async () => {
     await db.collection('players').doc('l').set({ rating: 500, gamesPlayed: 10 });
     await seedLive(db, 'lg1', { p1: 'w', p2: 'l', judgeId: null, strikes: { w: 3 } });
     const result = await submitMatchResultHandler(db, fakeRequest('w', { gameId: 'g1', winnerId: 'w', loserId: 'l', liveGameId: 'lg1' }));
     const expected = calcRatings({ rating: 399, gamesPlayed: 0 }, { rating: 500, gamesPlayed: 10 }, '');
     assert.strictEqual(result.winnerNew, expected.winnerNew);
-    const clientBehaviour = calcRatings({ rating: 0, gamesPlayed: 0 }, { rating: 500, gamesPlayed: 10 }, '');
-    assert.notStrictEqual(result.winnerNew, clientBehaviour.winnerNew);
   });
 });

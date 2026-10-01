@@ -19,10 +19,10 @@
 // Known, documented differences (not flagged as MISMATCH):
 //   - players/{id} docs with no array entry: deleteAccount() doesn't remove
 //     the doc yet (needs a callable, see PROJECT_STATUS.md step 6b).
-// Known, but NOT auto-detected (shows up as a MISMATCH to be explained by
-// hand): an UNRATED player finishing a live game with 3 strikes. The client
-// starts that ELO from 0, the server from START_RATING (deliberate fix,
-// functions/lib/submitMatchResult.js "SECOND DELIBERATE DIVERGENCE").
+// An UNRATED player taking a strike penalty (dispute or live game) used to
+// be a hand-explained MISMATCH: the client started from 0, the server from
+// START_RATING. Both use START_RATING since 2026-10-01, but a game played
+// on a client cached from before that fix can still show it.
 //
 // Run against prod (read-only, no confirm flag needed):
 //   GCLOUD_PROJECT=skirank-b3b70 node scripts/diff-dual-write.mjs --prod

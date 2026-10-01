@@ -62,6 +62,19 @@ test('applyStrikePenalty', async (t) => {
     assert.strictEqual(opponent.rating, 499);
   });
 
+  await t.test('the 3rd strike on an UNRATED player costs 1 point from START_RATING, not the whole rating', async () => {
+    await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
+    await db.collection('players').doc('reporter').set({ rating: null, logStrikes: 2 });
+    await db.collection('players').doc('opponent').set({ logStrikes: 2 }); // rating absent
+
+    await applyStrikePenaltyHandler(db, fakeRequest('opponent', { pendingId: 'p1' }));
+
+    const reporter = (await db.collection('players').doc('reporter').get()).data();
+    const opponent = (await db.collection('players').doc('opponent').get()).data();
+    assert.strictEqual(reporter.rating, 399);
+    assert.strictEqual(opponent.rating, 399);
+  });
+
   await t.test('idempotency: retrying the same pendingId does not double-penalize', async () => {
     await seedPendingResult(db, 'p1', { reporterId: 'reporter', opponentId: 'opponent', status: 'pending' });
     await db.collection('players').doc('reporter').set({ rating: 500, logStrikes: 2 });

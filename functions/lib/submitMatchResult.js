@@ -204,13 +204,10 @@ async function submitMatchResultHandler(db, request) {
     // (index.html:8507-8521): the ELO math starts from the post-penalty
     // rating, not the pre-penalty one.
     //
-    // SECOND DELIBERATE DIVERGENCE (step 5 review, 2026-09-24): the client
-    // computes `Math.max(0, (p.rating || 0) - 1)`, so an UNRATED player who
-    // hits 3 strikes starts the ELO math from 0 (clamped to 100 afterwards),
-    // a ~300-point loss for a new player. That's a client bug; here an
-    // unrated player is START_RATING like everywhere else, so the math starts
-    // from 399. Step 6.5's diff will show a mismatch ONLY for an unrated
-    // player finishing a live game with 3 strikes, and that one is expected.
+    // An UNRATED player who hits 3 strikes is START_RATING like everywhere
+    // else, so the math starts from 399. (This was a deliberate divergence
+    // until 2026-10-01: the client used `(p.rating || 0) - 1` and started
+    // from 0. finishLive() now uses `?? START_RATING` too.)
     const winnerRatingForElo = strikeUids.has(winnerId)
       ? Math.max(0, (winnerBefore.rating ?? START_RATING) - 1)
       : (winnerBefore.rating ?? START_RATING);
