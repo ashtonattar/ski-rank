@@ -64,11 +64,21 @@ function norm(v) {
   return JSON.stringify(stable(v));
 }
 
-function fieldDiffs(a, b, fields) {
+function fieldDiffs(a, b, fields, zeroDefault = []) {
+  const val = (o, f) => (zeroDefault.includes(f) ? (o[f] ?? 0) : o[f]);
   return fields
-    .filter((f) => norm(a[f]) !== norm(b[f]))
+    .filter((f) => norm(val(a, f)) !== norm(val(b, f)))
     .map((f) => `${f}: array=${norm(a[f])} server=${norm(b[f])}`);
 }
+
+// Counters a players/ doc may simply not have yet: the client's profile
+// mirror strips them (only the server may write them), so a brand-new
+// signup's doc has none until its first game, while its array entry carries
+// explicit 0s. The server reads absent as 0 (`?? 0` throughout
+// functions/lib), so absent and 0 are the same value here. Found on the
+// first real post-6b signup (2026-10-01). NOT rating: absent/null rating
+// means unrated (START_RATING), never 0.
+const PLAYER_ZERO_DEFAULT = ['wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes'];
 
 function sortedBadges(p) {
   return Array.isArray(p.badges) ? [...p.badges].sort() : [];
@@ -129,7 +139,7 @@ export function compareDualWrite(state, cols) {
       add('MISMATCH', 'players', label, 'no players/ doc: the profile mirror never created it');
       continue;
     }
-    const diffs = fieldDiffs(a, s, PLAYER_STAT_FIELDS);
+    const diffs = fieldDiffs(a, s, PLAYER_STAT_FIELDS, PLAYER_ZERO_DEFAULT);
     if (norm(sortedBadges(a)) !== norm(sortedBadges(s))) {
       diffs.push(`badges: array=${norm(sortedBadges(a))} server=${norm(sortedBadges(s))}`);
     }

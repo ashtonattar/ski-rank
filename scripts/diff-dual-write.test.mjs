@@ -63,6 +63,16 @@ function fixture() {
 const sev = (r, s, section) => r.findings.filter((f) => f.severity === s && (!section || f.section === section));
 
 {
+  // A brand-new signup's mirrored doc has no counters at all (the mirror
+  // strips them); its array entry has explicit 0s. Must be CLEAN.
+  const f = fixture();
+  f.state.players.push({ id: 'fresh', name: 'F', rating: null, wins: 0, losses: 0, gamesPlayed: 0, badges: [] });
+  f.cols.players.set('fresh', { id: 'fresh', name: 'F' });
+  const r = compareDualWrite(f.state, f.cols);
+  check('fresh signup: absent counters == explicit 0s (and absent badges == [])', r.findings.length === 0, JSON.stringify(r.findings));
+}
+
+{
   const r = compareDualWrite(...Object.values(fixture()));
   check('identical copies are CLEAN (null≡absent, badge order, map key order, date, liveLog ignored)', r.findings.length === 0, JSON.stringify(r.findings));
   check('sample counts only games since 6b went live', r.stats.sinceDualWrite.games === 1 && r.stats.sinceDualWrite.matched === 1);
@@ -100,6 +110,8 @@ const cases = [
   ['player rating differs', ({ cols }) => { cols.players.get('legacy-1').rating = 418; }, 'MISMATCH', 'players'],
   ['player logStrikes differs (dispute path)', ({ cols }) => { cols.players.get('legacy-1').logStrikes = 0; }, 'MISMATCH', 'players'],
   ['player badges differ', ({ cols }) => { cols.players.get('legacy-1').badges = ['b1']; }, 'MISMATCH', 'players'],
+  ['player rating null vs 0 is still a mismatch (unrated != 0)', ({ state, cols }) => { cols.players.get('native-uid').rating = 0; }, 'MISMATCH', 'players'],
+  ['player wins 0 vs 1 is still a mismatch', ({ cols }) => { cols.players.get('native-uid').wins = 1; cols.players.get('native-uid').losses = 1; }, 'MISMATCH', 'players'],
   ['player with no players/ doc', ({ cols }) => { cols.players.delete('native-uid'); }, 'MISMATCH', 'players'],
   ['players/ doc with no array entry is KNOWN (deleted account)', ({ state }) => { state.players.pop(); }, 'KNOWN', 'players'],
   ['resolution pointing at a missing game', ({ cols }) => { cols.resolutions.set('live_x', { kind: 'live', gameId: 'nope' }); }, 'MISMATCH', 'resolutions'],
