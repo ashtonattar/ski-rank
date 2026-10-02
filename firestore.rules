@@ -342,10 +342,17 @@ service cloud.firestore {
       // collection" as step 7 currently reads; the participant-only rule
       // itself is correct and is the whole point of closing the finding #3
       // hole, so the fix belongs in the client listener code, not here.
+      //
+      // Step 7 (Ashton approved 2026-10-01): callerIsPlayer() as well as the
+      // plain uid check, so a legacy account (player id != auth uid) can read
+      // its OWN messages through the scoped queries. Still participant-only.
+      // The uid checks come first so a native caller never pays for a get().
       allow read: if isSignedIn() &&
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
-         isAdmin());
+         isAdmin() ||
+         callerIsPlayer(resource.data.fromId) ||
+         callerIsPlayer(resource.data.toId));
       // callerIsPlayer(), not auth.uid == fromId: fromId is the sender's
       // player id, which isn't their auth uid for legacy accounts (step 6a).
       allow create: if callerIsPlayer(request.resource.data.fromId) &&
@@ -359,10 +366,13 @@ service cloud.firestore {
       // the same step-7 consequence: scoped where('fromId','==',me) +
       // where('toId','==',me) queries, merged client-side, not a bare
       // collection listener (see the messages/ comment above for why).
+      // Legacy-safe for the step-7 scoped queries, same as messages/ above.
       allow read: if isSignedIn() &&
         (request.auth.uid == resource.data.fromId ||
          request.auth.uid == resource.data.toId ||
-         isAdmin());
+         isAdmin() ||
+         callerIsPlayer(resource.data.fromId) ||
+         callerIsPlayer(resource.data.toId));
       allow create: if callerIsPlayer(request.resource.data.fromId) &&
         request.resource.data.status == 'pending';
       // Only the recipient may accept/decline, only while still pending, and

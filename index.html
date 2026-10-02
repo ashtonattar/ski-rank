@@ -4016,6 +4016,164 @@ function _mirrorMyPlayer() {
     });
 }
 
+// ── Read cutover (rollout step 7) ───────────────────────────────────────────
+// What users SEE now comes from the server-owned collections: every player's
+// server-owned stats (rating, wins, losses, gamesPlayed, peakRating,
+// logStrikes, badges) from players/, the match list from games/, and the
+// user's own messages/friend requests from two scoped queries each
+// (fromId == me, toId == me; a bare collection listener is rejected by the
+// participant-only rules). Profile fields (name, bio, friends, lastRead...)
+// deliberately stay on state/global until step 8: acceptFriendRequest() and
+// unfriend() edit the OTHER player's `friends`, and only a player's own
+// client can mirror its doc, so reading them from players/ would lose those
+// edits (Ashton, 2026-10-01).
+//
+// _applyColReads() overlays the collections onto S after every state/global
+// snapshot and every collection snapshot. Each source only takes over once
+// its listener has delivered, and drops back to the state/global copy if it
+// errors, so a missing rule or a legacy account with no Firebase Auth session
+// simply sees the old arrays (which dual-write keeps current until step 8).
+const _SERVER_PLAYER_FIELDS = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges'];
+let _colPlayers = null;               // Map playerId → players/ doc data; null = not loaded
+let _colGames = null;                 // games/ docs; null = not loaded
+const _colSocial = {                  // per collection, Map id → doc for each scoped query
+  messages:       { from: null, to: null },
+  friendRequests: { from: null, to: null }
+};
+const _optimisticGames = new Map();   // id → { game, at }: games commitGame() pushed that games/ hasn't echoed yet
+const _OPTIMISTIC_GAME_MS = 60000;    // after this, a game the server never wrote (rejected call) drops out
+let _colUnsubs = [];
+let _colRefreshTimer = null;
+
+function _applyColReads() {
+  if (_colPlayers) {
+    S.players.forEach(p => {
+      const d = _colPlayers.get(p.id);
+      if (!d) return; // no players/ doc yet (signup mirror in flight): keep the array copy
+      // Absent counters mean 0: a new signup's mirrored doc has none until its
+      // first game (2026-10-01 diff finding). Absent rating means unrated.
+      p.rating      = d.rating ?? null;
+      p.wins        = d.wins ?? 0;
+      p.losses      = d.losses ?? 0;
+      p.gamesPlayed = d.gamesPlayed ?? 0;
+      p.peakRating  = d.peakRating ?? 0;
+      p.logStrikes  = d.logStrikes ?? 0;
+      p.badges      = Array.isArray(d.badges) ? [...d.badges] : [];
+      if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null; // same normalisation as the state/global snapshot
+    });
+  }
+  if (_colGames) {
+    const ids = new Set(_colGames.map(g => g.id));
+    const now = Date.now();
+    const extra = [];
+    _optimisticGames.forEach((v, id) => {
+      if (ids.has(id) || now - v.at > _OPTIMISTIC_GAME_MS) _optimisticGames.delete(id);
+      else extra.push(v.game);
+    });
+    // The array was append-ordered (oldest first) and the views rely on that.
+    S.games = [..._colGames, ...extra].sort((a, b) => (a.date || 0) - (b.date || 0));
+  }
+  ['messages', 'friendRequests'].forEach(k => {
+    const { from, to } = _colSocial[k];
+    if (!from || !to) return;
+    const merged = new Map([...from, ...to]);
+    S[k] = [...merged.values()].sort((a, b) => (a.date || 0) - (b.date || 0));
+  });
+}
+
+// A collection snapshot changed S outside the state/global handler: coalesce
+// the burst (up to 6 listeners) into one light re-render of the views that
+// show ratings, games, messages or requests.
+function _scheduleColRefresh() {
+  clearTimeout(_colRefreshTimer);
+  _colRefreshTimer = setTimeout(() => {
+    _applyColReads();
+    try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
+    checkNotifications();
+    updateMessagesBadge();
+    if (_activeChatId) openChat(_activeChatId, true);
+    const listEl = document.getElementById('friends-list-items');
+    if (listEl) renderFriendsView();
+    const safe = ['leaderboard', 'players', 'friends', 'confirmations'];
+    if (safe.includes(_activeSection)) nav(_activeSection);
+    if (_activeSection === 'profile') renderMyProfile();
+  }, 50);
+}
+
+function _startColReads() {
+  _stopColReads();
+  if (!db) return;
+  const onErr = (label, reset) => e => {
+    console.warn(`[read-cutover] ${label} listener failed, showing state/global instead:`, e.code || e.message);
+    reset();
+  };
+  _colUnsubs.push(db.collection('players').onSnapshot(snap => {
+    const m = new Map();
+    snap.forEach(d => m.set(d.id, d.data()));
+    _colPlayers = m;
+    _scheduleColRefresh();
+  }, onErr('players', () => { _colPlayers = null; })));
+  _colUnsubs.push(db.collection('games').onSnapshot(snap => {
+    _colGames = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+    _scheduleColRefresh();
+  }, onErr('games', () => { _colGames = null; })));
+
+  const me = currentUser?.id;
+  if (!me || !_fbAuth?.currentUser) return; // rules need a signed-in participant
+  ['messages', 'friendRequests'].forEach(k => {
+    [['from', 'fromId'], ['to', 'toId']].forEach(([side, field]) => {
+      _colUnsubs.push(db.collection(k).where(field, '==', me).onSnapshot(snap => {
+        const m = new Map();
+        snap.forEach(d => m.set(d.id, { ...d.data(), id: d.id }));
+        _colSocial[k][side] = m;
+        _scheduleColRefresh();
+      }, onErr(`${k} ${field}`, () => { _colSocial[k].from = null; _colSocial[k].to = null; })));
+    });
+  });
+}
+
+function _stopColReads() {
+  _colUnsubs.forEach(u => { try { u(); } catch(_) {} });
+  _colUnsubs = [];
+  clearTimeout(_colRefreshTimer);
+  _colPlayers = null;
+  _colGames = null;
+  ['messages', 'friendRequests'].forEach(k => { _colSocial[k].from = null; _colSocial[k].to = null; });
+}
+
+// Step 7: S.friendRequests now holds only the caller's own requests, so
+// writing it back whole would wipe everyone else's from state/global. Filter
+// the server copy in a transaction instead, and clean up the collection docs
+// the rules let this caller remove (step-8 gap otherwise: a deleted player's
+// requests would keep showing up in other people's lists). Resolves once the
+// collection cleanup is done (never rejects), so deleteAccount() can wait for
+// it before deleting the Firebase Auth user that the rules check.
+function _purgeFriendRequestsFor(playerId, challenges) {
+  if (!db) return Promise.resolve();
+  const ref = db.collection('state').doc('global');
+  db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const arr = (snap.data() && snap.data().friendRequests) || [];
+    tx.update(ref, {
+      friendRequests: arr.filter(r => r.fromId !== playerId && r.toId !== playerId),
+      challenges
+    });
+  }).catch(e => console.warn('Friend-request cleanup write failed:', e));
+  if (!_fbAuth?.currentUser) return Promise.resolve();
+  const purge = async field => {
+    const snap = await db.collection('friendRequests').where(field, '==', playerId).get();
+    for (const d of snap.docs) {
+      const r = d.data();
+      // Rules: a pending request can only be deleted by its sender (or an
+      // admin), so the recipient declines it first, which makes it settled.
+      if (r.status === 'pending' && r.toId === playerId && !_isAdminUser()) await d.ref.update({ status: 'declined' });
+      await d.ref.delete();
+    }
+  };
+  return Promise.all(['fromId', 'toId'].map(f => purge(f)
+    .catch(e => console.warn(`[read-cutover] friend request purge (${f}) failed:`, e.code || e.message))));
+}
+
 // Upload a video File to Firebase Storage and return its public download URL.
 // Shows upload progress via the Post Clip button text.
 // ── Cloudinary unsigned upload ────────────────────────────────────────────
@@ -4154,6 +4312,18 @@ async function _saveToFirestore(pendingCopy) {
     const safetySnap = await db.collection('state').doc('global').get();
     if (safetySnap.exists) {
       const remote = safetySnap.data();
+      // Step 7: S.games now comes from games/, so a game only the array has
+      // (an old-build tab's write, a rejected function call) isn't in it.
+      // The array stays the rollback copy until step 8, so never drop one:
+      // keep every remote game in place and append the ones it lacks.
+      // Without this the guard below would block every save while any such
+      // game exists.
+      const localById = new Map(copy.games.map(g => [g.id, g]));
+      const remoteIds = new Set((remote.games || []).map(g => g.id));
+      copy.games = [
+        ...(remote.games || []).map(g => localById.get(g.id) || g),
+        ...copy.games.filter(g => !remoteIds.has(g.id))
+      ];
       const remoteGames   = (remote.games   || []).length;
       const remotePlayers = (remote.players || []).length;
       if (copy.games.length < remoteGames || copy.players.length < remotePlayers - 1) {
@@ -4247,6 +4417,8 @@ function startFirestoreSync() {
   // real doc, so a stale/finished cached id is harmless.
   if (S.live && S.live.id) subscribeLiveGame(S.live.id);
 
+  _startColReads(); // rollout step 7: players/games/messages/friendRequests
+
   // Load avatars first, then subscribe so the first snapshot render has photos
   _loadAvatars().then(() => {
     _firestoreUnsub = db.collection('state').doc('global').onSnapshot(
@@ -4313,6 +4485,7 @@ function startFirestoreSync() {
           if (accepted && (!S.live || S.live.over)) {
             if (S.live) { unsubscribeLiveGame(); S.live = null; _gameOverDismissed = false; }
             Object.assign(S, fresh);
+            _applyColReads(); // step 7: collections win over the arrays
             try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
             checkNotifications();
             toast(`${accepted.toName} accepted! Game starting <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
@@ -4322,6 +4495,7 @@ function startFirestoreSync() {
           }
           if (declined) {
             Object.assign(S, fresh);
+            _applyColReads(); // step 7: collections win over the arrays
             S.liveInvites = S.liveInvites.filter(i => i.id !== declined.id);
             save();
             const invForm = document.getElementById('live-invite-form');
@@ -4358,6 +4532,7 @@ function startFirestoreSync() {
         const _myId = currentUser?.id;
         const _prevLastRead = _myId ? { ...(S.players.find(p => p.id === _myId)?.lastRead || {}) } : null;
         Object.assign(S, fresh);
+        _applyColReads(); // step 7: collections win over the arrays
         if (_myId && _prevLastRead) {
           const me = S.players.find(p => p.id === _myId);
           if (me) {
@@ -4488,6 +4663,7 @@ function startFirestoreSync() {
 
 function stopFirestoreSync() {
   if (_firestoreUnsub) { _firestoreUnsub(); _firestoreUnsub = null; }
+  _stopColReads();
   clearTimeout(_saveTimer);
   unsubscribeLiveGame();
 }
@@ -5274,21 +5450,22 @@ function deleteAccount() {
       }
       save();
       // friendRequests/challenges are excluded from the regular full-document save
-      // (see _saveToFirestore) — write the filtered arrays directly so this cleanup
-      // actually reaches Firestore instead of being silently dropped.
-      if (db) db.collection('state').doc('global').update({
-        friendRequests: S.friendRequests,
-        challenges: S.challenges
-      }).catch(e => console.warn('Account-delete cleanup write failed:', e));
+      // (see _saveToFirestore). Since step 7, S.friendRequests only holds this
+      // user's own requests, so the server copy is filtered in a transaction
+      // rather than overwritten with the local array.
+      const purged = _purgeFriendRequestsFor(currentUser.id, S.challenges);
       // Remove from Firestore auth store
       if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
-      // Remove from Firebase Auth
-      if (_fbAuth?.currentUser) _fbAuth.currentUser.delete().catch(()=>{});
+      // Remove from Firebase Auth, once the friendRequests/ cleanup (which
+      // needs this user's auth) is done; signing out waits for the same reason.
+      purged.finally(() => {
+        if (_fbAuth?.currentUser) _fbAuth.currentUser.delete().catch(()=>{});
+        if (_fbAuth) _fbAuth.signOut().catch(()=>{});
+      });
       // Sign out
       stopPolling();
       stopFirestoreSync();
       clearSession();
-      if (_fbAuth) _fbAuth.signOut().catch(()=>{});
       S = { players:[], games:[], pending:[], liveInvites:[], live:null, messages:[], friendRequests:[], challenges:[], tournaments:[] };
       load();
       _setFabVisible(false);
@@ -7911,6 +8088,7 @@ function commitGame(winnerId, loserId, tricks='', notes='', liveLog=[], score=''
   };
 
   S.games.push(game);
+  _optimisticGames.set(game.id, { game, at: Date.now() }); // step 7: shown until games/ echoes it
   winner.rating = c.winnerNew; winner.wins++;   winner.gamesPlayed++;
   loser.rating  = c.loserNew;  loser.losses++; loser.gamesPlayed++;
   winner.peakRating = Math.max(winner.peakRating ?? 0, c.winnerNew);
@@ -13777,12 +13955,9 @@ function adminDeleteUser(id) {
     S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
     save();
     // friendRequests/challenges are excluded from the regular full-document save
-    // (see _saveToFirestore) — write the filtered arrays directly so this bulk
-    // removal actually reaches Firestore instead of being silently dropped.
-    if (db) db.collection('state').doc('global').update({
-      friendRequests: S.friendRequests,
-      challenges: S.challenges
-    }).catch(e => console.warn('Admin delete-user cleanup write failed:', e));
+    // (see _saveToFirestore). Since step 7, S.friendRequests only holds the
+    // admin's own requests, so filter the server copy in a transaction.
+    _purgeFriendRequestsFor(id, S.challenges);
     toast(`${p.name} deleted.`, 'ok');
     renderAdminStats();
     adminTab('users');
