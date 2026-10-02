@@ -4141,25 +4141,39 @@ function _stopColReads() {
   ['messages', 'friendRequests'].forEach(k => { _colSocial[k].from = null; _colSocial[k].to = null; });
 }
 
-// Step 7: S.friendRequests now holds only the caller's own requests, so
-// writing it back whole would wipe everyone else's from state/global. Filter
-// the server copy in a transaction instead, and clean up the collection docs
-// the rules let this caller remove (step-8 gap otherwise: a deleted player's
-// requests would keep showing up in other people's lists). Resolves once the
-// collection cleanup is done (never rejects), so deleteAccount() can wait for
+// Removes a player's traces from state/global in ONE targeted transaction:
+// their friend requests and challenges, and with removePlayer (deleteAccount)
+// also their player entry, their id in everyone's `friends`, and their live
+// invites and pending reports. Targeted, never a write-back of local arrays:
+// since step 7 S.friendRequests only holds the caller's own requests, so
+// writing it back whole would wipe everyone else's. It also can't be a
+// debounced save(): deleteAccount() stops sync right away, and
+// stopFirestoreSync() clears _saveTimer, so the player was never actually
+// removed (found 2026-10-01). Then it deletes the player's friendRequests/
+// docs the rules let this caller remove (step-8 gap otherwise: a deleted
+// player's requests would keep showing in other people's lists). Resolves
+// once everything is done (never rejects), so deleteAccount() can wait for
 // it before deleting the Firebase Auth user that the rules check.
-function _purgeFriendRequestsFor(playerId, challenges) {
+function _purgeFriendRequestsFor(playerId, { removePlayer = false } = {}) {
   if (!db) return Promise.resolve();
   const ref = db.collection('state').doc('global');
-  db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const arr = (snap.data() && snap.data().friendRequests) || [];
-    tx.update(ref, {
-      friendRequests: arr.filter(r => r.fromId !== playerId && r.toId !== playerId),
-      challenges
-    });
-  }).catch(e => console.warn('Friend-request cleanup write failed:', e));
-  if (!_fbAuth?.currentUser) return Promise.resolve();
+  const notMine = r => r.fromId !== playerId && r.toId !== playerId;
+  const globalDone = db.runTransaction(async tx => {
+    const d = (await tx.get(ref)).data() || {};
+    const update = {
+      friendRequests: (d.friendRequests || []).filter(notMine),
+      challenges:     (d.challenges     || []).filter(notMine)
+    };
+    if (removePlayer) {
+      update.players = (d.players || [])
+        .filter(p => p.id !== playerId)
+        .map(p => (p.friends || []).includes(playerId) ? { ...p, friends: p.friends.filter(f => f !== playerId) } : p);
+      update.liveInvites = (d.liveInvites || []).filter(notMine);
+      update.pending     = (d.pending     || []).filter(r => r.winnerId !== playerId && r.loserId !== playerId);
+    }
+    tx.update(ref, update);
+  }).catch(e => console.warn('Player cleanup write failed:', e));
+  if (!_fbAuth?.currentUser) return globalDone;
   const purge = async field => {
     const snap = await db.collection('friendRequests').where(field, '==', playerId).get();
     for (const d of snap.docs) {
@@ -4170,8 +4184,8 @@ function _purgeFriendRequestsFor(playerId, challenges) {
       await d.ref.delete();
     }
   };
-  return Promise.all(['fromId', 'toId'].map(f => purge(f)
-    .catch(e => console.warn(`[read-cutover] friend request purge (${f}) failed:`, e.code || e.message))));
+  return Promise.all([globalDone, ...['fromId', 'toId'].map(f => purge(f)
+    .catch(e => console.warn(`[read-cutover] friend request purge (${f}) failed:`, e.code || e.message)))]);
 }
 
 // Upload a video File to Firebase Storage and return its public download URL.
@@ -5448,16 +5462,14 @@ function deleteAccount() {
       if (Array.isArray(S.friendRequests)) {
         S.friendRequests = S.friendRequests.filter(r => r.fromId !== currentUser.id && r.toId !== currentUser.id);
       }
-      save();
-      // friendRequests/challenges are excluded from the regular full-document save
-      // (see _saveToFirestore). Since step 7, S.friendRequests only holds this
-      // user's own requests, so the server copy is filtered in a transaction
-      // rather than overwritten with the local array.
-      const purged = _purgeFriendRequestsFor(currentUser.id, S.challenges);
+      // Not save(): stopFirestoreSync() below clears the debounce timer, so
+      // that write never happened and the player stayed in state/global. One
+      // targeted transaction does the same removal on the server copy.
+      const purged = _purgeFriendRequestsFor(currentUser.id, { removePlayer: true });
       // Remove from Firestore auth store
       if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
-      // Remove from Firebase Auth, once the friendRequests/ cleanup (which
-      // needs this user's auth) is done; signing out waits for the same reason.
+      // Remove from Firebase Auth, once the state/global and friendRequests/
+      // cleanup (both need this user's auth) is done; signing out waits too.
       purged.finally(() => {
         if (_fbAuth?.currentUser) _fbAuth.currentUser.delete().catch(()=>{});
         if (_fbAuth) _fbAuth.signOut().catch(()=>{});
@@ -13957,7 +13969,7 @@ function adminDeleteUser(id) {
     // friendRequests/challenges are excluded from the regular full-document save
     // (see _saveToFirestore). Since step 7, S.friendRequests only holds the
     // admin's own requests, so filter the server copy in a transaction.
-    _purgeFriendRequestsFor(id, S.challenges);
+    _purgeFriendRequestsFor(id);
     toast(`${p.name} deleted.`, 'ok');
     renderAdminStats();
     adminTab('users');
