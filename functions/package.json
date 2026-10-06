@@ -9,7 +9,7 @@
   "scripts": {
     "test:vectors": "node --test test/elo.vectors.test.js",
     "test:differential": "node --test test/elo.differential.test.js",
-    "test:emulator": "firebase emulators:exec --project demo-step5 \"node --test test/submitMatchResult.test.js && node --test test/applyStrikePenalty.test.js && node --test test/forgeryGate.test.js\"",
+    "test:emulator": "firebase emulators:exec --project demo-step5 \"node --test test/submitMatchResult.test.js && node --test test/applyStrikePenalty.test.js && node --test test/forgeryGate.test.js && node --test test/step8.test.js\"",
     "test": "npm run test:vectors && npm run test:differential && npm run test:emulator"
   },
   "dependencies": {
