@@ -1,3 +1,8 @@
+// (C) RETIRED once the step-8b client is live: from then on nothing writes
+// state/global's arrays, so every new game/message/request shows up here as
+// missing from the array. That's by design, not a dropped write. Before 8b
+// it's still the pre-push sanity check.
+//
 // (C) Step 6.5 observation-window diff: state/global's arrays (what the
 // client computes and users still see) vs the new collections (what the
 // Cloud Functions compute, unseen until step 7). READ-ONLY, never writes.

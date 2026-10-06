@@ -3992,14 +3992,21 @@ function _writeLiveJoin(gameId, p1Id, p2Id) {
 // snapshot, and skipped when nothing changed since the last mirror, so one
 // write per actual profile change.
 //
-// Other players' entries are NOT mirrored, even when this client edits them
-// (acceptFriendRequest/unfriend touch the other side's `friends`). Their own
-// client mirrors that the next time it syncs. Until step 8 retires the
-// arrays, these profile fields are only as trustworthy as state/global.
-const _PLAYER_MIRROR_SKIP = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges', 'firebaseUid', 'avatarUrl'];
+// Step 8: this is now the ONLY write path for a player's profile; save() no
+// longer writes state/global.players, and save() calls this straight away so
+// the players/ listener's local echo carries the edit (a later players/
+// snapshot rebuilds S.players and would otherwise revert it). `friends` is
+// skipped too: both sides of a friendship are written by the
+// acceptFriendRequest/removeFriend/deletePlayer callables, and a mirror of a
+// stale local copy would undo them.
+//
+// Only runs once the players/ listener has delivered. Before that, S.players
+// can be the stale state/global array or an old localStorage cache, and a
+// merge of either would overwrite newer profile edits on the server.
+const _PLAYER_MIRROR_SKIP = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges', 'firebaseUid', 'avatarUrl', 'friends'];
 let _lastPlayerMirror = null;
 function _mirrorMyPlayer() {
-  if (!db || !currentUser || !_fbAuth?.currentUser) return;
+  if (!db || !currentUser || !_fbAuth?.currentUser || !_colPlayers) return;
   const me = S.players.find(p => p.id === currentUser.id);
   if (!me) return;
   const data = JSON.parse(JSON.stringify(me));
@@ -4022,17 +4029,16 @@ function _mirrorMyPlayer() {
 // logStrikes, badges) from players/, the match list from games/, and the
 // user's own messages/friend requests from two scoped queries each
 // (fromId == me, toId == me; a bare collection listener is rejected by the
-// participant-only rules). Profile fields (name, bio, friends, lastRead...)
-// deliberately stay on state/global until step 8: acceptFriendRequest() and
-// unfriend() edit the OTHER player's `friends`, and only a player's own
-// client can mirror its doc, so reading them from players/ would lose those
-// edits (Ashton, 2026-10-01).
+// participant-only rules). Step 8: every player field comes from players/,
+// profile fields included; cross-player `friends` edits now go through the
+// acceptFriendRequest/removeFriend/deletePlayer callables.
 //
 // _applyColReads() overlays the collections onto S after every state/global
 // snapshot and every collection snapshot. Each source only takes over once
 // its listener has delivered, and drops back to the state/global copy if it
 // errors, so a missing rule or a legacy account with no Firebase Auth session
-// simply sees the old arrays (which dual-write keeps current until step 8).
+// simply sees the old arrays. Since step 8 nothing writes those arrays, so
+// they're a stale fallback that only shows until the listeners deliver.
 const _SERVER_PLAYER_FIELDS = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges'];
 let _colPlayers = null;               // Map playerId → players/ doc data; null = not loaded
 let _colGames = null;                 // games/ docs; null = not loaded
@@ -4047,9 +4053,13 @@ let _colRefreshTimer = null;
 
 function _applyColReads() {
   if (_colPlayers) {
-    S.players.forEach(p => {
-      const d = _colPlayers.get(p.id);
-      if (!d) return; // no players/ doc yet (signup mirror in flight): keep the array copy
+    // Step 8: S.players is rebuilt from players/ alone (every field).
+    const myId = currentUser?.id;
+    const prevMe = myId ? S.players.find(p => p.id === myId) : null;
+    const players = [];
+    _colPlayers.forEach((d, id) => {
+      const p = JSON.parse(JSON.stringify(d)); // the Map is reused across rebuilds; never alias it
+      p.id = id;
       // Absent counters mean 0: a new signup's mirrored doc has none until its
       // first game (2026-10-01 diff finding). Absent rating means unrated.
       p.rating      = d.rating ?? null;
@@ -4058,9 +4068,56 @@ function _applyColReads() {
       p.gamesPlayed = d.gamesPlayed ?? 0;
       p.peakRating  = d.peakRating ?? 0;
       p.logStrikes  = d.logStrikes ?? 0;
-      p.badges      = Array.isArray(d.badges) ? [...d.badges] : [];
-      if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null; // same normalisation as the state/global snapshot
+      if (!Array.isArray(p.badges))    p.badges    = [];
+      if (!Array.isArray(p.friends))   p.friends   = [];
+      if (!Array.isArray(p.following)) p.following = [];
+      if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null;
+      if (_avatarCache[id]) p.avatarUrl = _avatarCache[id];
+      players.push(p);
     });
+    const me = myId ? players.find(p => p.id === myId) : null;
+    if (me && prevMe) {
+      // Chat read-state: keep the newer timestamp per friend. A legacy account
+      // with no Firebase Auth session can't write its doc, so without this
+      // every snapshot reverts a just-read chat to unread, openChat() marks it
+      // read again, and it loops (the 2026-08 lastRead fix, moved here).
+      const merged = { ...(me.lastRead || {}) };
+      Object.entries(prevMe.lastRead || {}).forEach(([fid, ts]) => {
+        if ((merged[fid] || 0) < ts) merged[fid] = ts;
+      });
+      me.lastRead = merged;
+    } else if (myId && !_wipeInProgress) {
+      if (prevMe) {
+        // My doc isn't there yet (a signup's create in flight): keep my record
+        // and make sure it's written.
+        players.push(prevMe);
+        setTimeout(_mirrorMyPlayer, 0);
+      } else if (!_healPlayerDone) {
+        // Signed in but no player record anywhere: heal it. Gated on
+        // players/ having loaded, so a stale array can't trigger it.
+        _healPlayerDone = true;
+        players.push({
+          id:          myId,
+          name:        currentUser.name,
+          email:       currentUser.email,
+          riderType:   currentUser.riderType || 'skier',
+          homeResort:  '',
+          location:    '',
+          rating:      null,
+          wins:        0,
+          losses:      0,
+          gamesPlayed: 0,
+          badges:      [],
+          friends:     [],
+          following:   [],
+          createdAt:   Date.now()
+        });
+        setTimeout(_mirrorMyPlayer, 0);
+      }
+    }
+    // The array was append-ordered (oldest first); keep that order.
+    players.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    S.players = players;
   }
   if (_colGames) {
     const ids = new Set(_colGames.map(g => g.id));
@@ -4141,51 +4198,40 @@ function _stopColReads() {
   ['messages', 'friendRequests'].forEach(k => { _colSocial[k].from = null; _colSocial[k].to = null; });
 }
 
-// Removes a player's traces from state/global in ONE targeted transaction:
-// their friend requests and challenges, and with removePlayer (deleteAccount)
-// also their player entry, their id in everyone's `friends`, and their live
-// invites and pending reports. Targeted, never a write-back of local arrays:
-// since step 7 S.friendRequests only holds the caller's own requests, so
-// writing it back whole would wipe everyone else's. It also can't be a
-// debounced save(): deleteAccount() stops sync right away, and
-// stopFirestoreSync() clears _saveTimer, so the player was never actually
-// removed (found 2026-10-01). Then it deletes the player's friendRequests/
-// docs the rules let this caller remove (step-8 gap otherwise: a deleted
-// player's requests would keep showing in other people's lists). Resolves
-// once everything is done (never rejects), so deleteAccount() can wait for
-// it before deleting the Firebase Auth user that the rules check.
-function _purgeFriendRequestsFor(playerId, { removePlayer = false } = {}) {
+// Removes a player's traces from what's still on state/global, in ONE
+// targeted transaction: their challenges, and with removeAll (deleteAccount)
+// also their live invites and pending reports. Targeted, never a write-back
+// of local arrays, and not a debounced save(): deleteAccount() stops sync
+// right away and stopFirestoreSync() clears _saveTimer (found 2026-10-01).
+// Since step 8 the player entry, everyone's `friends` and the friendRequests/
+// docs are the deletePlayer callable's job, and state/global's players/
+// friendRequests arrays are no longer written. Never rejects.
+function _purgeGlobalFor(playerId, { removeAll = false } = {}) {
   if (!db) return Promise.resolve();
   const ref = db.collection('state').doc('global');
   const notMine = r => r.fromId !== playerId && r.toId !== playerId;
-  const globalDone = db.runTransaction(async tx => {
+  return db.runTransaction(async tx => {
     const d = (await tx.get(ref)).data() || {};
-    const update = {
-      friendRequests: (d.friendRequests || []).filter(notMine),
-      challenges:     (d.challenges     || []).filter(notMine)
-    };
-    if (removePlayer) {
-      update.players = (d.players || [])
-        .filter(p => p.id !== playerId)
-        .map(p => (p.friends || []).includes(playerId) ? { ...p, friends: p.friends.filter(f => f !== playerId) } : p);
+    const update = { challenges: (d.challenges || []).filter(notMine) };
+    if (removeAll) {
       update.liveInvites = (d.liveInvites || []).filter(notMine);
       update.pending     = (d.pending     || []).filter(r => r.winnerId !== playerId && r.loserId !== playerId);
     }
     tx.update(ref, update);
   }).catch(e => console.warn('Player cleanup write failed:', e));
-  if (!_fbAuth?.currentUser) return globalDone;
-  const purge = async field => {
-    const snap = await db.collection('friendRequests').where(field, '==', playerId).get();
-    for (const d of snap.docs) {
-      const r = d.data();
-      // Rules: a pending request can only be deleted by its sender (or an
-      // admin), so the recipient declines it first, which makes it settled.
-      if (r.status === 'pending' && r.toId === playerId && !_isAdminUser()) await d.ref.update({ status: 'declined' });
-      await d.ref.delete();
-    }
-  };
-  return Promise.all([globalDone, ...['fromId', 'toId'].map(f => purge(f)
-    .catch(e => console.warn(`[read-cutover] friend request purge (${f}) failed:`, e.code || e.message)))]);
+}
+
+// Calls a step-8 callable that a user action depends on (friends, account
+// deletion). Unlike the fire-and-forget dual-write calls, a failure here
+// means the change didn't happen, so the user is told. Resolves to the
+// result, or null on failure.
+async function _callFnOrToast(name, data, failMsg) {
+  if (!_fns || !_fbAuth?.currentUser) {
+    toast(`${failMsg} Sign out and back in, then try again.`, 'err');
+    return null;
+  }
+  try { return await _callFn(name, data); }
+  catch (e) { toast(failMsg, 'err'); return null; }
 }
 
 // Upload a video File to Firebase Storage and return its public download URL.
@@ -4287,14 +4333,20 @@ async function _saveToFirestore(pendingCopy) {
     // Use the pre-captured copy from save() so onSnapshots that arrive during
     // the debounce window can't overwrite our pending local changes.
     const copy = pendingCopy || JSON.parse(JSON.stringify(S));
-    copy.players.forEach(p => { delete p.avatarUrl; });
+    // Rollout step 8: players and games are no longer written here at all.
+    // Profiles go to players/{id} (_mirrorMyPlayer), ratings/stats and games
+    // only through the Cloud Functions. Writing them would recreate the 1 MiB
+    // doc and the rating-forgery hole this migration closes (Plan Pass 2
+    // finding #1). merge:true leaves the old arrays in place until step 9.
+    delete copy.players;
+    delete copy.games;
     // Live game state now lives in its own liveGames/{id} doc (see saveLiveGame) —
     // never write it into the shared global doc.
     delete copy.live;
-    // Chat messages are appended via a targeted arrayUnion update (see sendMessage) —
-    // omit them here so a stale local copy (racing another user's message) can never
-    // clobber messages someone else just sent. merge:true below means omitting a
-    // field just leaves it untouched server-side, not deleted.
+    // Messages and friend requests live in messages/ and friendRequests/ (step 8);
+    // S only holds this user's own, so writing them here would clobber everyone
+    // else's in the retired arrays. merge:true below means omitting a field just
+    // leaves it untouched server-side, not deleted.
     delete copy.messages;
     // Logged-game confirmation requests are added/removed via targeted arrayUnion/
     // arrayRemove updates (see submitLoggedGame/confirmGame/disputeGame/cancelPending) —
@@ -4304,12 +4356,9 @@ async function _saveToFirestore(pendingCopy) {
     // Reports are appended via a targeted arrayUnion update (see submitReport) —
     // same reasoning as messages/pending above.
     delete copy.reports;
-    // Friend requests / challenges are created via arrayUnion and mutated (accepted/
-    // declined/cancelled) via a targeted per-item transaction (see _updateArrayField,
-    // sendFriendRequest, acceptFriendRequest, etc.) — same reasoning as messages/pending;
-    // previously these went through this full-document save only, so two people sending
-    // requests (or one accepting while the debounce window was still open) could silently
-    // drop each other's write, same as the pre-fix messages bug.
+    // Challenges are created via arrayUnion and mutated via a targeted per-item
+    // transaction (see _updateArrayField) — a full-document save could silently drop
+    // another client's concurrent write, same as the pre-fix messages bug.
     delete copy.friendRequests;
     delete copy.challenges;
     // Explore-feed comments/likes/commentLikes are per-item maps ({itemId: [...]}),
@@ -4320,31 +4369,12 @@ async function _saveToFirestore(pendingCopy) {
     delete copy.likes;
     delete copy.commentLikes;
 
-    // ── Safety guard: never overwrite Firestore with clearly incomplete state ──
-    // If we have fewer games or players than what's already saved in Firestore,
-    // something went wrong (e.g. page loaded before sync finished). Abort.
-    const safetySnap = await db.collection('state').doc('global').get();
-    if (safetySnap.exists) {
-      const remote = safetySnap.data();
-      // Step 7: S.games now comes from games/, so a game only the array has
-      // (an old-build tab's write, a rejected function call) isn't in it.
-      // The array stays the rollback copy until step 8, so never drop one:
-      // keep every remote game in place and append the ones it lacks.
-      // Without this the guard below would block every save while any such
-      // game exists.
-      const localById = new Map(copy.games.map(g => [g.id, g]));
-      const remoteIds = new Set((remote.games || []).map(g => g.id));
-      copy.games = [
-        ...(remote.games || []).map(g => localById.get(g.id) || g),
-        ...copy.games.filter(g => !remoteIds.has(g.id))
-      ];
-      const remoteGames   = (remote.games   || []).length;
-      const remotePlayers = (remote.players || []).length;
-      if (copy.games.length < remoteGames || copy.players.length < remotePlayers - 1) {
-        console.warn(`[save guard] Blocked overwrite — local has ${copy.games.length} games / ${copy.players.length} players, remote has ${remoteGames} / ${remotePlayers}. Aborting save.`);
-        toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Sync conflict detected — save blocked to protect data', 'err');
-        return;
-      }
+    // The old "fewer games/players than the server" safety guard is gone
+    // (step 8): this save no longer writes either, so there's nothing for it
+    // to protect (Plan Pass 2 finding #4: removed on purpose, not broken).
+    const remoteSnap = await db.collection('state').doc('global').get();
+    if (remoteSnap.exists) {
+      const remote = remoteSnap.data();
 
       // ── Tournament status guard: never downgrade a tournament's status ──
       // If Firestore already has a tournament as 'active' or 'complete', preserve
@@ -4387,17 +4417,9 @@ async function _saveToFirestore(pendingCopy) {
     }
     await batch.commit();
     _dirtyAvatars.clear();
-    _mirrorMyPlayer(); // rollout step 6b: covers signup, self-heal and profile edits
-
-    // ── Rolling backup: keep a snapshot of the largest state we've ever saved ──
-    try {
-      const backupKey = 'skirank_backup';
-      const existing  = JSON.parse(localStorage.getItem(backupKey) || '{}');
-      const existingGames = (existing.games || []).length;
-      if (copy.games.length >= existingGames) {
-        localStorage.setItem(backupKey, JSON.stringify({ ...copy, _backedUpAt: Date.now() }));
-      }
-    } catch(_) {}
+    // The localStorage rolling backup (largest players/games ever saved) is
+    // gone too: this save no longer has either. The server-side backups
+    // (Plan Pass 3) cover that now.
 
   } catch(e) {
     console.warn('Firestore save error:', e);
@@ -4456,19 +4478,30 @@ function startFirestoreSync() {
         if (snap.metadata.hasPendingWrites) return;
 
         const fresh = snap.data();
-        if (!fresh || !Array.isArray(fresh.players)) return;
+        if (!fresh) return;
         // Live games now live in their own liveGames/{id} doc (see subscribeLiveGame) —
         // never let a stale/legacy `live` field on the global doc clobber it here.
         delete fresh.live;
+        // Step 8: these arrays are no longer written. Once a collection's
+        // listener has delivered, never let the stale array overwrite it;
+        // before that, the array is the fallback. (Step 9 deletes them.)
+        if (_colPlayers) delete fresh.players; else if (!Array.isArray(fresh.players)) fresh.players = [];
+        if (_colGames)   delete fresh.games;   else if (!Array.isArray(fresh.games))   fresh.games   = [];
+        ['messages', 'friendRequests'].forEach(k => {
+          if (_colSocial[k].from && _colSocial[k].to) delete fresh[k];
+        });
 
         // Re-attach cached avatars
-        fresh.players.forEach(p => {
+        (fresh.players || []).forEach(p => {
           if (_avatarCache[p.id]) p.avatarUrl = _avatarCache[p.id];
         });
 
         // Ensure all arrays exist
-        ['pending','liveInvites','friendRequests','messages','challenges','tournaments','reports'].forEach(k => {
+        ['pending','liveInvites','challenges','tournaments','reports'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
+        });
+        ['friendRequests','messages'].forEach(k => {
+          if (k in fresh && !Array.isArray(fresh[k])) fresh[k] = [];
         });
 
         // Deserialize bracket data — rounds/matches were stringified before saving
@@ -4476,7 +4509,7 @@ function startFirestoreSync() {
           if (typeof t.rounds  === 'string') try { t.rounds  = JSON.parse(t.rounds);  } catch(_) { t.rounds  = []; }
           if (typeof t.matches === 'string') try { t.matches = JSON.parse(t.matches); } catch(_) { t.matches = []; }
         });
-        fresh.players.forEach(p => {
+        (fresh.players || []).forEach(p => {
           if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null;
           if (!Array.isArray(p.badges))    p.badges    = [];
           if (!Array.isArray(p.friends))   p.friends   = [];
@@ -4521,12 +4554,8 @@ function startFirestoreSync() {
           }
         }
 
-        // Only preserve the current user's own player record if it's not in Firestore yet
-        // (e.g. just signed up and the write is still in-flight)
-        // Never preserve other players — that would re-upload data after a wipe
-        const myMissingRecord = (!_wipeInProgress && currentUser)
-          ? S.players.find(lp => lp.id === currentUser.id && !fresh.players.some(fp => fp.id === lp.id))
-          : null;
+        // Keeping a just-signed-up user's own record, and healing a missing
+        // one, now happen in _applyColReads() against players/ (step 8).
         // Snapshot local invite statuses before overwriting — prevents a stale write
         // from another client from reverting an already-accepted invite back to pending.
         const _prevInvites = [...(S.liveInvites || [])];
@@ -4534,29 +4563,9 @@ function startFirestoreSync() {
         // before this client's own pending tournament change lands) must not revert
         // an invitee's accepted/declined status or drop a participant who just joined.
         const _prevTourneys = S.tournaments || [];
-        // Same protection for lastRead (chat read-state) — a snapshot triggered by
-        // some other user's unrelated write can arrive while our own markRead()
-        // save() is still debouncing/retrying (or permanently failing, e.g. a
-        // legacy account without a Firebase Auth session, which the write rules
-        // reject). Without this, Object.assign below reverts our just-marked-read
-        // conversation back to unread, openChat()'s guard sees unread again, and
-        // markRead()/save() fires once more — repeating forever on every snapshot
-        // and spamming the "Cloud sync failed" toast. Keep whichever timestamp is
-        // newer per friend instead of blindly taking the server's.
-        const _myId = currentUser?.id;
-        const _prevLastRead = _myId ? { ...(S.players.find(p => p.id === _myId)?.lastRead || {}) } : null;
+        // (lastRead's keep-the-newer merge lives in _applyColReads() since step 8.)
         Object.assign(S, fresh);
         _applyColReads(); // step 7: collections win over the arrays
-        if (_myId && _prevLastRead) {
-          const me = S.players.find(p => p.id === _myId);
-          if (me) {
-            const merged = { ...(me.lastRead || {}) };
-            Object.keys(_prevLastRead).forEach(fid => {
-              if ((merged[fid] || 0) < _prevLastRead[fid]) merged[fid] = _prevLastRead[fid];
-            });
-            me.lastRead = merged;
-          }
-        }
         S.liveInvites = (S.liveInvites || []).map(inv => {
           const prev = _prevInvites.find(p => p.id === inv.id);
           return (prev?.status === 'accepted' && inv.status === 'pending') ? { ...inv, status: 'accepted' } : inv;
@@ -4580,34 +4589,6 @@ function startFirestoreSync() {
         // Guests should never see another player's live game — clear it immediately.
         if (!currentUser) { S.live = null; unsubscribeLiveGame(); }
 
-        if (myMissingRecord) {
-          S.players = [...S.players, myMissingRecord];
-          _saveToFirestore();
-        }
-
-        // Heal accounts that exist in auth but have no player record in Firestore.
-        // Guard with _healPlayerDone so multiple rapid snapshots don't create duplicates.
-        if (!_healPlayerDone && currentUser && !S.players.find(p => p.id === currentUser.id)) {
-          _healPlayerDone = true;
-          const healedPlayer = {
-            id:          currentUser.id,
-            name:        currentUser.name,
-            email:       currentUser.email,
-            riderType:   currentUser.riderType || 'skier',
-            homeResort:  '',
-            location:    '',
-            rating:      null,
-            wins:        0,
-            losses:      0,
-            gamesPlayed: 0,
-            badges:      [],
-            friends:     [],
-            following:   [],
-            createdAt:   Date.now()
-          };
-          S.players = [...S.players, healedPlayer];
-          _saveToFirestore();
-        }
         try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
         _mirrorMyPlayer(); // rollout step 6b: no-op unless my own entry changed
 
@@ -5251,10 +5232,9 @@ async function doSignup() {
         id: uid(), fromId: newUser.id, fromName: newUser.name,
         toId: refId, toName: referrer.name, status: 'pending', date: Date.now()
       };
-      _mirrorWrite('referral friend request', () => db.collection('friendRequests').doc(request.id).set(request)); // rollout step 6b
-      return db.collection('state').doc('global').update({
-        friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
-      }).then(() => toast(`You're in! Friend request sent to ${referrer.name}.`, 'ok'));
+      // Step 8: friendRequests/ only (the state/global array is retired).
+      return db.collection('friendRequests').doc(request.id).set(request)
+        .then(() => toast(`You're in! Friend request sent to ${referrer.name}.`, 'ok'));
     }).catch(e => console.warn('Referral friend request failed:', e));
   }
 }
@@ -5456,24 +5436,23 @@ function deleteAccount() {
       // Remove live invites involving this user
       S.liveInvites = S.liveInvites.filter(i => i.fromId !== currentUser.id && i.toId !== currentUser.id);
       S.challenges  = (S.challenges||[]).filter(c => c.fromId !== currentUser.id && c.toId !== currentUser.id);
-      // Remove from friends lists
-      S.players.forEach(p => { p.friends = (p.friends || []).filter(id => id !== currentUser.id); });
-      // Remove friend requests involving this user
-      if (Array.isArray(S.friendRequests)) {
-        S.friendRequests = S.friendRequests.filter(r => r.fromId !== currentUser.id && r.toId !== currentUser.id);
-      }
-      // Not save(): stopFirestoreSync() below clears the debounce timer, so
-      // that write never happened and the player stayed in state/global. One
-      // targeted transaction does the same removal on the server copy.
-      const purged = _purgeFriendRequestsFor(currentUser.id, { removePlayer: true });
-      // Remove from Firestore auth store
-      if (db) db.collection('users').doc(currentUser.id).delete().catch(()=>{});
-      // Remove from Firebase Auth, once the state/global and friendRequests/
-      // cleanup (both need this user's auth) is done; signing out waits too.
-      purged.finally(() => {
-        if (_fbAuth?.currentUser) _fbAuth.currentUser.delete().catch(()=>{});
-        if (_fbAuth) _fbAuth.signOut().catch(()=>{});
-      });
+      // Not save(): stopFirestoreSync() below clears the debounce timer.
+      // Order matters, since every step needs this user's auth: first the
+      // state/global leftovers and users/{id}, then the deletePlayer callable
+      // (players/{id}, everyone's `friends`, friendRequests/, and the Firebase
+      // Auth user, server-side), then sign out.
+      const deletedId = currentUser.id;
+      const cleanup = Promise.all([
+        _purgeGlobalFor(deletedId, { removeAll: true }),
+        db ? db.collection('users').doc(deletedId).delete().catch(()=>{}) : null
+      ]);
+      cleanup
+        .then(() => _callFnOrToast('deletePlayer', {}, "Couldn't fully delete your account. Contact support."))
+        .then(res => {
+          // Fallback if the server couldn't delete the Auth user.
+          if (res && !res.authDeleted && _fbAuth?.currentUser) return _fbAuth.currentUser.delete().catch(()=>{});
+        })
+        .finally(() => { if (_fbAuth) _fbAuth.signOut().catch(()=>{}); });
       // Sign out
       stopPolling();
       stopFirestoreSync();
@@ -6398,6 +6377,8 @@ function save() {
   try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(e) {}
   // Live game state gets its own doc/write path — see saveLiveGame().
   if (S.live) saveLiveGame(S.live);
+  // Step 8: my profile goes straight to players/{id} (no-op if unchanged).
+  _mirrorMyPlayer();
   // Debounced write to Firestore — capture S NOW so an incoming onSnapshot
   // can't overwrite our local changes before the timer fires.
   if (db) {
@@ -9184,17 +9165,6 @@ function renderPlayers() {
 }
 
 
-function delPlayer(id) {
-  const p = byId(id);
-  confirm_('Remove skier?',
-    `Remove ${p.name}? Their game history will remain but they won't appear in rankings.`,
-    () => {
-      S.players = S.players.filter(x=>x.id!==id);
-      save(); renderPlayers();
-      toast(`${p.name} removed.`);
-    }
-  );
-}
 
 // Atomically mutate a single item (matched by `id`) inside an array field on the
 // shared state/global doc, via a transaction that reads the field fresh and writes
@@ -9293,16 +9263,8 @@ function sendFriendRequest(toId) {
     date:     Date.now()
   };
   S.friendRequests.push(request);
-  save();
-  // Persist via an atomic arrayUnion (friendRequests is excluded from the regular
-  // full-document save — see _saveToFirestore) so two people sending requests in
-  // the same debounce window can't drop each other's write.
-  if (db) {
-    db.collection('state').doc('global').update({
-      friendRequests: firebase.firestore.FieldValue.arrayUnion(request)
-    }).catch(e => console.warn('Friend request send failed:', e));
-  }
-  _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request)); // rollout step 6b
+  // Step 8: friendRequests/{id} is the only copy (no state/global arrayUnion).
+  _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request));
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -9316,9 +9278,7 @@ function cancelFriendRequest(toId) {
   );
   if (!req) return;
   S.friendRequests = S.friendRequests.filter(r => r.id !== req.id);
-  save();
-  _updateArrayField('friendRequests', req.id, () => null);
-  _mirrorWrite('friend request cancel', () => db.collection('friendRequests').doc(req.id).delete()); // rollout step 6b
+  _mirrorWrite('friend request cancel', () => db.collection('friendRequests').doc(req.id).delete());
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -9337,9 +9297,10 @@ function acceptFriendRequest(fromId) {
   const other = S.players.find(p => p.id === fromId);
   if (me)    { if (!Array.isArray(me.friends))    me.friends    = []; if (!me.friends.includes(fromId))         me.friends.push(fromId); }
   if (other) { if (!Array.isArray(other.friends)) other.friends = []; if (!other.friends.includes(currentUser.id)) other.friends.push(currentUser.id); }
-  save();
-  _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'accepted' }));
-  _mirrorWrite('friend request accept', () => db.collection('friendRequests').doc(req.id).update({ status: 'accepted' })); // rollout step 6b
+  // Step 8: the callable marks the request accepted and writes BOTH players'
+  // `friends`; the local edits above are optimistic and the listeners correct
+  // them if it fails.
+  _callFnOrToast('acceptFriendRequest', { requestId: req.id }, "Couldn't accept the friend request.");
   checkNotifications();
   renderConfirmations();
   refreshModalFriendBtn(fromId);
@@ -9353,9 +9314,7 @@ function declineFriendRequest(fromId) {
   );
   if (!req) return;
   req.status = 'declined';
-  save();
-  _updateArrayField('friendRequests', req.id, r => ({ ...r, status: 'declined' }));
-  _mirrorWrite('friend request decline', () => db.collection('friendRequests').doc(req.id).update({ status: 'declined' })); // rollout step 6b
+  _mirrorWrite('friend request decline', () => db.collection('friendRequests').doc(req.id).update({ status: 'declined' }));
   checkNotifications();
   renderConfirmations();
   toast('Friend request declined.');
@@ -9374,14 +9333,13 @@ function unfriend(otherId) {
       !((r.fromId === currentUser.id && r.toId === otherId) ||
         (r.fromId === otherId && r.toId === currentUser.id))
     );
-    if (req) _updateArrayField('friendRequests', req.id, () => null);
-    if (req) _mirrorWrite('unfriend', () => db.collection('friendRequests').doc(req.id).delete()); // rollout step 6b
-    // Remove from both players' friends arrays
+    // Remove from both players' friends arrays (optimistic; step 8: the
+    // removeFriend callable writes both docs and deletes the settled request).
     const me    = S.players.find(p => p.id === currentUser.id);
     const them  = S.players.find(p => p.id === otherId);
     if (me)   me.friends   = (me.friends   || []).filter(id => id !== otherId);
     if (them) them.friends = (them.friends || []).filter(id => id !== currentUser.id);
-    save();
+    _callFnOrToast('removeFriend', { otherId }, "Couldn't remove friend.");
     renderMyProfile();
     renderPlayers();
     toast(`${other?.name || 'Skier'} removed from friends.`);
@@ -10336,17 +10294,8 @@ function sendMessage() {
   };
   S.messages.push(msg);
   input.value = '';
-  save();
-  // Persist the message via an atomic arrayUnion instead of relying on the
-  // debounced full-document save() — two people messaging within the same
-  // ~500ms window would otherwise silently drop each other's message, since
-  // each client's full-document write only knows about its own local copy.
-  if (db) {
-    db.collection('state').doc('global').update({
-      messages: firebase.firestore.FieldValue.arrayUnion(msg)
-    }).catch(e => console.warn('Message send failed:', e));
-  }
-  _mirrorWrite('message', () => db.collection('messages').doc(msg.id).set(msg)); // rollout step 6b
+  // Step 8: messages/{id} is the only copy (no state/global arrayUnion).
+  _mirrorWrite('message', () => db.collection('messages').doc(msg.id).set(msg));
   openChat(_activeChatId);
   renderFriendsView();
 }
@@ -13958,18 +13907,17 @@ function renderAdminUsers(panel) {
 function adminDeleteUser(id) {
   const p = S.players.find(x => x.id === id);
   if (!p) return;
-  confirm_('Delete Account', `Delete "${p.name}"? This will remove their player record. Game history remains.`, () => {
+  confirm_('Delete Account', `Delete "${p.name}"? This will remove their player record. Game history remains.`, async () => {
+    // Step 8: the deletePlayer callable removes players/{id}, the id from
+    // everyone's `friends`, and their friendRequests/ docs.
+    const res = await _callFnOrToast('deletePlayer', { playerId: id }, `Couldn't delete ${p.name}.`);
+    if (!res) return;
     if (db) db.collection('users').doc(id).delete().catch(()=>{});
     S.players = S.players.filter(x => x.id !== id);
-    S.friendRequests = (S.friendRequests||[]).filter(r => r.fromId !== id && r.toId !== id);
     S.challenges = (S.challenges||[]).filter(c => c.fromId !== id && c.toId !== id);
     S.tournaments = (S.tournaments||[]).filter(t => t.creatorId !== id);
-    S.players.forEach(pl => { pl.friends = (pl.friends||[]).filter(f => f !== id); });
-    save();
-    // friendRequests/challenges are excluded from the regular full-document save
-    // (see _saveToFirestore). Since step 7, S.friendRequests only holds the
-    // admin's own requests, so filter the server copy in a transaction.
-    _purgeFriendRequestsFor(id);
+    save(); // tournaments
+    _purgeGlobalFor(id); // challenges, targeted
     toast(`${p.name} deleted.`, 'ok');
     renderAdminStats();
     adminTab('users');
@@ -13999,35 +13947,17 @@ function renderAdminGames(panel) {
     </div>`;
 }
 
-// Deletes the game from BOTH copies (rollout step 6b dual-write). It used to
-// drop it locally and call save(), but _saveToFirestore()'s safety guard
-// blocks any save with fewer games than the server, so the delete never
-// landed and the game reappeared on the next snapshot. Now: a targeted
-// transaction on state/global's games array (same idea as _updateArrayField,
-// not a full-doc save, so the guard isn't involved), plus a delete of
-// games/{id} (admin-only in firestore.rules). Ratings are not recalculated in
-// either copy, as the dialog says.
+// Step 8: games/{id} is the only copy (admin-only delete in firestore.rules);
+// the state/global array is no longer written. Ratings are not recalculated,
+// as the dialog says.
 function adminDeleteGame(id) {
   confirm_('Delete Game', 'Ratings will NOT be recalculated — only the record is removed.', async () => {
     if (!db) { toast('No connection — game not deleted.', 'err'); return; }
-    const ref = db.collection('state').doc('global');
-    try {
-      await db.runTransaction(async tx => {
-        const snap = await tx.get(ref);
-        const games = (snap.data() && snap.data().games) || [];
-        if (games.some(g => g.id === id)) tx.update(ref, { games: games.filter(g => g.id !== id) });
-      });
-    } catch (e) {
-      console.warn('Admin game delete failed:', e);
-      toast('Delete failed — the game was not removed.', 'err');
-      return;
-    }
-    // After the state/global delete, so a failure here leaves a server-only
-    // copy that npm run diff:prod reports, never a silently half-done delete.
     try { await db.collection('games').doc(id).delete(); }
     catch (e) {
-      console.warn('[dual-write] games/ delete failed:', e.code || e.message);
-      toast(`Removed from rankings, but games/${id} could not be deleted — the step 6.5 diff will flag it.`, 'err');
+      console.warn('Admin game delete failed:', e.code || e.message);
+      toast('Delete failed — the game was not removed.', 'err');
+      return;
     }
     S.games = S.games.filter(g => g.id !== id);
     try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
@@ -14108,13 +14038,21 @@ function renderAdminRatings(panel) {
     </div>`;
 }
 
+// Step 8: admin edits to server-owned fields go straight to players/{id}
+// (firestore.rules lets the admin write them; save() no longer writes players).
+function _adminWritePlayer(id, fields) {
+  if (!db) return;
+  db.collection('players').doc(id).update(fields)
+    .catch(e => { console.warn('Admin player write failed:', e.code || e.message); toast('Save failed — not written to the server.', 'err'); });
+}
+
 function adminSetRating(id) {
   const val = parseFloat(document.getElementById('rating-input-' + id)?.value);
   if (isNaN(val) || val < 1 || val > 20) { toast('Rating must be 1.00–20.00', 'err'); return; }
   const p = byId(id);
   if (!p) return;
   p.rating = Math.round(val * 100);
-  save();
+  _adminWritePlayer(id, { rating: p.rating });
   toast(`${p.name} → ${val.toFixed(2)}`, 'ok');
   renderAdminStats();
   adminTab('ratings');
@@ -14125,7 +14063,7 @@ function adminResetRating(id) {
   if (!p) return;
   confirm_('Reset Rating', `Reset ${p.name}'s rating? Sets them back to unranked.`, () => {
     p.rating = null; p.wins = 0; p.losses = 0; p.gamesPlayed = 0;
-    save();
+    _adminWritePlayer(id, { rating: null, wins: 0, losses: 0, gamesPlayed: 0 });
     toast(`${p.name} reset to unranked.`, 'ok');
     adminTab('ratings');
   });
@@ -14137,38 +14075,14 @@ function renderAdminData(panel) {
   S.players.forEach(p => { if (p.email) emailCounts[p.email] = (emailCounts[p.email]||0) + 1; });
   const dupCount = Object.values(emailCounts).reduce((acc, c) => acc + (c > 1 ? c - 1 : 0), 0);
 
-  // Check local backup
-  let backupInfo = '—';
-  let backupGames = 0, backupPlayers = 0;
-  try {
-    const b = JSON.parse(localStorage.getItem('skirank_backup') || 'null');
-    if (b) {
-      backupGames   = (b.games   || []).length;
-      backupPlayers = (b.players || []).length;
-      const ago = b._backedUpAt ? new Date(b._backedUpAt).toLocaleString() : 'unknown time';
-      backupInfo = `${backupGames} games · ${backupPlayers} players · saved ${ago}`;
-    }
-  } catch(_) {}
 
   panel.innerHTML = `
     <div style="display:grid;gap:14px;">
 
       <div class="admin-card" style="padding:20px;border:1px solid rgba(0,230,118,0.25);">
-        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">💾 Local Backup</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">${backupInfo}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-outline" onclick="adminExportJSON()">⬇️ Export JSON</button>
-          ${backupGames > (S.games||[]).length
-            ? `<button class="btn btn-primary" onclick="adminRestoreFromBackup()">⬆️ Restore from Backup (${backupGames} games)</button>`
-            : `<span style="font-size:12px;color:var(--text-muted);align-self:center;"><svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg> Live data is up to date</span>`}
-        </div>
-      </div>
-
-      <div class="admin-card" style="padding:20px;">
-        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">📥 Import JSON Backup</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Restore from a previously exported JSON file.</div>
-        <input type="file" id="admin-import-file" accept=".json" style="display:none;" onchange="adminImportJSON(this)">
-        <button class="btn btn-outline" onclick="document.getElementById('admin-import-file').click()">Choose File</button>
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">💾 Export</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Download what this browser currently sees as JSON. Restores now go through the server-side backup scripts, not the app.</div>
+        <button class="btn btn-outline" onclick="adminExportJSON()">⬇️ Export JSON</button>
       </div>
 
       <div class="admin-card" style="padding:20px;">
@@ -14201,49 +14115,7 @@ function adminExportJSON() {
   toast('Backup exported!', 'ok');
 }
 
-function adminRestoreFromBackup() {
-  try {
-    const b = JSON.parse(localStorage.getItem('skirank_backup') || 'null');
-    if (!b) { toast('No local backup found.', 'err'); return; }
-    const games   = (b.games   || []).length;
-    const players = (b.players || []).length;
-    confirm_('Restore from Backup', `Restore ${games} games and ${players} players from local backup? This will overwrite the current live data.`, () => {
-      delete b._backedUpAt;
-      Object.assign(S, b);
-      save();
-      toast('Restored from backup!', 'ok');
-      renderLeaderboard();
-      adminTab('data');
-    });
-  } catch(e) {
-    toast('Backup restore failed: ' + e.message, 'err');
-  }
-}
 
-function adminImportJSON(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      const games   = (data.games   || []).length;
-      const players = (data.players || []).length;
-      confirm_('Import JSON Backup', `Import ${games} games and ${players} players from "${file.name}"? This will overwrite current live data.`, () => {
-        delete data._exportedAt;
-        Object.assign(S, data);
-        save();
-        toast('Data imported successfully!', 'ok');
-        renderLeaderboard();
-        adminTab('data');
-      });
-    } catch(err) {
-      toast('Invalid JSON file: ' + err.message, 'err');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
 
 function adminDeduplicatePlayers() {
   // For each email, keep the player with the most gamesPlayed (tie-break: most recent createdAt)
@@ -14256,13 +14128,30 @@ function adminDeduplicatePlayers() {
   }
   const removed = S.players.length - toKeep.length;
   if (removed === 0) { toast('No duplicates found.', 'ok'); return; }
-  confirm_('Remove Duplicates', `Remove ${removed} duplicate record${removed>1?'s':''}? The record with the most games will be kept for each account.`, () => {
-    S.players = toKeep;
-    save();
-    toast(`Removed ${removed} duplicate${removed>1?'s':''}.`, 'ok');
+  confirm_('Remove Duplicates', `Remove ${removed} duplicate record${removed>1?'s':''}? The record with the most games will be kept for each account.`, async () => {
+    // Step 8: each duplicate goes through the deletePlayer callable.
+    const keep = new Set(toKeep.map(p => p.id));
+    let done = 0;
+    for (const p of S.players.filter(p => !keep.has(p.id))) {
+      if (await _callFnOrToast('deletePlayer', { playerId: p.id }, `Couldn't remove duplicate ${p.name}.`)) done++;
+    }
+    toast(`Removed ${done} duplicate${done!==1?'s':''}.`, done === removed ? 'ok' : 'err');
     renderAdminStats();
     adminTab('data');
   });
+}
+
+// Step 8: the wipes clear the collections that hold the data now (Plan
+// Pass 1 finding #2). Admin-only deletes in firestore.rules. pendingResults/
+// and resolutions/ are server-only (no client delete, admin included); with
+// state/global.pending emptied they're orphans nothing reads.
+async function _adminWipeCollections(names) {
+  for (const name of names) {
+    try {
+      const snap = await db.collection(name).get();
+      for (const d of snap.docs) await d.ref.delete();
+    } catch(e) { console.warn(`${name} wipe:`, e.code || e.message); toast(`Wipe: ${name} not fully cleared.`, 'err'); }
+  }
 }
 
 async function adminWipeGameData() {
@@ -14274,10 +14163,7 @@ async function adminWipeGameData() {
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   if (db) {
     await db.collection('state').doc('global').set(empty).catch(e => console.warn(e));
-    try {
-      const lgsnap = await db.collection('liveGames').get();
-      for (const d of lgsnap.docs) await d.ref.delete();
-    } catch(e) { console.warn('liveGames wipe:', e); }
+    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames']);
   }
   _wipeInProgress = false;
   toast('Game data wiped.', 'ok');
@@ -14306,10 +14192,7 @@ async function adminWipeEverything() {
       const asnap = await db.collection('avatars').get();
       for (const d of asnap.docs) await d.ref.delete();
     } catch(e) { console.warn('avatars wipe:', e); }
-    try {
-      const lgsnap = await db.collection('liveGames').get();
-      for (const d of lgsnap.docs) await d.ref.delete();
-    } catch(e) { console.warn('liveGames wipe:', e); }
+    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames']);
   }
 
   toast('Everything wiped. Reloading…', 'ok');
