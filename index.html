@@ -12572,15 +12572,28 @@ function acceptLiveInvite(inviteId) {
     // If the players already created the live game doc (still waiting-for-judge),
     // advance its phase now that the judge is in. Checked against the doc itself
     // (not local S.live) since the judge may not have subscribed to it yet.
+    // The judge's own write is skipped by this client's onSnapshot listener
+    // (hasPendingWrites guard) and no follow-up snapshot fires once it's acked,
+    // so the advanced phase never reached the judge's S.live — they sat on
+    // waiting-for-judge until a reload. Apply the transaction's result locally
+    // instead (same idea as voteForSetter/submitDisputeVote), bumping rev so the
+    // players' clients don't treat it as stale.
     if (db && inv.gameId) {
-      db.collection('liveGames').doc(inv.gameId).get().then(snap => {
-        if (snap.exists && snap.data().phase === 'waiting-for-judge') {
-          db.collection('liveGames').doc(inv.gameId)
-            .update({ phase: 'judge-pick-setter' })
-            .catch(e => console.warn('Judge phase update failed:', e));
-        }
-      }).catch(() => {});
-      subscribeLiveGame(inv.gameId);
+      const gameId = inv.gameId;
+      const gameRef = db.collection('liveGames').doc(gameId);
+      subscribeLiveGame(gameId);
+      db.runTransaction(tx => tx.get(gameRef).then(doc => {
+        if (!doc.exists || doc.data().phase !== 'waiting-for-judge') return null;
+        const next = { ...doc.data(), phase: 'judge-pick-setter', rev: (doc.data().rev || 0) + 1 };
+        tx.update(gameRef, { phase: next.phase, rev: next.rev });
+        return next;
+      })).then(next => {
+        if (!next || _currentLiveGameId !== gameId) return;
+        if (S.live && S.live.id === gameId && (S.live.rev || 0) > next.rev) return;
+        S.live = next;
+        if (_activeSection === 'live-game') renderLiveSetup();
+      }).catch(e => console.warn('Judge phase update failed:', e));
+      startLiveGamePoll();
     }
     // If the doc doesn't exist yet (judge accepted before players), the invite's
     // 'accepted' status is what a player reads to skip waiting-for-judge when
