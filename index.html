@@ -4671,13 +4671,17 @@ function stopFirestoreSync() {
 // If we're not already tracking a game, look for one via an accepted invite
 // involving the current user (liveInvites still lives on the global doc, and
 // carries a gameId pointing at the liveGames doc to attach to).
+// A judge attaches only via their OWN accepted judge invite (toId), never via
+// the players' invite's judgeId: that one flips to 'accepted' as soon as P2
+// accepts, which used to attach the judge before they'd joined — so the nav
+// guard, the 30s background timer and beforeunload all treated them as in the
+// game, and could cancel the match as "judge left" before they ever accepted.
 function _tryResumeLiveGame() {
   if (!currentUser || _currentLiveGameId) return;
   const inv = (S.liveInvites || []).find(i =>
     i.status === 'accepted' && (
       i.fromId === currentUser.id || i.toId === currentUser.id ||
-      i.p1Id === currentUser.id   || i.p2Id === currentUser.id ||
-      i.judgeId === currentUser.id
+      i.p1Id === currentUser.id   || i.p2Id === currentUser.id
     )
   );
   const gameId = inv && (inv.gameId || inv.id);
@@ -12583,7 +12587,7 @@ function acceptLiveInvite(inviteId) {
       const gameRef = db.collection('liveGames').doc(gameId);
       subscribeLiveGame(gameId);
       db.runTransaction(tx => tx.get(gameRef).then(doc => {
-        if (!doc.exists || doc.data().phase !== 'waiting-for-judge') return null;
+        if (!doc.exists || doc.data().over || doc.data().phase !== 'waiting-for-judge') return null;
         const next = { ...doc.data(), phase: 'judge-pick-setter', rev: (doc.data().rev || 0) + 1 };
         tx.update(gameRef, { phase: next.phase, rev: next.rev });
         return next;
