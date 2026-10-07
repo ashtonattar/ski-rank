@@ -5,7 +5,7 @@
   "main": "sw.js",
   "scripts": {
     "test": "npm run test:rules && npm run test:entrypoints && npm run test:diff && npm run test:reconcile && npm run migrate:dry-run",
-    "test:rules": "PATH=\"/opt/homebrew/opt/openjdk/bin:/usr/local/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-test --only firestore \"node '(C) rules-test/step1.test.mjs' && node '(C) rules-test/step6a.test.mjs' && node '(C) rules-test/step6a-livegames.test.mjs' && node '(C) rules-test/step6b.test.mjs' && node '(C) rules-test/step7.test.mjs'\"",
+    "test:rules": "PATH=\"/opt/homebrew/opt/openjdk/bin:/usr/local/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-test --only firestore \"node '(C) rules-test/step1.test.mjs' && node '(C) rules-test/step6a.test.mjs' && node '(C) rules-test/step6a-livegames.test.mjs' && node '(C) rules-test/step6b.test.mjs' && node '(C) rules-test/step7.test.mjs' && node '(C) rules-test/step8c.test.mjs'\"",
     "test:entrypoints": "node scripts/entrypoint.test.mjs",
     "test:diff": "node scripts/diff-dual-write.test.mjs",
     "test:reconcile": "node scripts/reconcile-profiles-step8.test.mjs",

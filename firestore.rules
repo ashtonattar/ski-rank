@@ -47,18 +47,29 @@ service cloud.firestore {
     // admin-controlled data into its own collection — a bigger app change.
     //
     // What this DOES enforce: only signed-in users can write at all (closes
-    // fully anonymous read/write), and it blocks the specific destructive
-    // shape the admin "Wipe Game Data" / "Wipe Everything" tools produce
-    // (collapsing a non-empty players/games list down to empty) unless the
-    // caller is the admin account.
+    // fully anonymous read/write), and non-admins can't touch the arrays the
+    // backend migration moved out (below).
     match /state/global {
       allow read: if true; // public leaderboard/preview, no PII beyond what's shown
 
-      // Block a non-admin from wiping player/game data down to nothing.
-      function isDestructiveWipe() {
-        return resource != null &&
-          ( (resource.data.players.size() > 0 && request.resource.data.players.size() == 0) ||
-            (resource.data.games.size()   > 0 && request.resource.data.games.size()   == 0) );
+      // Rollout step 8c. players/games/messages/friendRequests now live in
+      // their own collections, written by the owner (profile fields) or the
+      // Cloud Functions; index.html stopped writing these keys here in 8b
+      // (2ded7cb). The arrays still sit on this doc, frozen, until step 9, so
+      // a merge:true save's result still contains them: affectedKeys() (not
+      // keys()) is what tells a write that changes them apart from one that
+      // leaves them alone. Admin is exempt for the wipe tools' set(empty).
+      //
+      // This replaces the old players/games guards (isDestructiveWipe and the
+      // playersChangeCount/gamesChangeCount bounds), which only limited how
+      // much of those arrays a write could change. It also closes the KNOWN
+      // GAP they documented: a client inflating its own rating in the array.
+      // Ratings are server-computed on players/ since step 7.
+      function touchesMigratedKeys() {
+        let keys = ['players', 'games', 'messages', 'friendRequests'];
+        return resource == null
+          ? request.resource.data.keys().hasAny(keys)
+          : request.resource.data.diff(resource.data).affectedKeys().hasAny(keys);
       }
 
       // A non-admin may only ever *append* their own report (submitReport()
@@ -75,49 +86,9 @@ service cloud.firestore {
             newReports[newReports.size()-1].reporterId == request.auth.uid );
       }
 
-      // KNOWN GAP (tracked, not fixed by this rule): a non-admin's write can
-      // still set THEIR OWN player entry's rating/wins/losses to any value —
-      // ratings are computed client-side in commitGame() and merged in via
-      // save() with no server-side recompute. Firestore rules can't validate
-      // that cheaply here because `players`/`games` are plain arrays (not
-      // maps keyed by uid), so there's no way to look up "the caller's own
-      // entry" or diff a single field within one array element without a
-      // per-element loop, which this rules language doesn't support. Closing
-      // that gap for real requires either (a) a Cloud Function that computes
-      // ratings server-side from a submitted match result, with client writes
-      // to rating/wins/losses blocked here, or (b) migrating `players` to a
-      // uid-keyed map/subcollection so per-field ownership is checkable.
-      //
-      // What CAN be enforced cheaply on arrays — and IS, below — is a bound
-      // on how many player/game records a single write touches at all. That
-      // stops a compromised or scripted client from bulk-rewriting the whole
-      // leaderboard (e.g. setting 50 accounts to rating 3000) in one shot.
-      // It does NOT stop a user quietly inflating their own single entry;
-      // that's the gap above.
-      function playersChangeCount() {
-        let oldP = (resource != null && 'players' in resource.data) ? resource.data.players : [];
-        let newP = ('players' in request.resource.data) ? request.resource.data.players : [];
-        return oldP.toSet().difference(newP.toSet()).size() + newP.toSet().difference(oldP.toSet()).size();
-      }
-
-      function gamesChangeCount() {
-        let oldG = (resource != null && 'games' in resource.data) ? resource.data.games : [];
-        let newG = ('games' in request.resource.data) ? request.resource.data.games : [];
-        return oldG.toSet().difference(newG.toSet()).size() + newG.toSet().difference(oldG.toSet()).size();
-      }
-
-      // Each changed array element counts twice (its old value removed +
-      // its new value added), so a normal 1v1 game commit — 2 player entries
-      // changed — already sums to 4. save() writes the WHOLE players/games
-      // array on every debounced save (not a targeted diff), so any other
-      // signed-in user's write that landed between this client's last fetch
-      // and now shows up here too — each such stale entry adds another 2.
-      // Bounds need real headroom for that organic staleness under normal
-      // concurrent usage, while still catching the actual abuse case this
-      // guards against (bulk-rewriting dozens of accounts in one shot, e.g.
-      // 50 accounts -> 100 on this metric).
-      allow write: if isAdmin() || (isSignedIn() && !isDestructiveWipe() && isValidReportsChange()
-        && playersChangeCount() <= 20 && gamesChangeCount() <= 10);
+      allow create, update: if isAdmin() ||
+        (isSignedIn() && !touchesMigratedKeys() && isValidReportsChange());
+      allow delete: if isAdmin(); // no client path deletes this doc
     }
 
     // ── users/{uid} ────────────────────────────────────────────────────────
@@ -262,6 +233,12 @@ service cloud.firestore {
       // Cloud Functions, and a client-writable logStrikes let a player reset
       // their own strikes to dodge the 3-strike penalty.
       //
+      // friends added in rollout step 8c: accept/unfriend edit BOTH players'
+      // lists, so they go through the acceptFriendRequest/removeFriend/
+      // deletePlayer callables (step 8a). A client-writable friends let a
+      // player add anyone as a friend without a request; the client stopped
+      // mirroring it in 8b (_PLAYER_MIRROR_SKIP).
+      //
       // rating/wins/losses/gamesPlayed/peakRating are locked to server-only
       // writes — submitMatchResult()/applyStrikePenalty() (Cloud Functions)
       // write via the Admin SDK, which bypasses these rules entirely, so
@@ -270,7 +247,7 @@ service cloud.firestore {
       // migration exists for (Plan Pass 1 finding #1 / Pass 2 finding #2).
       function touchesLockedFields() {
         return request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges']);
+          .hasAny(['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges', 'friends']);
       }
 
       function lockedFieldsAtDefault() {
@@ -280,7 +257,8 @@ service cloud.firestore {
           (!('gamesPlayed' in request.resource.data)  || request.resource.data.gamesPlayed == 0) &&
           (!('peakRating' in request.resource.data)   || request.resource.data.peakRating == 0) &&
           (!('logStrikes' in request.resource.data)   || request.resource.data.logStrikes == 0) &&
-          (!('badges' in request.resource.data)       || request.resource.data.badges == []);
+          (!('badges' in request.resource.data)       || request.resource.data.badges == []) &&
+          (!('friends' in request.resource.data)      || request.resource.data.friends == []);
       }
 
       // Legacy self-heal create: myMissingRecord()/the _healPlayerDone heal
