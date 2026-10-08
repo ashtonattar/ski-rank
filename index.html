@@ -4036,10 +4036,9 @@ function _mirrorMyPlayer() {
 //
 // _applyColReads() overlays the collections onto S after every state/global
 // snapshot and every collection snapshot. Each source only takes over once
-// its listener has delivered, and drops back to the state/global copy if it
-// errors, so a missing rule or a legacy account with no Firebase Auth session
-// simply sees the old arrays. Since step 8 nothing writes those arrays, so
-// they're a stale fallback that only shows until the listeners deliver.
+// its listener has delivered; until then (or if it errors) S keeps what it
+// had, usually the local cache. Step 9 deleted the old state/global arrays,
+// so there is no other copy to fall back to.
 const _SERVER_PLAYER_FIELDS = ['rating', 'wins', 'losses', 'gamesPlayed', 'peakRating', 'logStrikes', 'badges'];
 let _colPlayers = null;               // Map playerId → players/ doc data; null = not loaded
 let _colGames = null;                 // games/ docs; null = not loaded
@@ -4162,7 +4161,7 @@ function _startColReads() {
   _stopColReads();
   if (!db) return;
   const onErr = (label, reset) => e => {
-    console.warn(`[read-cutover] ${label} listener failed, showing state/global instead:`, e.code || e.message);
+    console.warn(`[read-cutover] ${label} listener failed, keeping the cached copy:`, e.code || e.message);
     reset();
   };
   _colUnsubs.push(db.collection('players').onSnapshot(snap => {
@@ -4338,7 +4337,7 @@ async function _saveToFirestore(pendingCopy) {
     // Profiles go to players/{id} (_mirrorMyPlayer), ratings/stats and games
     // only through the Cloud Functions. Writing them would recreate the 1 MiB
     // doc and the rating-forgery hole this migration closes (Plan Pass 2
-    // finding #1). merge:true leaves the old arrays in place until step 9.
+    // finding #1). Step 9 deleted the arrays; the rules refuse re-adding them.
     delete copy.players;
     delete copy.games;
     // Live game state now lives in its own liveGames/{id} doc (see saveLiveGame) —
@@ -4483,38 +4482,24 @@ function startFirestoreSync() {
         // Live games now live in their own liveGames/{id} doc (see subscribeLiveGame) —
         // never let a stale/legacy `live` field on the global doc clobber it here.
         delete fresh.live;
-        // Step 8: these arrays are no longer written. Once a collection's
-        // listener has delivered, never let the stale array overwrite it;
-        // before that, the array is the fallback. (Step 9 deletes them.)
-        if (_colPlayers) delete fresh.players; else if (!Array.isArray(fresh.players)) fresh.players = [];
-        if (_colGames)   delete fresh.games;   else if (!Array.isArray(fresh.games))   fresh.games   = [];
-        ['messages', 'friendRequests'].forEach(k => {
-          if (_colSocial[k].from && _colSocial[k].to) delete fresh[k];
-        });
-
-        // Re-attach cached avatars
-        (fresh.players || []).forEach(p => {
-          if (_avatarCache[p.id]) p.avatarUrl = _avatarCache[p.id];
-        });
+        // Step 9: players/games/messages/friendRequests come only from their
+        // collections (_applyColReads). The arrays are deleted from this doc;
+        // strip them anyway so a leftover can never overwrite S. Until the
+        // listeners deliver, S keeps what it had (the local cache).
+        delete fresh.players;
+        delete fresh.games;
+        delete fresh.messages;
+        delete fresh.friendRequests;
 
         // Ensure all arrays exist
         ['pending','liveInvites','challenges','tournaments','reports'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
-        });
-        ['friendRequests','messages'].forEach(k => {
-          if (k in fresh && !Array.isArray(fresh[k])) fresh[k] = [];
         });
 
         // Deserialize bracket data — rounds/matches were stringified before saving
         fresh.tournaments.forEach(t => {
           if (typeof t.rounds  === 'string') try { t.rounds  = JSON.parse(t.rounds);  } catch(_) { t.rounds  = []; }
           if (typeof t.matches === 'string') try { t.matches = JSON.parse(t.matches); } catch(_) { t.matches = []; }
-        });
-        (fresh.players || []).forEach(p => {
-          if (p.gamesPlayed === 0 && p.rating === 400) p.rating = null;
-          if (!Array.isArray(p.badges))    p.badges    = [];
-          if (!Array.isArray(p.friends))   p.friends   = [];
-          if (!Array.isArray(p.following)) p.following = [];
         });
 
         // Handle live-game invite events before overwriting S
@@ -14163,6 +14148,9 @@ function adminDeduplicatePlayers() {
 // Pass 1 finding #2). Admin-only deletes in firestore.rules. pendingResults/
 // and resolutions/ are server-only (no client delete, admin included); with
 // state/global.pending emptied they're orphans nothing reads.
+// Step 9: state/global no longer has players/games/messages/friendRequests,
+// so the wipes reset it without them.
+const _EMPTY_GLOBAL = { pending:[], liveInvites:[], live:null };
 async function _adminWipeCollections(names) {
   for (const name of names) {
     try {
@@ -14180,7 +14168,7 @@ async function adminWipeGameData() {
   S = empty;
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   if (db) {
-    await db.collection('state').doc('global').set(empty).catch(e => console.warn(e));
+    await db.collection('state').doc('global').set(_EMPTY_GLOBAL).catch(e => console.warn(e));
     await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames']);
   }
   _wipeInProgress = false;
@@ -14201,7 +14189,7 @@ async function adminWipeEverything() {
   localStorage.clear();
 
   if (db) {
-    try { await db.collection('state').doc('global').set(empty); } catch(e) { console.warn('state wipe:', e); }
+    try { await db.collection('state').doc('global').set(_EMPTY_GLOBAL); } catch(e) { console.warn('state wipe:', e); }
     try {
       const usnap = await db.collection('users').get();
       for (const d of usnap.docs) await d.ref.delete();

@@ -55,10 +55,10 @@ service cloud.firestore {
       // Rollout step 8c. players/games/messages/friendRequests now live in
       // their own collections, written by the owner (profile fields) or the
       // Cloud Functions; index.html stopped writing these keys here in 8b
-      // (2ded7cb). The arrays still sit on this doc, frozen, until step 9, so
-      // a merge:true save's result still contains them: affectedKeys() (not
-      // keys()) is what tells a write that changes them apart from one that
-      // leaves them alone. Admin is exempt for the wipe tools' set(empty).
+      // (2ded7cb). Step 9 deleted the arrays from this doc; affectedKeys()
+      // (not keys()) kept merge saves working while they still sat here
+      // frozen, and now refuses any write that adds one back. Admin is
+      // exempt for the wipe tools' set().
       //
       // This replaces the old players/games guards (isDestructiveWipe and the
       // playersChangeCount/gamesChangeCount bounds), which only limited how
