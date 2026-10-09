@@ -2813,11 +2813,11 @@
             <input type="text" id="lb-search" class="form-input"
               placeholder="Search riders…"
               style="padding-left:32px;height:36px;font-size:16px;width:100%;box-sizing:border-box;"
-              oninput="filterLeaderboard()">
+              oninput="_lbPage=0;filterLeaderboard()">
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">⌕</span>
           </div>
           <div style="position:relative;flex:1;min-width:140px;">
-            <select id="lb-mountain" onchange="filterLeaderboard()"
+            <select id="lb-mountain" onchange="_lbPage=0;filterLeaderboard()"
               style="width:100%;height:36px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0 32px 0 32px;font-size:16px;font-family:inherit;appearance:none;cursor:pointer;outline:none;">
               <option value="">All Mountains</option>
             </select>
@@ -2849,6 +2849,7 @@
             <tbody id="lb-body"></tbody>
           </table>
         </div>
+        <div id="lb-pager"></div>
         <div id="lb-empty" class="empty" style="display:none;">
           <div class="empty-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></div>
           <h3>No games logged yet</h3>
@@ -2878,6 +2879,7 @@
               <tbody id="lb-weekly-body"></tbody>
             </table>
           </div>
+          <div id="lb-weekly-pager"></div>
           <div id="lb-weekly-empty" class="empty" style="display:none;">
             <div class="empty-icon"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg></div>
             <h3>No games this week</h3>
@@ -7250,7 +7252,31 @@ document.addEventListener('click', e => {
 let _lbRiderFilter = 'skier';
 let _ridersTypeFilter = 'all';
 
+// Leaderboard pagination — 10 riders per page, same Prev/Next pattern as game history
+const LB_PAGE_SIZE = 10;
+let _lbFilterDefaultedFor = null; // user id the sport filter was last auto-set for
+let _lbPage = 0;
+let _lbWeeklyPage = 0;
+
+// meIdx = the signed-in rider's position in the full (filtered) list, or -1.
+// "Find me" only shows when they're in the list but on a different page.
+function lbPagerHtml(page, total, onPrev, onNext, meIdx, onFindMe) {
+  const totalPages = Math.ceil(total / LB_PAGE_SIZE);
+  if (totalPages <= 1) return '';
+  const showFindMe = meIdx >= 0 && Math.floor(meIdx / LB_PAGE_SIZE) !== page;
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 2px;font-size:12.5px;color:var(--text-muted);">
+      <button onclick="${onPrev}" class="btn btn-ghost btn-sm" ${page===0?'disabled style="opacity:.3;"':''}>‹ Prev</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span>Page ${page+1} of ${totalPages}</span>
+        ${showFindMe ? `<button onclick="${onFindMe}" class="btn btn-ghost btn-sm" style="color:var(--ice);">Find me</button>` : ''}
+      </div>
+      <button onclick="${onNext}" class="btn btn-ghost btn-sm" ${page>=totalPages-1?'disabled style="opacity:.3;"':''}>Next ›</button>
+    </div>`;
+}
+
 function setLbRiderFilter(type) {
+  if (type !== _lbRiderFilter) { _lbPage = 0; _lbWeeklyPage = 0; }
   _lbRiderFilter = type;
   ['skier','boarder'].forEach(t => {
     const btn = document.getElementById(`lb-rt-${t}`);
@@ -7331,6 +7357,18 @@ function filterLeaderboard() {
     }
   });
 
+  // Paginate the filtered set — ranks above are numbered across all pages first
+  const lbTotalPages = Math.max(1, Math.ceil(visible.length / LB_PAGE_SIZE));
+  if (_lbPage >= lbTotalPages) _lbPage = lbTotalPages - 1;
+  if (_lbPage < 0) _lbPage = 0;
+  const pageStart = _lbPage * LB_PAGE_SIZE;
+  visible.forEach((row, i) => {
+    if (i < pageStart || i >= pageStart + LB_PAGE_SIZE) row.style.display = 'none';
+  });
+  const meIdx = currentUser ? visible.findIndex(r => r.dataset.pid === currentUser.id) : -1;
+  const pager = document.getElementById('lb-pager');
+  if (pager) pager.innerHTML = lbPagerHtml(_lbPage, visible.length, 'lbGoToPage(-1)', 'lbGoToPage(1)', meIdx, `lbFindMe(${meIdx})`);
+
   // Show/hide the active-filter pill
   const pill  = document.getElementById('lb-active-filter');
   const label = document.getElementById('lb-filter-label');
@@ -7345,9 +7383,35 @@ function filterLeaderboard() {
   }
 }
 
+function lbGoToPage(step) {
+  _lbPage += step;
+  filterLeaderboard();
+  document.getElementById('lb-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function lbWeeklyGoToPage(step) {
+  _lbWeeklyPage += step;
+  renderWeeklyLeaderboard();
+  document.getElementById('lb-weekly-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Jump to the page holding the signed-in rider, then scroll to and briefly highlight their row
+function lbFindMe(meIdx) {
+  const weekly = _lbTab === 'weekly';
+  if (weekly) { _lbWeeklyPage = Math.floor(meIdx / LB_PAGE_SIZE); renderWeeklyLeaderboard(); }
+  else        { _lbPage       = Math.floor(meIdx / LB_PAGE_SIZE); filterLeaderboard(); }
+  const row = document.querySelector(`#${weekly ? 'lb-weekly-body' : 'lb-body'} tr[data-pid="${currentUser?.id}"]`);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.style.transition = 'background-color .6s ease';
+  row.style.backgroundColor = 'rgba(255,62,127,0.16)';
+  setTimeout(() => { row.style.backgroundColor = ''; }, 1400);
+}
+
 function clearMountainFilter() {
   const sel = document.getElementById('lb-mountain');
   if (sel) sel.value = '';
+  _lbPage = 0;
   filterLeaderboard();
 }
 
@@ -7389,6 +7453,8 @@ function switchLbTab(tab) {
   const actFilter = document.getElementById('lb-active-filter');
 
   if (tblWrap)   tblWrap.style.display   = isWeekly ? 'none' : '';
+  const lbPager = document.getElementById('lb-pager');
+  if (lbPager)   lbPager.style.display   = isWeekly ? 'none' : '';
   if (lbEmpty && isWeekly) lbEmpty.style.display = 'none';
   if (wkWrap)    wkWrap.style.display    = isWeekly ? 'block' : 'none';
   const searchFilters = document.getElementById('lb-search-filters');
@@ -7404,8 +7470,10 @@ function renderWeeklyLeaderboard() {
   const body  = document.getElementById('lb-weekly-body');
   const empty = document.getElementById('lb-weekly-empty');
 
+  const wkPager = document.getElementById('lb-weekly-pager');
   if (!weekGames.length) {
     body.innerHTML = '';
+    if (wkPager) wkPager.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
@@ -7430,9 +7498,16 @@ function renderWeeklyLeaderboard() {
     .filter(r => r.player && (r.player.riderType || 'skier') === _lbRiderFilter)
     .sort((a, b) => b.delta - a.delta);
 
-  body.innerHTML = rows.map((r, i) => `
-    <tr onclick="showProfile('${r.id}')" style="cursor:pointer;">
-      <td class="td-rank">${i + 1}</td>
+  const wkTotalPages = Math.max(1, Math.ceil(rows.length / LB_PAGE_SIZE));
+  if (_lbWeeklyPage >= wkTotalPages) _lbWeeklyPage = wkTotalPages - 1;
+  if (_lbWeeklyPage < 0) _lbWeeklyPage = 0;
+  const wkStart = _lbWeeklyPage * LB_PAGE_SIZE;
+  const wkMeIdx = currentUser ? rows.findIndex(r => r.id === currentUser.id) : -1;
+  if (wkPager) wkPager.innerHTML = lbPagerHtml(_lbWeeklyPage, rows.length, 'lbWeeklyGoToPage(-1)', 'lbWeeklyGoToPage(1)', wkMeIdx, `lbFindMe(${wkMeIdx})`);
+
+  body.innerHTML = rows.slice(wkStart, wkStart + LB_PAGE_SIZE).map((r, i) => `
+    <tr data-pid="${r.id}" onclick="showProfile('${r.id}')" style="cursor:pointer;">
+      <td class="td-rank">${wkStart + i + 1}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px;">
           ${avatarHtml(r.player, 'avatar-sm')}
@@ -7451,8 +7526,12 @@ function renderWeeklyLeaderboard() {
 }
 
 function renderLeaderboard() {
-  // Auto-set sport filter to match current user's type
-  if (currentUser) setLbRiderFilter(currentUser.riderType === 'boarder' ? 'boarder' : 'skier');
+  // Default the sport filter to the current user's type — once per signed-in user,
+  // not on every render, so a manual Skiers/Boarders pick survives live Firestore updates
+  if (currentUser && _lbFilterDefaultedFor !== currentUser.id) {
+    _lbFilterDefaultedFor = currentUser.id;
+    setLbRiderFilter(currentUser.riderType === 'boarder' ? 'boarder' : 'skier');
+  }
   const pl = sorted();
   const body    = document.getElementById('lb-body');
   const empty   = document.getElementById('lb-empty');
@@ -7537,7 +7616,7 @@ function renderLeaderboard() {
     const sk = calcStreaks(p.id);
     const medal = isOfficial ? (['<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-silver"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-bronze"><use href="#i-medal"/></svg>'][ratedRank-1] || ratedRank) : '—';
     return `
-      <tr data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${isOfficial ? ratedRank : ''}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
+      <tr data-pid="${p.id}" data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${isOfficial ? ratedRank : ''}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
         <td class="td-rank ${isOfficial && ratedRank<=3?'gold':''}">${medal}</td>
         <td>
           <div style="display:flex;align-items:center;gap:11px;">
