@@ -1465,6 +1465,23 @@
       opacity:0.6; cursor:not-allowed; transform:none !important;
       pointer-events:none;
     }
+    .auth-social { display:flex; flex-direction:column; gap:10px; }
+    .social-btn {
+      width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+      padding:11px 12px; border-radius:var(--radius); cursor:pointer;
+      font-size:14px; font-weight:600; font-family:inherit;
+      transition:transform .12s, opacity .15s;
+    }
+    .social-btn:active { transform:scale(.98); }
+    .social-btn:disabled { opacity:0.6; cursor:not-allowed; pointer-events:none; }
+    .social-btn svg { width:18px; height:18px; flex:none; }
+    .social-btn-google { background:#fff; color:#1f1f1f; border:1px solid #dadce0; }
+    .social-btn-apple  { background:#000; color:#fff;    border:1px solid #333; }
+    .auth-divider {
+      display:flex; align-items:center; gap:10px; margin:18px 0;
+      font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;
+    }
+    .auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
     .auth-footer { text-align:center; font-size:11px; color:var(--text-muted); margin-top:20px; letter-spacing:.4px; }
 
     .auth-origin-notice {
@@ -2613,6 +2630,21 @@
       <button class="auth-tab"        id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
     </div>
 
+    <!-- ── Google / Apple (shown on both Sign In and Create Account) ── -->
+    <div id="auth-social-block">
+      <div class="auth-social">
+        <button type="button" class="social-btn social-btn-google" id="btn-google" onclick="doSocialSignIn('google')">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          <span>Continue with Google</span>
+        </button>
+        <button type="button" class="social-btn social-btn-apple" id="btn-apple" onclick="doSocialSignIn('apple')">
+          <svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          <span>Continue with Apple</span>
+        </button>
+      </div>
+      <div class="auth-divider">or use email</div>
+    </div>
+
     <!-- ── Login ── -->
     <div id="form-login">
       <div class="form-group">
@@ -2706,6 +2738,57 @@
         </label>
       </div>
       <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
+    </div>
+
+    <!-- ── Finish profile (first Google/Apple sign-in, no player record yet) ── -->
+    <div id="form-social-complete" style="display:none;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;text-align:center;">
+        Almost there — finish setting up your rider profile<span id="sc-email-wrap"> for <strong id="sc-email" style="color:var(--text-primary);"></strong></span>.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-input" id="sc-name" placeholder="e.g. Jake Morrison" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">I ride as a…</label>
+        <div style="display:flex;gap:8px;">
+          <button type="button" id="sc-type-skier" onclick="selectRiderType('skier')"
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
+          </button>
+          <button type="button" id="sc-type-boarder" onclick="selectRiderType('boarder')"
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--border);background:transparent;color:var(--text-muted);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            <svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboarder
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Home Resort <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <div class="resort-wrap">
+          <input type="text" class="form-input" id="sc-resort"
+            placeholder="e.g. Whistler, Park City, Mammoth…"
+            autocomplete="off"
+            oninput="resortInput(this,'sc-resort-dropdown')"
+            onkeydown="resortKeydown(event,'sc-resort-dropdown')"
+            onfocus="resortInput(this,'sc-resort-dropdown')"
+            onblur="setTimeout(()=>closeDropdown('sc-resort-dropdown'),180)">
+          <div class="resort-dropdown" id="sc-resort-dropdown"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date of Birth</label>
+        <input type="date" class="form-input" id="sc-dob" autocomplete="bday">
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 4px;">
+        <input type="checkbox" id="sc-agree" style="margin-top:3px;flex:none;width:16px;height:16px;">
+        <label for="sc-agree" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
+          I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+        </label>
+      </div>
+      <button class="btn btn-accent auth-btn" id="sc-submit" onclick="completeSocialSignup()">Finish Sign Up <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
+      <div style="text-align:center;margin-top:14px;">
+        <button type="button" onclick="cancelSocialSignup()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;"><svg class="icon icon-back"><use href="#i-back"/></svg> Cancel</button>
+      </div>
     </div>
 
     <div class="auth-footer"><svg class="icon icon-lock"><use href="#i-lock"/></svg> Your data is private and securely stored</div>
@@ -5040,8 +5123,10 @@ async function _playerFromFirebaseUser(fbUser) {
     const direct = await db.collection('users').doc(fbUser.uid).get();
     if (direct.exists) return direct.data();
   } catch(_) { sawError = true; }
-  // Legacy accounts: look up by email
-  try {
+  // Legacy accounts: look up by email. Apple can hand back a user with no
+  // email at all — where('email','==',null) would just match nothing, but
+  // skip it so a missing email can't be mistaken for a lookup failure.
+  if (fbUser.email) try {
     const snap = await db.collection('users').where('email','==', fbUser.email).limit(1).get();
     if (!snap.empty) return snap.docs[0].data();
   } catch(_) { sawError = true; }
@@ -5058,8 +5143,14 @@ let _selectedRiderType = 'skier'; // default
 
 function selectRiderType(type) {
   _selectedRiderType = type;
-  const skierBtn   = document.getElementById('su-type-skier');
-  const boarderBtn = document.getElementById('su-type-boarder');
+  // Same picker appears on the email signup form (su-) and the Google/Apple
+  // finish-profile form (sc-) — keep both in sync.
+  ['su', 'sc'].forEach(prefix => _paintRiderTypeButtons(prefix, type));
+}
+
+function _paintRiderTypeButtons(prefix, type) {
+  const skierBtn   = document.getElementById(prefix + '-type-skier');
+  const boarderBtn = document.getElementById(prefix + '-type-boarder');
   if (!skierBtn || !boarderBtn) return;
   if (type === 'skier') {
     skierBtn.style.borderColor  = 'var(--primary)';
@@ -5169,6 +5260,13 @@ async function doSignup() {
     ...(firebaseUid ? { firebaseUid } : {})
   };
 
+  await _createPlayerAccount(newUser, dob, showErr);
+}
+
+// Shared tail of every new-account flow (email signup and first-time
+// Google/Apple sign-in): writes users/ + usersPrivate/, seeds the session,
+// launches the app and sends the invite-link friend request if any.
+async function _createPlayerAccount(newUser, dob, showErr) {
   // Write to Firestore users collection
   try {
     await db.collection('users').doc(newUser.id).set(newUser);
@@ -5181,7 +5279,8 @@ async function doSignup() {
       birthYear: parseInt(dob.slice(0, 4), 10)
     });
   } catch(e) {
-    return showErr('Failed to create account. Please try again.');
+    showErr('Failed to create account. Please try again.');
+    return false;
   }
 
   // Pre-seed session so legacy code paths work; onAuthStateChanged also fires
@@ -5229,6 +5328,144 @@ async function doSignup() {
         .then(() => toast(`You're in! Friend request sent to ${referrer.name}.`, 'ok'));
     }).catch(e => console.warn('Referral friend request failed:', e));
   }
+  return true;
+}
+
+// ── Google / Apple sign-in ─────────────────────────────────────────────
+// signInWithPopup only — the site isn't on Firebase Hosting, so the redirect
+// flow would break in Safari/iOS (third-party storage partitioning on the
+// firebaseapp.com auth handler). Routing after the popup is left entirely to
+// onAuthStateChanged → _resolveFirebaseSession: a returning rider launches
+// the app, a first-timer gets the finish-profile form (showSocialCompleteForm).
+const SOCIAL_PROVIDER_IDS = ['google.com', 'apple.com'];
+let _socialPendingUser = null; // Firebase user sitting on the finish-profile form
+
+function _isSocialFirebaseUser(fbUser) {
+  return !!fbUser && (fbUser.providerData || []).some(p => p && SOCIAL_PROVIDER_IDS.includes(p.providerId));
+}
+
+async function doSocialSignIn(kind) {
+  const errEl   = document.getElementById('auth-error');
+  const showErr = m => { errEl.textContent = m; errEl.classList.add('visible'); };
+  errEl.classList.remove('visible');
+  if (!_fbAuth || !db) return showErr('Unable to connect. Please try again.');
+
+  let provider;
+  if (kind === 'google') {
+    provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+  } else {
+    provider = new firebase.auth.OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+  }
+  const label = kind === 'google' ? 'Google' : 'Apple';
+
+  const btns = ['btn-google', 'btn-apple'].map(id => document.getElementById(id)).filter(Boolean);
+  btns.forEach(b => { b.disabled = true; });
+  try {
+    await _fbAuth.signInWithPopup(provider);
+  } catch (e) {
+    switch (e.code) {
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+      case 'auth/user-cancelled':
+        break; // user backed out — not an error
+      case 'auth/popup-blocked':
+        showErr('Your browser blocked the sign-in window. Allow pop-ups for this site and try again.'); break;
+      case 'auth/account-exists-with-different-credential':
+        showErr('An account with this email already exists. Sign in with your email and password instead.'); break;
+      case 'auth/operation-not-allowed':
+      case 'auth/unauthorized-domain':
+        console.warn(`${label} sign-in not configured:`, e.code);
+        showErr(`${label} sign-in isn't available yet. Please use email for now.`); break;
+      case 'auth/network-request-failed':
+        showErr('Connection error. Please try again.'); break;
+      default:
+        console.warn(`${label} sign-in failed:`, e.code);
+        showErr('Something went wrong. Please try again.');
+    }
+  } finally {
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+
+// First Google/Apple sign-in: the Auth account exists but there's no player
+// record yet. Collect what email signup collects (name, rider type, DOB for the
+// 13+ gate, ToS agreement) before writing anything to Firestore.
+function showSocialCompleteForm(fbUser) {
+  _socialPendingUser = fbUser;
+  const screen = document.getElementById('auth-screen');
+  if (!screen || screen.style.display === 'none') showAuthScreen();
+  else hideBootLoading();
+  document.querySelector('.auth-tabs').style.display = 'none';
+  ['auth-social-block', 'form-login', 'form-signup', 'form-forgot', 'auth-back-row', 'auth-hint']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  document.getElementById('auth-error').classList.remove('visible');
+
+  document.getElementById('sc-name').value   = (fbUser.displayName || '').trim();
+  document.getElementById('sc-resort').value = '';
+  document.getElementById('sc-dob').value    = '';
+  document.getElementById('sc-agree').checked = false;
+  document.getElementById('sc-email').textContent = fbUser.email || '';
+  document.getElementById('sc-email-wrap').style.display = fbUser.email ? '' : 'none';
+  selectRiderType(_selectedRiderType);
+  const btn = document.getElementById('sc-submit');
+  btn.disabled = false;
+  btn.innerHTML = 'Finish Sign Up <svg class="icon icon-fire"><use href="#i-fire"/></svg>';
+  document.getElementById('form-social-complete').style.display = 'block';
+}
+
+async function completeSocialSignup() {
+  const fbUser   = _socialPendingUser || (_fbAuth && _fbAuth.currentUser);
+  const name     = document.getElementById('sc-name').value.trim();
+  const dob      = document.getElementById('sc-dob').value;
+  const agreed   = document.getElementById('sc-agree').checked;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('sc-submit');
+  const showErr  = m => {
+    errEl.textContent = m; errEl.classList.add('visible');
+    btn.disabled = false; btn.innerHTML = 'Finish Sign Up <svg class="icon icon-fire"><use href="#i-fire"/></svg>';
+  };
+  errEl.classList.remove('visible');
+
+  if (!fbUser)          return showErr('Your sign-in expired. Cancel and try again.');
+  if (!name)            return showErr('Please enter your full name.');
+  if (name.length < 2)  return showErr('Name must be at least 2 characters.');
+  if (!dob)             return showErr('Date of birth is required.');
+  const age = _ageFromDob(dob);
+  // Same COPPA gate as doSignup() — see PRIVACY_POLICY.md.
+  if (age === null || age < 0) return showErr('Please enter a valid date of birth.');
+  if (age < 13)         return showErr('You must be at least 13 years old to create a Slope Battles account.');
+  if (!agreed)          return showErr('Please confirm you agree to the Terms of Service and Privacy Policy.');
+  if (!db)              return showErr('Unable to connect. Please try again.');
+
+  btn.disabled = true; btn.textContent = 'Creating account…';
+
+  const providerId = (fbUser.providerData || []).map(p => p && p.providerId).find(id => SOCIAL_PROVIDER_IDS.includes(id));
+  const newUser = {
+    id: fbUser.uid,
+    name,
+    email: (fbUser.email || '').toLowerCase(),
+    riderType: _selectedRiderType,
+    homeResort: document.getElementById('sc-resort').value.trim(),
+    createdAt: Date.now(),
+    firebaseUid: fbUser.uid,
+    authProvider: providerId || 'social'
+  };
+  if (await _createPlayerAccount(newUser, dob, showErr)) _socialPendingUser = null;
+}
+
+async function cancelSocialSignup() {
+  const fbUser = _socialPendingUser || (_fbAuth && _fbAuth.currentUser);
+  _socialPendingUser = null;
+  document.getElementById('form-social-complete').style.display = 'none';
+  if (!fbUser) { switchAuthTab('login'); return; }
+  // No player record was ever written, so the Auth account is an orphan —
+  // delete it rather than leave the email sitting in Firebase Auth. Either
+  // way onAuthStateChanged(null) then drops back to preview mode.
+  try { await fbUser.delete(); }
+  catch (_) { await _fbAuth.signOut().catch(() => {}); }
 }
 
 async function doLogin() {
@@ -5364,6 +5601,12 @@ function logout() {
 }
 
 function openChangePasswordModal() {
+  const fbUser = _fbAuth && _fbAuth.currentUser;
+  if (fbUser && !fbUser.providerData.some(p => p && p.providerId === 'password')) {
+    const via = fbUser.providerData.some(p => p && p.providerId === 'apple.com') ? 'Apple' : 'Google';
+    toast(`You sign in with ${via} — there's no Slope Battles password to change.`, 'ok');
+    return;
+  }
   document.getElementById('cp-current').value = '';
   document.getElementById('cp-new').value = '';
   document.getElementById('cp-confirm').value = '';
@@ -5545,6 +5788,8 @@ function launchPreview() {
 
 function switchAuthTab(tab) {
   document.getElementById('form-forgot').style.display = 'none';
+  document.getElementById('form-social-complete').style.display = 'none';
+  document.getElementById('auth-social-block').style.display = 'block';
   document.querySelector('.auth-tabs').style.display = 'flex';
   document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
   document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
@@ -5555,6 +5800,7 @@ function switchAuthTab(tab) {
 
 function showForgotPassword() {
   document.querySelector('.auth-tabs').style.display = 'none';
+  document.getElementById('auth-social-block').style.display = 'none';
   document.getElementById('form-login').style.display  = 'none';
   document.getElementById('form-signup').style.display = 'none';
   document.getElementById('auth-error').classList.remove('visible');
@@ -13728,6 +13974,9 @@ async function _resolveFirebaseSession(fbUser, attempt = 0) {
     if (needsLaunch) launchApp();
     return;
   }
+  // First-time Google/Apple sign-in — no record yet because none has been
+  // written; collect the profile basics instead of signing them back out.
+  if (_isSocialFirebaseUser(fbUser)) { showSocialCompleteForm(fbUser); return; }
   // Confirmed: Firebase Auth user exists but no player record — sign out.
   await _fbAuth.signOut();
   const session = getSession();
