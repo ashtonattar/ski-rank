@@ -2494,6 +2494,29 @@
       .phb-photo:first-of-type { opacity:1 !important; }
     }
   </style>
+  <!-- Sentry error reporting — loaded first so it catches errors from everything below.
+       Skipped on localhost so dev noise stays out of the dashboard. If an ad blocker
+       stops the bundle, window.Sentry is undefined and the app runs normally. -->
+  <script src="https://browser.sentry-cdn.com/8.55.0/bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    (function () {
+      var host = location.hostname;
+      if (!window.Sentry || host === 'localhost' || host === '127.0.0.1') return;
+      try {
+        Sentry.init({
+          dsn: 'https://ee9b12402ec537653ef915548bda6938@o4512229675368448.ingest.us.sentry.io/4512229683822592',
+          environment: 'production',
+          sendDefaultPii: false,
+          ignoreErrors: [
+            'ResizeObserver loop limit exceeded',
+            'ResizeObserver loop completed with undelivered notifications',
+            'Non-Error promise rejection captured',
+          ],
+          denyUrls: [/^chrome-extension:\/\//, /^moz-extension:\/\//, /^safari-(web-)?extension:\/\//],
+        });
+      } catch (e) { console.warn('Sentry init failed:', e); }
+    })();
+  </script>
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -4001,6 +4024,25 @@ const _fbConfig = {
   messagingSenderId: "451261217092",
   appId:             "1:451261217092:web:3489206a6b11033b133f11"
 };
+// Send a caught-and-handled error to Sentry (uncaught ones are reported automatically).
+// `area` becomes a searchable tag. Same area+message is sent once per page load, so a
+// failing listener or the 4s poll can't flood the quota. Offline/network errors are
+// skipped — on a mountain with bad signal those are expected, not bugs.
+const _reportedErrs = new Set();
+function _reportError(e, area, extra) {
+  try {
+    if (!window.Sentry) return;
+    const code = String(e?.code || '').replace(/^(functions|storage)\//, '');
+    if (code === 'unavailable' || code === 'retry-limit-exceeded' || code === 'canceled' || code === 'cancelled') return;
+    const msg = e?.message || String(e);
+    const key = area + '|' + msg;
+    if (_reportedErrs.has(key)) return;
+    _reportedErrs.add(key);
+    const err = e instanceof Error ? e : new Error(msg);
+    Sentry.captureException(err, { tags: { area, code: code || undefined }, extra });
+  } catch (_) {}
+}
+
 let db       = null;
 let _storage = null;
 let _fbAuth  = null;
@@ -4013,7 +4055,7 @@ try {
   _fns     = firebase.functions(); // us-central1, where functions/ deploys
   // Use LOCAL persistence so Firebase Auth token survives page reloads
   _fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
-} catch(e) { console.warn('Firebase init failed:', e); }
+} catch(e) { console.warn('Firebase init failed:', e); _reportError(e, 'firebase-init'); }
 
 // ── Backend migration dual-write (rollout step 6b) ──────────────────────────
 // Every rating/social write below still goes through the old state/global
@@ -4031,6 +4073,7 @@ function _callFn(name, data) {
     .then(res => res.data)
     .catch(e => {
       console.warn(`[dual-write] ${name} failed (${_fnErrCode(e)}):`, e.message);
+      _reportError(e, 'dual-write', { fn: name });
       throw e;
     });
 }
@@ -4041,8 +4084,8 @@ function _callFnQuiet(name, data) { _callFn(name, data).catch(() => {}); }
 function _mirrorWrite(label, promiseFn) {
   if (!db || !_fbAuth?.currentUser) return;
   try {
-    promiseFn().catch(e => console.warn(`[dual-write] ${label} failed:`, e.code || e.message));
-  } catch (e) { console.warn(`[dual-write] ${label} failed:`, e.message); }
+    promiseFn().catch(e => { console.warn(`[dual-write] ${label} failed:`, e.code || e.message); _reportError(e, 'dual-write', { label }); });
+  } catch (e) { console.warn(`[dual-write] ${label} failed:`, e.message); _reportError(e, 'dual-write', { label }); }
 }
 
 // Forgery gate (rollout step 6a): submitMatchResult only records a live game
@@ -4065,6 +4108,7 @@ function _writeLiveJoin(gameId, p1Id, p2Id) {
     .catch(e => {
       _liveJoinsWritten.delete(gameId);
       console.warn('[dual-write] live join failed:', e.code || e.message);
+      _reportError(e, 'dual-write', { label: 'live join', gameId });
     });
 }
 
@@ -4106,6 +4150,7 @@ function _mirrorMyPlayer() {
       // just fail again on every snapshot until the data itself changes.
       if (e.code !== 'permission-denied') _lastPlayerMirror = null;
       console.warn('[dual-write] player mirror failed:', e.code || e.message);
+      _reportError(e, 'dual-write', { label: 'player mirror' });
     });
 }
 
@@ -4247,6 +4292,7 @@ function _startColReads() {
   if (!db) return;
   const onErr = (label, reset) => e => {
     console.warn(`[read-cutover] ${label} listener failed, keeping the cached copy:`, e.code || e.message);
+    _reportError(e, 'read-listener', { label });
     reset();
   };
   _colUnsubs.push(db.collection('players').onSnapshot(snap => {
@@ -4508,6 +4554,7 @@ async function _saveToFirestore(pendingCopy) {
 
   } catch(e) {
     console.warn('Firestore save error:', e);
+    _reportError(e, 'save-global');
     toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Cloud sync failed – changes saved locally', 'err');
   }
 }
@@ -4718,6 +4765,7 @@ function startFirestoreSync() {
       },
       err => {
         console.warn('Firestore onSnapshot error:', err);
+        _reportError(err, 'global-listener');
         // Listener is now dead — restart it after a short delay so live updates resume
         setTimeout(() => {
           if (currentUser) startFirestoreSync();
@@ -4796,7 +4844,7 @@ function subscribeLiveGame(gameId) {
     // the opponent's grace-period timer (below) fires and forfeits me anyway.
     if (currentUser && S.live.abandonedBy === currentUser.id && !S.live.over) {
       db.collection('liveGames').doc(gameId).update({ abandonedBy: null, abandonedAt: null })
-        .catch(e => console.warn('abandon self-heal failed', e));
+        .catch(e => { console.warn('abandon self-heal failed', e); _reportError(e, 'live-game', { step: 'abandon self-heal', gameId }); });
       S.live.abandonedBy = null;
     }
 
@@ -4857,7 +4905,7 @@ function subscribeLiveGame(gameId) {
             if (doc.exists && doc.data().phase === 'waiting-for-judge') {
               tx.update(gameRef, { phase: 'judge-pick-setter' });
             }
-          })).catch(e => console.warn('Phase advance failed:', e));
+          })).catch(e => { console.warn('Phase advance failed:', e); _reportError(e, 'judge', { step: 'phase advance' }); });
         }
       }
       if (liveActive && liveActive.style.display !== 'none') {
@@ -4889,6 +4937,7 @@ function subscribeLiveGame(gameId) {
     }
   }, err => {
     console.warn('liveGames onSnapshot error:', err);
+    _reportError(err, 'live-game', { step: 'liveGames listener' });
     setTimeout(() => {
       if (_currentLiveGameId === gameId) subscribeLiveGame(gameId);
     }, 3000);
@@ -4924,7 +4973,7 @@ async function resolveAbandonIfStillPending(gameId, abId) {
   _abandonHandled = true;
   S.live = g;
   db.collection('liveGames').doc(gameId).update({ abandonedBy: null, abandonedAt: null })
-    .catch(e => console.warn('abandon flag clear failed', e));
+    .catch(e => { console.warn('abandon flag clear failed', e); _reportError(e, 'live-game', { step: 'abandon flag clear', gameId }); });
   S.live.abandonedBy = null;
 
   if (isJudgeLeaving) {
@@ -4969,7 +5018,9 @@ function saveLiveGame(liveObj, immediate, attempt = 0) {
       if (attempt < 4) {
         return new Promise(resolve => setTimeout(
           () => resolve(saveLiveGame(liveObj, true, attempt + 1)), 1000 * Math.pow(2, attempt)));
-      } else if (copy.over) {
+      }
+      _reportError(e, 'live-game', { step: 'save (retries exhausted)', gameId: copy.id, phase: copy.phase, over: !!copy.over });
+      if (copy.over) {
         toast('<svg class="icon icon-warning"><use href="#i-warning"/></svg> Result may not have synced — check your connection and reopen the game.', 'err');
       }
       return false;
@@ -5054,7 +5105,7 @@ function startLiveGamePoll() {
       }
       if (fresh.phase === 'dispute')     resolveDisputeIfReady();
       if (fresh.phase === 'pick-setter') resolveSetterVoteIfReady();
-    } catch(e) { console.warn('[poll] error:', e.message); }
+    } catch(e) { console.warn('[poll] error:', e.message); _reportError(e, 'live-game', { step: 'poll' }); }
   }, 4000);
 }
 
@@ -8235,6 +8286,7 @@ function _syncPendingRequest(request, attempt = 0) {
     if (attempt < 4) {
       setTimeout(() => _syncPendingRequest(request, attempt + 1), 1000 * Math.pow(2, attempt));
     } else {
+      _reportError(e, 'log-game', { step: 'submit (retries exhausted)' });
       const oppName = byId(request.opponentId)?.name || 'your opponent';
       toast(`<svg class="icon icon-warning"><use href="#i-warning"/></svg> Couldn't send your result to ${oppName} — check your connection and log it again.`, 'err');
     }
@@ -8821,7 +8873,7 @@ function voteForSetter(choice) {
   if (db && g.id) {
     db.collection('liveGames').doc(g.id).update({
       [`setterVotes.${currentUser.id}`]: choice
-    }).catch(e => console.warn('Setter vote write failed:', e));
+    }).catch(e => { console.warn('Setter vote write failed:', e); _reportError(e, 'judge', { step: 'setter vote', gameId: g.id }); });
   }
 
   if (!g.setterVotes) g.setterVotes = {};
@@ -8978,7 +9030,7 @@ function submitDisputeVote(vote) {
   if (db && g.id) {
     db.collection('liveGames').doc(g.id).update({
       [`disputeVotes.${currentUser.id}`]: vote
-    }).catch(e => console.warn('Dispute vote write failed:', e));
+    }).catch(e => { console.warn('Dispute vote write failed:', e); _reportError(e, 'dispute', { step: 'vote', gameId: g.id }); });
   }
 
   // Optimistically update local state and redraw so UI responds immediately
@@ -9042,6 +9094,7 @@ async function resolveDisputeIfReady() {
       });
     } catch (e) {
       console.warn('Dispute resolution claim failed:', e);
+      _reportError(e, 'dispute', { step: 'resolution claim', gameId: g.id });
       return; // couldn't determine a winner this time — the next snapshot/vote will retry
     }
     if (!won) return; // another client is resolving (or already did)
@@ -10385,6 +10438,7 @@ async function submitPostClip() {
     renderExplore();
   } catch(err) {
     console.error('Clip upload failed:', err);
+    _reportError(err, 'clip-upload');
     const msg = err.message?.includes('Storage rules') ? err.message : 'Upload failed — check your connection and try again';
     toast(msg, 'err');
   } finally {
@@ -12907,7 +12961,7 @@ function acceptLiveInvite(inviteId) {
         if (S.live && S.live.id === gameId && (S.live.rev || 0) > next.rev) return;
         S.live = next;
         if (_activeSection === 'live-game') renderLiveSetup();
-      }).catch(e => console.warn('Judge phase update failed:', e));
+      }).catch(e => { console.warn('Judge phase update failed:', e); _reportError(e, 'judge', { step: 'phase update', gameId }); });
       startLiveGamePoll();
     }
     // If the doc doesn't exist yet (judge accepted before players), the invite's
@@ -13955,6 +14009,7 @@ async function _resolveFirebaseSession(fbUser, attempt = 0) {
       return _resolveFirebaseSession(fbUser, attempt + 1);
     }
     console.warn('[init] player lookup failed after retries, staying signed in', e);
+    _reportError(e, 'init', { step: 'player lookup' });
     const session = getSession();
     if (session) { currentUser = session; launchApp(); }
     else { launchPreview(); toast('Connection trouble — check your signal and reload.', 'err'); }
@@ -13996,6 +14051,8 @@ async function init() {
     // onAuthStateChanged fires once immediately on load with the persisted
     // token (if any), so this replaces the old localStorage session check.
     _fbAuth.onAuthStateChanged(async fbUser => {
+      // Tag Sentry reports with the Firebase uid only (no name/email).
+      if (window.Sentry) Sentry.setUser(fbUser ? { id: fbUser.uid } : null);
       if (fbUser) {
         await _resolveFirebaseSession(fbUser);
         return;
