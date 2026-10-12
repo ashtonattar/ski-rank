@@ -4067,13 +4067,15 @@ try {
 // Plan: 01 Refinements/(C) Backend Migration Plan - Verified 2026-09-16.md
 function _fnErrCode(e) { return String(e?.code || '').replace(/^functions\//, ''); }
 
-function _callFn(name, data) {
+// quietCodes: error codes that are an expected user-facing outcome (e.g. a
+// daily limit), not a bug, so they aren't sent to Sentry.
+function _callFn(name, data, { quietCodes = [] } = {}) {
   if (!_fns || !_fbAuth?.currentUser) return Promise.resolve(null);
   return _fns.httpsCallable(name)(data)
     .then(res => res.data)
     .catch(e => {
       console.warn(`[dual-write] ${name} failed (${_fnErrCode(e)}):`, e.message);
-      _reportError(e, 'dual-write', { fn: name });
+      if (!quietCodes.includes(_fnErrCode(e))) _reportError(e, 'dual-write', { fn: name });
       throw e;
     });
 }
@@ -4365,25 +4367,46 @@ async function _callFnOrToast(name, data, failMsg) {
   catch (e) { toast(failMsg, 'err'); return null; }
 }
 
-// Upload a video File to Firebase Storage and return its public download URL.
-// Shows upload progress via the Post Clip button text.
-// ── Cloudinary unsigned upload ────────────────────────────────────────────
-// Free tier: 25 GB storage + 25 GB bandwidth/month. No credit card needed.
-// If the free tier is exceeded uploads simply fail — no surprise bills.
+// Upload a video File to Cloudinary and return its public delivery URL.
+// onProgress(pct) is called during the upload.
+// ── Cloudinary signed upload ──────────────────────────────────────────────
+// Free tier: 25 shared credits/month (storage + bandwidth + transformations,
+// 1 credit ≈ 1 GB). If it's exceeded uploads simply fail — no surprise bills.
+// Side track A (2026-10-12): every upload is signed by the signClipUpload
+// Cloud Function, which picks the public_id, allowed formats and overwrite
+// and enforces a daily cap. No unsigned preset is used any more.
 const _CLOUDINARY_CLOUD  = 'dlswxctw9';
-const _CLOUDINARY_PRESET = 'skirank-clips';
-const _CLOUDINARY_MAX_MB = 100; // client-side guard
+const _CLOUDINARY_MAX_MB = 100; // UX guard only; Cloudinary enforces the real cap
 
-function uploadClipToCloudinary(file, onProgress) {
-  return new Promise((resolve, reject) => {
-    if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
-      reject(new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`)); return;
+async function uploadClipToCloudinary(file, onProgress) {
+  if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
+    throw new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`);
+  }
+  let sig;
+  try {
+    sig = await _callFn('signClipUpload', {}, { quietCodes: ['resource-exhausted'] });
+  } catch (e) {
+    if (_fnErrCode(e) === 'resource-exhausted') {
+      const limitErr = new Error(e.message || 'Daily upload limit reached — try again tomorrow.');
+      limitErr.expected = true; // a user-facing limit, not a bug: callers skip Sentry
+      throw limitErr;
     }
+    throw new Error('Could not start the upload — check your connection and try again.');
+  }
+  if (!sig) throw new Error('Sign in to upload clips.');
+
+  return new Promise((resolve, reject) => {
+    // Send exactly the signed params (plus file and api_key): Cloudinary
+    // rejects any other param that isn't in the signature.
     const fd = new FormData();
-    fd.append('file',           file);
-    fd.append('upload_preset',  _CLOUDINARY_PRESET);
-    fd.append('resource_type',  'video');
-    fd.append('folder',         'skirank');
+    fd.append('file',            file);
+    fd.append('api_key',         sig.apiKey);
+    fd.append('timestamp',       sig.timestamp);
+    fd.append('signature',       sig.signature);
+    fd.append('public_id',       sig.publicId);
+    fd.append('allowed_formats', sig.allowedFormats);
+    fd.append('overwrite',       sig.overwrite);
+    if (sig.assetFolder) fd.append('asset_folder', sig.assetFolder);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${_CLOUDINARY_CLOUD}/video/upload`);
@@ -10414,7 +10437,7 @@ async function submitPostClip() {
       // Normalise: make sure it starts with http
       if (!/^https?:\/\//i.test(clipUrl)) clipUrl = 'https://' + clipUrl;
     } else {
-      // File mode — upload to Firebase Storage
+      // File mode — upload to Cloudinary
       if (!_pcFile) { btn.disabled = false; toast('Please choose a video file', 'err'); return; }
       clipUrl = await uploadClipToCloudinary(_pcFile, pct => {
         btn.textContent = `Uploading… ${pct}%`;
@@ -10438,8 +10461,8 @@ async function submitPostClip() {
     renderExplore();
   } catch(err) {
     console.error('Clip upload failed:', err);
-    _reportError(err, 'clip-upload');
-    const msg = err.message?.includes('Storage rules') ? err.message : 'Upload failed — check your connection and try again';
+    if (!err.expected) _reportError(err, 'clip-upload');
+    const msg = err.message || 'Upload failed — check your connection and try again';
     toast(msg, 'err');
   } finally {
     btn.textContent = 'Post to Explore';

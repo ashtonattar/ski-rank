@@ -2,6 +2,7 @@
 
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { onCall } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
@@ -20,6 +21,12 @@ const { reportPendingResultHandler } = require('./lib/reportPendingResult');
 const { cancelPendingResultHandler } = require('./lib/cancelPendingResult');
 const { acceptFriendRequestHandler, removeFriendHandler } = require('./lib/friends');
 const { deletePlayerHandler } = require('./lib/deletePlayer');
+const { signClipUploadHandler } = require('./lib/signClipUpload');
+
+// Side track A. Set with `npx firebase functions:secrets:set <NAME>`; the
+// emulator reads dummy values from functions/.secret.local.
+const CLOUDINARY_API_KEY = defineSecret('CLOUDINARY_API_KEY');
+const CLOUDINARY_API_SECRET = defineSecret('CLOUDINARY_API_SECRET');
 
 exports.submitMatchResult = onCall((request) => submitMatchResultHandler(db, request));
 exports.applyStrikePenalty = onCall((request) => applyStrikePenaltyHandler(db, request));
@@ -32,3 +39,11 @@ exports.acceptFriendRequest = onCall((request) => acceptFriendRequestHandler(db,
 exports.removeFriend = onCall((request) => removeFriendHandler(db, request));
 exports.deletePlayer = onCall((request) =>
   deletePlayerHandler(db, request, { deleteAuthUser: (uid) => getAuth().deleteUser(uid) }));
+
+// Side track A: signs one Cloudinary clip upload, so the unsigned preset can go.
+exports.signClipUpload = onCall({ secrets: [CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET] }, (request) =>
+  signClipUploadHandler(db, request, {
+    apiKey: CLOUDINARY_API_KEY.value(),
+    apiSecret: CLOUDINARY_API_SECRET.value(),
+    now: Date.now()
+  }));

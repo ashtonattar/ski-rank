@@ -393,5 +393,18 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // ── uploadQuotas/{playerId}, uploadQuotaTotals/{day} ─────────────────
+    // Side track A (2026-10-12): the daily clip-upload counters behind the
+    // signClipUpload Cloud Function (functions/lib/signClipUpload.js), per
+    // player and across all players. Written only via the Admin SDK, which
+    // bypasses these rules; no client may read or write them, or a player
+    // could reset their own (or the global) count.
+    match /uploadQuotas/{playerId} {
+      allow read, write: if false;
+    }
+    match /uploadQuotaTotals/{day} {
+      allow read, write: if false;
+    }
   }
 }
