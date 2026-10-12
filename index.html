@@ -4380,7 +4380,9 @@ const _CLOUDINARY_MAX_MB = 100; // UX guard only; Cloudinary enforces the real c
 
 async function uploadClipToCloudinary(file, onProgress) {
   if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
-    throw new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`);
+    const sizeErr = new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`);
+    sizeErr.expected = true; // the UX guard working, not a bug
+    throw sizeErr;
   }
   let sig;
   try {

@@ -34,8 +34,13 @@ const ALLOWED_FORMATS = 'mp4,mov,webm,m4v,3gp';
 
 // The Cloudinary account uses Dynamic Folders (Ashton checked, 2026-10-12),
 // so the Media Library folder is set by asset_folder, not by the public_id
-// path. The public_id keeps the path too, so delivery URLs look the same.
+// path. It's one FIXED, pre-created folder: the API key has the Contributor
+// role, which can upload into an existing folder but not create one, so a
+// per-player folder failed in prod with "missing permissions
+// (actions=["create"])". The player id stays in the public_id, so delivery
+// URLs still read skirank/clips/{playerId}/...
 const SIGN_ASSET_FOLDER = true;
+const ASSET_FOLDER = 'skirank/clips';
 
 function utcDay(now) {
   return new Date(now).toISOString().slice(0, 10);
@@ -95,7 +100,7 @@ async function signClipUploadHandler(db, request, { apiKey, apiSecret, now = Dat
     overwrite: 'false',
     timestamp: Math.floor(now / 1000)
   };
-  if (SIGN_ASSET_FOLDER) params.asset_folder = folder;
+  if (SIGN_ASSET_FOLDER) params.asset_folder = ASSET_FOLDER;
 
   const result = {
     apiKey,
