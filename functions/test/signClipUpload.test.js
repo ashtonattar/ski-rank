@@ -22,8 +22,9 @@ const exhausted = (limit) => (err) => err.code === 'resource-exhausted' && err.d
 
 // Independent recompute, written out longhand rather than via signParams.
 function recompute(res) {
-  const s = `allowed_formats=${res.allowedFormats}&overwrite=${res.overwrite}` +
-    `&public_id=${res.publicId}&timestamp=${res.timestamp}${SECRET}`;
+  const s = `allowed_formats=${res.allowedFormats}` +
+    (res.assetFolder ? `&asset_folder=${res.assetFolder}` : '') +
+    `&overwrite=${res.overwrite}&public_id=${res.publicId}&timestamp=${res.timestamp}${SECRET}`;
   return crypto.createHash('sha1').update(s).digest('hex');
 }
 
@@ -60,6 +61,7 @@ test('signClipUpload callable', async (t) => {
     assert.strictEqual(res.apiKey, KEY);
     assert.strictEqual(res.signature, recompute(res));
     assert.match(res.publicId, /^skirank\/clips\/a\/\d+_[0-9a-f]{12}$/);
+    assert.strictEqual(res.assetFolder, 'skirank/clips/a'); // Dynamic Folders account
     assert.strictEqual(res.allowedFormats, ALLOWED_FORMATS);
     assert.strictEqual(res.overwrite, 'false');
     assert.strictEqual(res.timestamp, Math.floor(NOW / 1000)); // seconds, not ms
@@ -78,6 +80,7 @@ test('signClipUpload callable', async (t) => {
     await db.collection('players').doc('legacy-1').set({ name: 'L', firebaseUid: 'auth-xyz' });
     const res = await sign(db, 'auth-xyz');
     assert.match(res.publicId, /^skirank\/clips\/legacy-1\//);
+    assert.strictEqual(res.assetFolder, 'skirank/clips/legacy-1');
     assert.strictEqual((await quota('legacy-1')).count, 1);
     assert.strictEqual(await quota('auth-xyz'), undefined);
   });

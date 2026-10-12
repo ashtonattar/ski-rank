@@ -32,9 +32,10 @@ const GLOBAL_DAILY_LIMIT = 150;
 // Video only. Signed, so the server sets the allowlist, not a preset.
 const ALLOWED_FORMATS = 'mp4,mov,webm,m4v,3gp';
 
-// Only set to true if the Cloudinary account uses Dynamic Folders (rollout
-// step 1). In fixed-folder mode the folder comes from the public_id path.
-const SIGN_ASSET_FOLDER = false;
+// The Cloudinary account uses Dynamic Folders (Ashton checked, 2026-10-12),
+// so the Media Library folder is set by asset_folder, not by the public_id
+// path. The public_id keeps the path too, so delivery URLs look the same.
+const SIGN_ASSET_FOLDER = true;
 
 function utcDay(now) {
   return new Date(now).toISOString().slice(0, 10);
