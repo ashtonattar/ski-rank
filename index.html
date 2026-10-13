@@ -4375,6 +4375,10 @@ async function _callFnOrToast(name, data, failMsg) {
 // Side track A (2026-10-12): every upload is signed by the signClipUpload
 // Cloud Function, which picks the public_id, allowed formats and overwrite
 // and enforces a daily cap. No unsigned preset is used any more.
+// Clip compression (2026-10-13): the signature also carries an incoming
+// transformation (≤720p, q_auto:good) and format=mp4, so Cloudinary stores
+// only the transcoded mp4. The request waits for that transcode, so the
+// progress sits at 100% ("Processing…") for a few seconds before resolving.
 const _CLOUDINARY_CLOUD  = 'dlswxctw9';
 const _CLOUDINARY_MAX_MB = 100; // UX guard only; Cloudinary enforces the real cap
 
@@ -4409,6 +4413,8 @@ async function uploadClipToCloudinary(file, onProgress) {
     fd.append('allowed_formats', sig.allowedFormats);
     fd.append('overwrite',       sig.overwrite);
     if (sig.assetFolder) fd.append('asset_folder', sig.assetFolder);
+    if (sig.transformation) fd.append('transformation', sig.transformation);
+    if (sig.format) fd.append('format', sig.format);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `https://api.cloudinary.com/v1_1/${_CLOUDINARY_CLOUD}/video/upload`);
@@ -8349,7 +8355,7 @@ async function submitLog() {
   try {
     if (submitBtn) submitBtn.disabled = true;
     clipUrl = await resolveClipValue('lg', pct => {
-      if (submitBtn) submitBtn.textContent = `Uploading clip… ${pct}%`;
+      if (submitBtn) submitBtn.textContent = pct === 100 ? 'Processing…' : `Uploading clip… ${pct}%`;
     });
   } catch (e) {
     resetBtnLabel();
@@ -9374,7 +9380,7 @@ async function submitLiveClipAndReset() {
     // an idb: reference only ever resolves on the uploader's own device, so
     // the opponent/judge viewing this game's history would see a blank video.
     clipUrl = await resolveClipValue('lv', pct => {
-      if (btn) btn.textContent = `Uploading clip… ${pct}%`;
+      if (btn) btn.textContent = pct === 100 ? 'Processing…' : `Uploading clip… ${pct}%`;
     });
   } catch (e) {
     resetBtnLabel();
@@ -9883,7 +9889,7 @@ function renderExplore() {
            <a href="${item.clipUrl}" target="_blank" rel="noopener" class="btn btn-outline" style="margin-top:4px;">Watch on ${isYt?'YouTube':'Vimeo'} ↗</a>
          </div>`
       : `<video class="reel-video" id="reel-vid-${i}"
-           src="${item.clipUrl.startsWith('idb:') ? '' : item.clipUrl}"
+           ${item.clipUrl.startsWith('idb:') ? 'src=""' : clipVideoSrcAttrs(item.clipUrl)}
            playsinline autoplay loop muted
            style="object-fit:cover;"
            onclick="toggleReelPlay(this)"></video>`;
@@ -10442,7 +10448,7 @@ async function submitPostClip() {
       // File mode — upload to Cloudinary
       if (!_pcFile) { btn.disabled = false; toast('Please choose a video file', 'err'); return; }
       clipUrl = await uploadClipToCloudinary(_pcFile, pct => {
-        btn.textContent = `Uploading… ${pct}%`;
+        btn.textContent = pct === 100 ? 'Processing…' : `Uploading… ${pct}%`;
       });
     }
 
@@ -10740,6 +10746,26 @@ function parseClipUrl(raw) {
   if (/^https?:\/\//.test(url)) return { type:'link', url, label:'View Clip', icon:'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>' };
 
   return null;
+}
+
+// Deliver our own Cloudinary clips with f_auto,q_auto (as the hero video
+// does), so each browser gets a codec/quality it plays efficiently. Applied
+// at render time, so old clips get it too; stored clipUrls are untouched.
+// Leaves non-Cloudinary, idb:, blob: and already-transformed URLs alone.
+const _CLD_VIDEO_RE = new RegExp(`^(https://res\\.cloudinary\\.com/${_CLOUDINARY_CLOUD}/video/upload/)(?!f_auto)(.+)$`);
+function cldVideoUrl(url) {
+  const m = _CLD_VIDEO_RE.exec(url || '');
+  return m ? `${m[1]}f_auto,q_auto/${m[2]}` : url;
+}
+
+// src attribute(s) for a <video> playing a stored clip. Cloudinary refuses
+// on-the-fly transforms of very large videos (pre-compression uploads can be
+// up to 100 MB), so if the f_auto URL errors, fall back once to the original.
+// suffix is appended to both (e.g. '#t=0.5' for a poster frame).
+function clipVideoSrcAttrs(url, suffix = '') {
+  const t = cldVideoUrl(url);
+  if (t === url) return `src="${url}${suffix}"`;
+  return `src="${t}${suffix}" data-orig="${url}${suffix}" onerror="if(this.dataset.orig){this.src=this.dataset.orig;delete this.dataset.orig;}"`;
 }
 
 // Build the HTML shown inside the clip preview area
@@ -11304,7 +11330,7 @@ function showProfile(id) {
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px;">
         ${playerClips.slice(0,9).map(c => `
           <div onclick="openProfileClip('${c.id}')" style="position:relative;aspect-ratio:9/16;background:#0a1628;border-radius:10px;overflow:hidden;cursor:pointer;">
-            <video src="${c.clipUrl}#t=0.5" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" preload="metadata" muted playsinline></video>
+            <video ${clipVideoSrcAttrs(c.clipUrl, '#t=0.5')} style="width:100%;height:100%;object-fit:cover;pointer-events:none;" preload="metadata" muted playsinline></video>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.55) 0%,transparent 60%);"></div>
             ${c.caption ? `<div style="position:absolute;bottom:5px;left:6px;right:6px;font-size:9.5px;color:rgba(255,255,255,0.85);font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.caption}</div>` : ''}
             <div style="position:absolute;top:6px;right:6px;font-size:13px;opacity:0.7;">▶</div>

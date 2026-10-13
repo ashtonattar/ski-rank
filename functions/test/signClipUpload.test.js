@@ -7,7 +7,8 @@ const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const { getDb, clearEmulatorData, fakeRequest } = require('./testUtils');
 const {
-  signClipUploadHandler, signParams, PER_PLAYER_DAILY_LIMIT, GLOBAL_DAILY_LIMIT, ALLOWED_FORMATS
+  signClipUploadHandler, signParams, PER_PLAYER_DAILY_LIMIT, GLOBAL_DAILY_LIMIT, ALLOWED_FORMATS,
+  INCOMING_TRANSFORMATION, STORED_FORMAT
 } = require('../lib/signClipUpload');
 
 const KEY = 'test-key';
@@ -24,7 +25,9 @@ const exhausted = (limit) => (err) => err.code === 'resource-exhausted' && err.d
 function recompute(res) {
   const s = `allowed_formats=${res.allowedFormats}` +
     (res.assetFolder ? `&asset_folder=${res.assetFolder}` : '') +
-    `&overwrite=${res.overwrite}&public_id=${res.publicId}&timestamp=${res.timestamp}${SECRET}`;
+    `&format=${res.format}` +
+    `&overwrite=${res.overwrite}&public_id=${res.publicId}&timestamp=${res.timestamp}` +
+    `&transformation=${res.transformation}${SECRET}`;
   return crypto.createHash('sha1').update(s).digest('hex');
 }
 
@@ -64,6 +67,10 @@ test('signClipUpload callable', async (t) => {
     assert.strictEqual(res.assetFolder, 'skirank/clips'); // one fixed, pre-created folder
     assert.strictEqual(res.allowedFormats, ALLOWED_FORMATS);
     assert.strictEqual(res.overwrite, 'false');
+    assert.strictEqual(res.transformation, INCOMING_TRANSFORMATION);
+    assert.strictEqual(res.transformation, 'c_limit,w_1280,h_1280/q_auto:good'); // ≤720p either orientation
+    assert.strictEqual(res.format, STORED_FORMAT);
+    assert.strictEqual(res.format, 'mp4');
     assert.strictEqual(res.timestamp, Math.floor(NOW / 1000)); // seconds, not ms
     assert.ok(!('uploadPreset' in res) && !('upload_preset' in res));
     assert.ok(!JSON.stringify(res).includes(SECRET));

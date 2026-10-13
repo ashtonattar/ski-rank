@@ -32,6 +32,14 @@ const GLOBAL_DAILY_LIMIT = 150;
 // Video only. Signed, so the server sets the allowlist, not a preset.
 const ALLOWED_FORMATS = 'mp4,mov,webm,m4v,3gp';
 
+// Clip compression (2026-10-13): an incoming transformation, so Cloudinary
+// stores only the transcoded clip. Capping both sides at 1280 gives 720p in
+// either orientation (1080x1920 -> 720x1280); c_limit never upscales.
+// format=mp4 stores every clip as a standard mp4, so even the raw stored URL
+// plays everywhere (iPhone HEVC .mov doesn't play in Chrome/Android).
+const INCOMING_TRANSFORMATION = 'c_limit,w_1280,h_1280/q_auto:good';
+const STORED_FORMAT = 'mp4';
+
 // The Cloudinary account uses Dynamic Folders (Ashton checked, 2026-10-12),
 // so the Media Library folder is set by asset_folder, not by the public_id
 // path. It's one FIXED, pre-created folder: the API key has the Contributor
@@ -98,6 +106,8 @@ async function signClipUploadHandler(db, request, { apiKey, apiSecret, now = Dat
     public_id: `${folder}/${now}_${crypto.randomBytes(6).toString('hex')}`,
     allowed_formats: ALLOWED_FORMATS,
     overwrite: 'false',
+    format: STORED_FORMAT,
+    transformation: INCOMING_TRANSFORMATION,
     timestamp: Math.floor(now / 1000)
   };
   if (SIGN_ASSET_FOLDER) params.asset_folder = ASSET_FOLDER;
@@ -108,7 +118,9 @@ async function signClipUploadHandler(db, request, { apiKey, apiSecret, now = Dat
     signature: signParams(params, apiSecret),
     publicId: params.public_id,
     allowedFormats: params.allowed_formats,
-    overwrite: params.overwrite
+    overwrite: params.overwrite,
+    format: params.format,
+    transformation: params.transformation
   };
   if (SIGN_ASSET_FOLDER) result.assetFolder = params.asset_folder;
   return result;
@@ -119,5 +131,7 @@ module.exports = {
   signParams,
   PER_PLAYER_DAILY_LIMIT,
   GLOBAL_DAILY_LIMIT,
-  ALLOWED_FORMATS
+  ALLOWED_FORMATS,
+  INCOMING_TRANSFORMATION,
+  STORED_FORMAT
 };
