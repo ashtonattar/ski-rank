@@ -3100,7 +3100,7 @@
             <div class="clip-box-inner">
               <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
               <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Upload a video clip</div>
-              <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">MP4 · MOV · AVI · up to 100 MB</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">MP4 · MOV · WEBM · up to 40 MB</div>
               <input type="hidden" id="lg-clip-url">
               <label class="btn btn-outline" style="cursor:pointer;">
                 Choose File <input type="file" id="lg-clip-file" accept="video/*" style="display:none;" onchange="handleClipFile('lg',this)">
@@ -4380,11 +4380,16 @@ async function _callFnOrToast(name, data, failMsg) {
 // only the transcoded mp4. The request waits for that transcode, so the
 // progress sits at 100% ("Processing…") for a few seconds before resolving.
 const _CLOUDINARY_CLOUD  = 'dlswxctw9';
-const _CLOUDINARY_MAX_MB = 100; // UX guard only; Cloudinary enforces the real cap
+// 40, not 100: uploads are transcoded synchronously (incoming transformation),
+// and Cloudinary refuses that above ~40 MB on our plan ("Video is too large to
+// process synchronously"; an 87 MB clip failed 2026-10-14). Eager async would
+// keep the full original and eat the free-tier storage, so we cap instead.
+const _CLOUDINARY_MAX_MB = 40;
+const _CLIP_TOO_BIG_MSG  = `Clip is over ${_CLOUDINARY_MAX_MB} MB — trim it shorter (or record at 1080p) and try again.`;
 
 async function uploadClipToCloudinary(file, onProgress) {
   if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
-    const sizeErr = new Error(`File too large — max ${_CLOUDINARY_MAX_MB} MB`);
+    const sizeErr = new Error(_CLIP_TOO_BIG_MSG);
     sizeErr.expected = true; // the UX guard working, not a bug
     throw sizeErr;
   }
@@ -10412,6 +10417,7 @@ function closePostClip() {
 
 function pcHandleFile(file) {
   if (!file) return;
+  if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) { toast(_CLIP_TOO_BIG_MSG, 'err'); return; }
   _pcFile = file;
   document.getElementById('pc-drop-label').style.display   = 'none';
   document.getElementById('pc-drop-preview').style.display = 'block';
@@ -10760,7 +10766,7 @@ function cldVideoUrl(url) {
 
 // src attribute(s) for a <video> playing a stored clip. Cloudinary refuses
 // on-the-fly transforms of very large videos (pre-compression uploads can be
-// up to 100 MB), so if the f_auto URL errors, fall back once to the original.
+// up to 100 MB before 2026-10-14), so if the f_auto URL errors, fall back once to the original.
 // suffix is appended to both (e.g. '#t=0.5' for a poster frame).
 function clipVideoSrcAttrs(url, suffix = '') {
   const t = cldVideoUrl(url);
@@ -10822,7 +10828,7 @@ function handleClipFile(prefix, input) {
   const file = input.files?.[0];
   if (!file) return;
   if (file.size > _CLOUDINARY_MAX_MB * 1024 * 1024) {
-    toast(`File is over ${_CLOUDINARY_MAX_MB} MB — please try a shorter clip.`, 'err');
+    toast(_CLIP_TOO_BIG_MSG, 'err');
     input.value = '';
     return;
   }
@@ -14681,7 +14687,7 @@ async function adminWipeEverything() {
           </div>
           <div id="pc-drop-preview" style="display:none;font-size:12px;color:var(--ice);font-weight:700;"></div>
         </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">Max 100 MB · mp4, mov, webm</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">Max 40 MB · mp4, mov, webm</div>
       </div>
 
       <div>
