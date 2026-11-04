@@ -238,6 +238,32 @@
       50%      { background-position: 100% 50%; }
     }
     @media (prefers-reduced-motion: reduce) { .logo-title { animation:none; } }
+    /* ── P5 Demo Rider practice duel (local-only, unrated) ── */
+    .demo-practice-btn { min-height:44px; margin-top:14px; flex-direction:column; gap:2px; }
+    .demo-practice-sub { font-size:11px; color:var(--text-muted); font-weight:400; }
+    #demo-duel { position:fixed; inset:0; z-index:9000; background:var(--bg, #0e1114); overflow-y:auto; display:flex; justify-content:center; padding:16px; }
+    #demo-duel .dd-wrap { width:100%; max-width:480px; display:flex; flex-direction:column; gap:14px; padding-bottom:32px; }
+    .dd-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .dd-tag { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--warning); border:1px solid var(--warning); border-radius:var(--radius-chip); padding:4px 8px; }
+    .dd-row { display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:center; }
+    .dd-panel { background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius); padding:12px; text-align:center; }
+    .dd-panel.dd-active { border-color:var(--primary); }
+    .dd-name { font-weight:600; font-size:14px; margin-bottom:2px; }
+    .dd-role { font-size:11px; color:var(--text-muted); margin-bottom:8px; }
+    .dd-panel .ski-letters { gap:4px; }
+    .dd-panel .ski-letter { width:34px; height:34px; font-size:20px; }
+    .dd-vs { font-family:'Bebas Neue',sans-serif; color:var(--text-muted); font-size:20px; }
+    .dd-trick { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius); padding:14px; text-align:center; min-height:64px; }
+    .dd-trick-name { font-size:18px; font-weight:600; }
+    .dd-msg { font-size:13px; color:var(--text-secondary); margin-top:4px; }
+    .dd-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .dd-actions .btn, .dd-picks .btn, .dd-cta .btn { min-height:44px; justify-content:center; width:100%; }
+    .dd-picks { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .dd-log { font-size:12px; color:var(--text-muted); max-height:96px; overflow-y:auto; }
+    .dd-cta { display:flex; flex-direction:column; gap:10px; }
+    .dd-letter-pop { animation:ddPop .22s ease-out; }
+    @keyframes ddPop { from { transform:scale(.8); opacity:.4; } to { transform:scale(1); opacity:1; } }
+    @media (prefers-reduced-motion: reduce) { .dd-letter-pop { animation:none; } }
 
     .logo-sub {
       font-size: 9px; color:var(--text-muted);
@@ -3135,6 +3161,7 @@
             <div class="play-pill"><span>📱</span> Live scoring</div>
             <div class="play-pill"><span><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span> No rating needed</div>
           </div>
+          <button class="btn btn-outline demo-practice-btn" id="demo-practice-btn" onclick="openDemoDuel()">Practice vs. Demo Rider <span class="demo-practice-sub">solo · unrated · 2 min</span></button>
         </div>
         </div>
 
@@ -14645,6 +14672,207 @@ async function adminWipeEverything() {
 
   toast('Everything wiped. Reloading…', 'ok');
   setTimeout(() => location.reload(), 1500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  P5 — DEMO RIDER PRACTICE DUEL
+//  Local-only, unrated. State lives in `_demo` (module-level, OUTSIDE `S`),
+//  so it never reaches save()/localStorage/Firestore. No rating, game,
+//  player or leaderboard effects. Do NOT route this through S.live.
+// ═══════════════════════════════════════════════════════
+let _demo = null;
+const DEMO_LAND_ODDS = { easy:0.85, medium:0.65, hard:0.45, expert:0.25 };
+
+// No-op-safe analytics hook (wire GA4 here later).
+function track(event, params) {
+  try { if (typeof window.gtag === 'function') window.gtag('event', event, params || {}); } catch(e) {}
+}
+
+function _demoEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _demoReduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+function _demoInRealGame() {
+  return !!(S.live && !S.live.over && currentUser &&
+    (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId));
+}
+
+function openDemoDuel(sport) {
+  if (_demoInRealGame()) { toast('Finish your live game first.', 'err'); return; }
+  const mySport = sport || (currentUser ? (currentUser.riderType === 'boarder' ? 'snowboard' : 'ski') : 'ski');
+  _demo = { sport: mySport, letters: { you: 0, bot: 0 }, setter: Math.random() < 0.5 ? 'you' : 'bot',
+            trick: null, phase: 'start', log: [], over: false, busy: false, tricks: 0, timer: null };
+  track('demo_duel_start', { sport: mySport });
+  let el = document.getElementById('demo-duel');
+  if (!el) { el = document.createElement('div'); el.id = 'demo-duel'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Practice duel vs Demo Rider'); document.body.appendChild(el); }
+  document.body.style.overflow = 'hidden';
+  _demoNextSet();
+}
+
+function closeDemoDuel() {
+  if (_demo && _demo.timer) clearTimeout(_demo.timer);
+  _demo = null;
+  const el = document.getElementById('demo-duel');
+  if (el) el.remove();
+  document.body.style.overflow = '';
+}
+
+function _demoPool(diffs) {
+  return TRICK_LIBRARY.filter(t => (t.sport === _demo.sport || t.sport === 'both') && diffs.includes(t.diff));
+}
+function _demoPick(n, diffs) {
+  const pool = _demoPool(diffs).slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, n);
+}
+function _demoDiff(name) {
+  const t = TRICK_LIBRARY.find(x => x.name === name);
+  return t ? t.diff : _trickDifficulty(name);
+}
+
+function _demoNextSet() {
+  if (!_demo || _demo.over) return;
+  _demo.trick = null;
+  _demo.busy = false;
+  if (_demo.setter === 'you') { _demo.phase = 'you-pick'; _demo.choices = _demoPick(4, ['easy','medium','hard']); renderDemoDuel(); return; }
+  // Bot sets, weighted toward easy/medium
+  _demo.phase = 'bot-set';
+  _demo.busy = true;
+  renderDemoDuel();
+  _demo.timer = setTimeout(() => {
+    if (!_demo) return;
+    const r = Math.random();
+    const diffs = r < 0.5 ? ['easy'] : r < 0.9 ? ['medium'] : ['hard'];
+    const t = _demoPick(1, diffs)[0] || _demoPick(1, ['easy','medium'])[0];
+    _demo.trick = t.name;
+    _demoBotAttempt('set');
+  }, _demoReduced() ? 300 : 1200);
+}
+
+function demoChoose(i) {
+  if (!_demo || _demo.phase !== 'you-pick') return;
+  _demo.trick = _demo.choices[i].name;
+  _demo.phase = 'you-set-try';
+  renderDemoDuel();
+}
+
+// Your own attempt (honor system — nothing counts)
+function demoYouAttempt(landed) {
+  if (!_demo || _demo.over || _demo.busy) return;
+  if (_demo.phase === 'you-set-try') {
+    if (landed) { _demo.log.push(`You landed ${_demo.trick} — Demo Rider must copy it.`); _demoBotAttempt('copy'); }
+    else { _demo.log.push(`You missed your set — Demo Rider sets next.`); _demo.setter = 'bot'; _demoNextSet(); }
+  } else if (_demo.phase === 'you-copy') {
+    if (landed) { _demo.log.push(`You matched ${_demo.trick}. Demo Rider keeps setting.`); _demoNextSet(); }
+    else { _demo.log.push(`You missed ${_demo.trick} — you take a letter.`); _demoLetter('you'); }
+  }
+}
+
+function _demoBotAttempt(kind) {
+  _demo.busy = true;
+  _demo.phase = kind === 'set' ? 'bot-set-try' : 'bot-copy-try';
+  renderDemoDuel();
+  _demo.timer = setTimeout(() => {
+    if (!_demo) return;
+    const landed = Math.random() < (DEMO_LAND_ODDS[_demoDiff(_demo.trick)] ?? 0.65);
+    _demo.busy = false;
+    if (kind === 'set') {
+      if (landed) { _demo.log.push(`Demo Rider landed ${_demo.trick} — your turn to copy.`); _demo.phase = 'you-copy'; renderDemoDuel(); }
+      else { _demo.log.push(`Demo Rider missed their set — you set next.`); _demo.setter = 'you'; _demoNextSet(); }
+    } else {
+      if (landed) { _demo.log.push(`Demo Rider matched ${_demo.trick}. You keep setting.`); _demoNextSet(); }
+      else { _demo.log.push(`Demo Rider missed ${_demo.trick} — letter!`); _demoLetter('bot'); }
+    }
+  }, _demoReduced() ? 300 : 1600);
+}
+
+function _demoLetter(who) {
+  _demo.letters[who]++;
+  _demo.tricks++;
+  _demo.lastLetter = who;
+  if (_demo.letters[who] >= LETTERS.length) {
+    _demo.over = true; _demo.phase = 'over'; _demo.busy = false;
+    track('demo_duel_complete', { result: who === 'you' ? 'loss' : 'win' });
+    renderDemoDuel();
+    return;
+  }
+  // Whoever took the letter's opponent keeps/gets the set: the setter stays setter.
+  renderDemoDuel();
+  _demo.timer = setTimeout(() => { if (_demo && !_demo.over) _demoNextSet(); }, _demoReduced() ? 200 : 900);
+  _demo.busy = true;
+}
+
+function demoCta(cta) {
+  track('demo_duel_cta_click', { cta });
+  if (cta === 'again') { openDemoDuel(_demo ? _demo.sport : undefined); return; }
+  closeDemoDuel();
+  if (cta === 'invite') {
+    if (currentUser) inviteFriends(); else showAuthScreen();
+  } else if (cta === 'real') {
+    if (!currentUser) showAuthScreen();
+    else nav('live-game');
+  }
+}
+
+function _demoLetters(n, popIdx) {
+  return `<div class="ski-letters">${LETTERS.map((l, i) =>
+    `<span class="ski-letter${i < n ? ' earned' : ''}${i === popIdx ? ' dd-letter-pop' : ''}">${l}</span>`).join('')}</div>`;
+}
+
+function renderDemoDuel() {
+  const el = document.getElementById('demo-duel');
+  if (!el || !_demo) return;
+  const d = _demo;
+  const youName = _demoEsc(currentUser?.name || 'You');
+  const diff = d.trick ? _demoDiff(d.trick) : null;
+  const trickHtml = d.trick
+    ? `<div class="dd-trick-name">${_demoEsc(d.trick)}</div><div class="dd-msg">${DIFF_LABELS[diff] || ''}</div>`
+    : `<div class="dd-msg">${d.phase === 'bot-set' ? 'Demo Rider is dropping in…' : 'Pick a trick to set'}</div>`;
+  let controls = '';
+  let msg = '';
+  switch (d.phase) {
+    case 'you-pick':
+      msg = 'Your set — choose a trick, land it, and Demo Rider must copy.';
+      controls = `<div class="dd-picks">${d.choices.map((t, i) => `<button class="btn btn-outline" onclick="demoChoose(${i})">${_demoEsc(t.name)}</button>`).join('')}</div>`;
+      break;
+    case 'you-set-try':
+      msg = 'Go ride it, then tell us how it went.';
+      controls = `<div class="dd-actions"><button class="btn btn-primary" onclick="demoYouAttempt(true)">Landed</button><button class="btn btn-outline" onclick="demoYouAttempt(false)">Missed</button></div>`;
+      break;
+    case 'you-copy':
+      msg = 'Copy it or take a letter.';
+      controls = `<div class="dd-actions"><button class="btn btn-primary" onclick="demoYouAttempt(true)">Landed</button><button class="btn btn-outline" onclick="demoYouAttempt(false)">Missed</button></div>`;
+      break;
+    case 'bot-set': msg = 'Demo Rider is setting…'; break;
+    case 'bot-set-try': msg = 'Demo Rider is dropping in…'; break;
+    case 'bot-copy-try': msg = 'Demo Rider is copying…'; break;
+  }
+  let body;
+  if (d.over) {
+    const won = d.letters.you < LETTERS.length;
+    body = `
+      <div class="dd-trick"><div class="dd-trick-name">${won ? 'You win the practice duel' : 'Demo Rider wins this one'}</div>
+        <div class="dd-msg">Results count when you play a real rider. Come to park night, there's always someone to battle.</div></div>
+      <div class="dd-cta">
+        <button class="btn btn-primary btn-lg" onclick="demoCta('real')">Play a real rival</button>
+        <button class="btn btn-outline" onclick="demoCta('invite')">Invite a friend</button>
+        <button class="btn btn-outline" onclick="demoCta('again')">Run it back</button>
+      </div>`;
+  } else {
+    body = `<div class="dd-trick">${trickHtml}</div><div class="dd-msg" style="text-align:center;">${_demoEsc(msg)}</div>${controls}`;
+  }
+  const pop = (who) => (d.lastLetter === who ? d.letters[who] - 1 : -1);
+  const lastLog = d.log.slice(-4).reverse().map(x => `<div>${_demoEsc(x)}</div>`).join('');
+  el.innerHTML = `<div class="dd-wrap">
+    <div class="dd-top"><span class="dd-tag">Practice · Unrated</span><button class="btn btn-ghost" onclick="closeDemoDuel()" style="min-height:44px;">Exit</button></div>
+    <div class="dd-row">
+      <div class="dd-panel ${d.setter === 'you' && !d.over ? 'dd-active' : ''}"><div class="dd-name">${youName}</div><div class="dd-role">${d.setter === 'you' ? 'Setter' : 'Copying'}</div>${_demoLetters(d.letters.you, pop('you'))}</div>
+      <div class="dd-vs">VS</div>
+      <div class="dd-panel ${d.setter === 'bot' && !d.over ? 'dd-active' : ''}"><div class="dd-name">🤖 Demo Rider</div><div class="dd-role">${d.setter === 'bot' ? 'Setter' : 'Copying'} · Bot</div>${_demoLetters(d.letters.bot, pop('bot'))}</div>
+    </div>
+    ${body}
+    <div class="dd-log" aria-live="polite">${lastLog}</div>
+  </div>`;
+  d.lastLetter = null;
 }
 </script>
 
