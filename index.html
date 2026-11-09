@@ -754,11 +754,12 @@
     /* ── BUTTONS ── */
     .btn {
       display:inline-flex; align-items:center; gap:8px;
-      padding:8px 18px; border-radius:var(--radius-sm);
-      font-size:12px; font-weight:700; letter-spacing:1.2px;
-      text-transform:uppercase;
-      cursor:pointer; border:none; transition:background-color .18s, color .18s, box-shadow .18s, transform .18s;
-      font-family:var(--font-display);
+      justify-content:center;
+      padding:10px 18px; border-radius:var(--radius-sm);
+      font-size:14px; font-weight:600; letter-spacing:-0.005em;
+      cursor:pointer; border:none;
+      transition:background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+      font-family:'Inter',sans-serif;
       position:relative; overflow:hidden;
       -webkit-tap-highlight-color:transparent;
     }
@@ -768,14 +769,14 @@
       position:absolute; border-radius:50%;
       transform:scale(0); pointer-events:none;
       animation:btnRipple .55s ease-out forwards;
-      background:rgba(255,255,255,0.28);
+      background:rgba(255,255,255,0.14);
     }
     @keyframes btnRipple {
       to { transform:scale(4); opacity:0; }
     }
 
-    /* ── Press-down bounce ── */
-    .btn:active { transform:scale(0.93) translateY(1px) !important; }
+    /* ── Press: a small, fast scale reads as tactile without looking bouncy ── */
+    .btn:active { transform:scale(0.97) !important; }
 
     /* ── Landed: green pulse burst ── */
     @keyframes landedPulse {
@@ -799,6 +800,7 @@
       background:var(--pop); color:var(--pop-ink); font-weight:700;
     }
     .btn-primary:hover { background:var(--pop-hover); }
+    .btn-primary .icon { color:currentColor; }
 
     .btn-accent {
       background:var(--bg-elevated); color:var(--text-primary);
@@ -810,16 +812,16 @@
     }
 
     .btn-outline { background:var(--bg-elevated); color:var(--text-secondary); border:1px solid var(--border); box-shadow:var(--shadow-surface-sm); }
-    .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(255,62,127,0.05); }
+    .btn-outline:hover { border-color:var(--border-light); color:var(--text-primary); }
 
     .btn-ghost { background:transparent; color:var(--text-muted); border:none; }
-    .btn-ghost:hover { color:var(--danger); background:rgba(255,90,95,0.08); }
+    .btn-ghost:hover { color:var(--text-primary); background:rgba(255,255,255,0.04); }
 
     .btn-danger { background:transparent; color:var(--danger); border:1px solid rgba(255,90,95,0.25); }
     .btn-danger:hover { background:rgba(255,90,95,0.1); }
 
-    .btn-sm { padding:4px 12px; font-size:10.5px; }
-    .btn-lg { padding:12px 28px; font-size:14px; border-radius:var(--radius); }
+    .btn-sm { padding:7px 12px; font-size:13px; }
+    .btn-lg { padding:14px 24px; font-size:15px; border-radius:var(--radius); }
 
     .btn-landed {
       background:var(--success);
@@ -1446,30 +1448,11 @@
 
     /* ── MY PROFILE VIEW ── */
     .profile-hero {
-      position:relative; overflow:hidden;
+      position:relative;
+      background:var(--bg-card); border:1px solid var(--border);
       border-radius:var(--radius-lg);
-      background-color:#14171b;
-      background-image: url('https://images.unsplash.com/photo-1488771025462-7cd35f97a021?w=1400&auto=format&fit=crop&q=70');
-      background-size:cover; background-position:center 40%;
-      border:1px solid rgba(255,62,127,0.18);
-      padding:36px 36px 40px;
-      margin-bottom:24px;
-      box-shadow:0 24px 64px rgba(0,0,0,0.7);
-      display:flex; align-items:center; gap:30px;
-    }
-    .profile-hero::before {
-      content:''; position:absolute; inset:0;
-      background: linear-gradient(
-        100deg,
-        rgba(24,26,29,0.90) 0%,
-        rgba(24,26,29,0.75) 50%,
-        rgba(24,26,29,0.45) 100%
-      );
-    }
-    .profile-hero::after {
-      content:''; position:absolute;
-      top:0; left:0; right:0; height:2px;
-      background:none;
+      padding:28px 20px 22px; margin-bottom:20px;
+      display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px;
     }
 
     .profile-avatar-wrap {
@@ -1477,45 +1460,62 @@
     }
     .profile-avatar-wrap:hover .profile-avatar-overlay { opacity:1; }
     .profile-avatar-img {
-      width:96px; height:96px; border-radius:50%;
-      object-fit:cover;
-      border:3px solid rgba(255,62,127,0.35);
-      
-      display:block;
+      width:88px; height:88px; border-radius:50%;
+      object-fit:cover; display:block;
     }
     .profile-avatar-fallback {
-      width:96px; height:96px; border-radius:50%;
+      width:88px; height:88px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-display);font-weight:700; font-size:25px; color:#fff;
-      border:3px solid rgba(255,62,127,0.35);
-      
+      font-family:var(--font-display);font-weight:700; font-size:26px; color:#fff;
       flex-shrink:0;
     }
     .profile-avatar-overlay {
       position:absolute; inset:0; border-radius:50%;
-      background:rgba(0,0,0,0.58);
+      background:rgba(0,0,0,0.55);
       display:flex; align-items:center; justify-content:center;
-      opacity:0; transition:opacity .18s;
-      font-size:22px;
+      opacity:0; transition:opacity var(--dur-fast) var(--ease-out);
+      font-size:20px;
     }
-    .profile-hero-info { flex:1; position:relative; }
+    .profile-hero-info { width:100%; }
     .profile-hero-name {
       font-family:var(--font-display);font-weight:700;
-      font-size:34px; letter-spacing:-0.02em; line-height:1;
-      color:#fff; 
-      margin-bottom:6px;
+      font-size:26px; letter-spacing:-0.02em; line-height:1.1;
+      color:var(--text-primary); margin-bottom:8px;
     }
     .profile-hero-meta {
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;
+      display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:10px;
     }
     .profile-hero-rating {
-      font-family:var(--font-display);font-weight:700; font-size:21px;
-      color:var(--ice); letter-spacing:-0.02em;
+      font-family:var(--font-display);font-weight:800; font-size:22px;
+      color:var(--ice); letter-spacing:-0.02em; font-variant-numeric:tabular-nums;
     }
     .profile-hero-bio-preview {
-      font-size:13px; color:var(--text-secondary); max-width:440px;
-      line-height:1.6; margin-top:6px; font-style:italic;
+      font-size:13.5px; color:var(--text-secondary); max-width:420px;
+      line-height:1.55; margin:8px auto 0;
     }
+
+    /* Instagram-style count row shared by My Profile and the player card. */
+    .prof-counts {
+      display:grid; grid-template-columns:repeat(3,1fr); width:100%; max-width:340px; margin:14px auto 0;
+    }
+    .prof-counts > * {
+      cursor:pointer; padding:4px 0; display:flex; flex-direction:column; align-items:center; gap:2px;
+      font-size:11.5px; color:var(--text-muted);
+    }
+    .prof-counts > * + * { border-left:1px solid var(--border); }
+    .prof-counts strong {
+      font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--text-primary);
+      font-variant-numeric:tabular-nums;
+    }
+    .prof-meta { font-size:12.5px; color:var(--text-muted); line-height:1.6; }
+    .prof-meta a { color:var(--ice); text-decoration:none; }
+    .prof-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:18px 0 22px; }
+    .prof-actions .btn { padding:8px 12px; }
+    .sec-label {
+      font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+      color:var(--text-muted); margin:0 2px 10px; display:flex; align-items:center; gap:6px;
+    }
+    .sec-label .sec-count { font-weight:500; letter-spacing:0; text-transform:none; }
 
     .profile-grid {
       display:grid; grid-template-columns:1fr 1fr;
@@ -1524,12 +1524,9 @@
     @media (max-width:780px) { .profile-grid { grid-template-columns:1fr; } }
 
     .profile-section-label {
-      font-size:10.5px; font-weight:700; letter-spacing:2px;
+      font-size:10.5px; font-weight:700; letter-spacing:.8px;
       text-transform:uppercase; color:var(--text-muted);
-      margin-bottom:14px; display:flex; align-items:center; gap:8px;
-    }
-    .profile-section-label::before {
-      content:''; width:18px; height:1px; background:var(--ice); opacity:.4;
+      margin-bottom:14px;
     }
 
     .prof-textarea {
@@ -2219,10 +2216,10 @@
       .hero-pill { display:none; }
 
       /* ── Profile hero: stack vertically ── */
-      .profile-hero { flex-direction:column; text-align:center; padding:24px 18px 28px; gap:16px; }
+      .profile-hero { padding:24px 16px 20px; }
       #prof-recent-games-card { display:none !important; }
       .profile-hero-meta { justify-content:center; }
-      .profile-hero-name { font-size:32px; }
+      .profile-hero-name { font-size:24px; }
       .profile-hero-bio-preview { max-width:100%; }
 
       /* ── Game over banner: shrink heading ── */
@@ -3535,8 +3532,8 @@
     <!-- ─── MY PROFILE ─── -->
     <div id="view-profile" class="view">
       <div class="view-header">
-        <h2>My Profile</h2>
-        <p>Your public skier card — bio, photo, home mountain</p>
+        <h2>Profile</h2>
+        <p>How other riders see you</p>
       </div>
 
       <!-- Hero banner -->
@@ -3555,10 +3552,10 @@
           </div>
           <div id="prof-hero-resort" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;"></div>
           <div id="prof-hero-instagram" style="margin-bottom:4px;"></div>
-          <div style="display:flex;gap:16px;align-items:center;margin-bottom:4px;font-size:12.5px;">
-            <span style="cursor:pointer;" onclick="openStatListModal('followers')"><strong id="prof-hero-followers" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Followers</span></span>
-            <span style="cursor:pointer;" onclick="openStatListModal('following')"><strong id="prof-hero-following" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Following</span></span>
-            <span style="cursor:pointer;" onclick="openStatListModal('friends')"><strong id="prof-hero-friends" style="color:#fff;">0</strong> <span style="color:var(--text-secondary);">Friends</span></span>
+          <div class="prof-counts">
+            <span onclick="openStatListModal('followers')"><strong id="prof-hero-followers">0</strong>Followers</span>
+            <span onclick="openStatListModal('following')"><strong id="prof-hero-following">0</strong>Following</span>
+            <span onclick="openStatListModal('friends')"><strong id="prof-hero-friends">0</strong>Friends</span>
           </div>
           <div class="profile-hero-bio-preview" id="prof-hero-bio"></div>
         </div>
@@ -9428,12 +9425,12 @@ function friendBtn(otherId, modal=false) {
   if (modal) {
     // Larger, more prominent version for the profile modal
     if (status === 'friends')
-      return `<button class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.4);cursor:default;padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Friends</button>`;
+      return `<button class="btn btn-accent btn-sm" style="color:var(--success);cursor:default;"><svg class="icon icon-check"><use href="#i-check"/></svg> Friends</button>`;
     if (status === 'pending_sent')
-      return `<button class="btn btn-ghost" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);padding:10px 22px;font-size:14px;border-radius:10px;">Requested <svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
+      return `<button class="btn btn-accent btn-sm" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);">Requested <svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
     if (status === 'pending_received')
-      return `<button class="btn btn-primary" onclick="acceptFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Accept Request</button>`;
-    return `<button class="btn btn-primary" onclick="sendFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;border:none;">+ Add Friend</button>`;
+      return `<button class="btn btn-accent btn-sm" onclick="acceptFriendRequest('${otherId}')"><svg class="icon icon-check"><use href="#i-check"/></svg> Accept request</button>`;
+    return `<button class="btn btn-accent btn-sm" onclick="sendFriendRequest('${otherId}')">+ Add friend</button>`;
   }
   // Compact version for the riders list
   if (status === 'friends')
@@ -9593,8 +9590,8 @@ function followBtn(otherId, modal=false) {
   const following = isFollowing(otherId);
   if (modal) {
     return following
-      ? `<button class="btn btn-ghost" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;color:var(--text-secondary);"><svg class="icon icon-check"><use href="#i-check"/></svg> Following</button>`
-      : `<button class="btn btn-outline" onclick="toggleFollow('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;">+ Follow</button>`;
+      ? `<button class="btn btn-accent btn-sm" onclick="toggleFollow('${otherId}')" style="color:var(--text-secondary);"><svg class="icon icon-check"><use href="#i-check"/></svg> Following</button>`
+      : `<button class="btn btn-accent btn-sm" onclick="toggleFollow('${otherId}')">+ Follow</button>`;
   }
   return following
     ? `<button class="btn btn-ghost btn-sm" onclick="toggleFollow('${otherId}')" style="color:var(--text-secondary);"><svg class="icon icon-check"><use href="#i-check"/></svg> Following</button>`
@@ -10997,39 +10994,44 @@ function showProfile(id) {
   const followingN = followingCount(id);
 
   const avatarHtml = p.avatarUrl
-    ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,62,127,0.35);" alt="">`
-    : `<div class="avatar avatar-lg" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
+    ? `<img src="${p.avatarUrl}" class="profile-avatar-img" alt="">`
+    : `<div class="profile-avatar-fallback" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
 
   document.getElementById('profile-content').innerHTML = `
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
-      ${avatarHtml}
-      <div style="flex:1;min-width:0;">
-        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${escHtml(p.name)}${rank ? `<span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:-0.02em;">#${rank}</span>` : ''}</h2>
-        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:${p.rating == null ? '6px' : '0'};">
-          <div style="font-family:var(--font-display);font-weight:700;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
-          ${t.provisional
-            ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
-            : `${tierBadgeHTML(t, t.label)}`}
-        </div>
+    <div style="text-align:center;padding:8px 0 0;">
+      <div style="display:flex;justify-content:center;margin-bottom:12px;">${avatarHtml}</div>
+      <h2 class="profile-hero-name" style="display:flex;align-items:center;justify-content:center;gap:8px;">${escHtml(p.name)}${rank ? `<span style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--ice);border:1px solid var(--ice);border-radius:99px;padding:1px 8px;font-variant-numeric:tabular-nums;">#${rank}</span>` : ''}</h2>
+      <div class="profile-hero-meta">
+        ${p.rating == null ? '' : `<span class="profile-hero-rating" style="color:${isRated(p) ? 'var(--ice)' : 'var(--text-secondary)'};">${ratingDisplay(p.rating, p.gamesPlayed)}</span>`}
+        ${t.provisional
+          ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
+          : `${tierBadgeHTML(t, t.label)}`}
+      </div>
+      <div class="prof-meta">
+        ${[
+          p.riderType === 'boarder' ? 'Snowboarder' : 'Skier',
+          escHtml(p.homeResort || p.location || ''),
+          p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener">@${escHtml(p.instagram)}</a>` : ''
+        ].filter(Boolean).join(' · ')}
+      </div>
+      ${p.bio ? `<div class="profile-hero-bio-preview">${escHtml(p.bio)}</div>` : ''}
+      <div class="prof-counts">
+        <span onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count">${followers}</strong>Followers</span>
+        <span onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count">${followingN}</strong>Following</span>
+        <span onclick="openStatListModal('friends','${p.id}')"><strong id="modal-friends-count">${(p.friends || []).length}</strong>Friends</span>
       </div>
     </div>
 
-    <!-- ── About (quiet metadata line) ── -->
-    <div style="margin-bottom:18px;padding:0 2px;font-size:12px;color:var(--text-muted);line-height:1.7;">
-      ${[
-        p.riderType === 'boarder' ? 'Snowboarder' : 'Skier',
-        escHtml(p.homeResort || p.location || ''),
-        p.instagram ? `<a href="https://instagram.com/${encodeURIComponent(p.instagram)}" target="_blank" rel="noopener" style="color:var(--ice);text-decoration:none;">@${escHtml(p.instagram)}</a>` : '',
-        `<span style="cursor:pointer;" onclick="openStatListModal('followers','${p.id}')"><strong id="modal-follower-count" style="color:var(--text-secondary);">${followers}</strong> Followers</span>`,
-        `<span style="cursor:pointer;" onclick="openStatListModal('following','${p.id}')"><strong id="modal-following-count" style="color:var(--text-secondary);">${followingN}</strong> Following</span>`,
-        `<span style="cursor:pointer;" onclick="openStatListModal('friends','${p.id}')"><strong id="modal-friends-count" style="color:var(--text-secondary);">${(p.friends || []).length}</strong> Friends</span>`
-      ].filter(Boolean).join(' · ')}
-      ${p.bio ? `<div style="color:var(--text-secondary);margin-top:6px;">${escHtml(p.bio)}</div>` : ''}
-    </div>
+    ${id !== currentUser?.id ? `
+    <div class="prof-actions">
+      <button class="btn btn-primary btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge</button>
+      <div id="modal-friend-btn">${friendBtn(id, true)}</div>
+      <div id="modal-follow-btn">${followBtn(id, true)}</div>
+    </div>` : '<div style="height:22px;"></div>'}
 
     <!-- ── Mutual friends ── -->
     ${mutuals.length ? `
-    <div style="margin-bottom:14px;padding:12px 14px;background:var(--bg-elevated);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+    <div style="margin-bottom:14px;padding:12px 14px;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;gap:10px;">
       <div style="display:flex;">
         ${mutuals.slice(0,4).map((f,i) => f.avatarUrl
           ? `<img src="${f.avatarUrl}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--bg-elevated);margin-left:${i?'-8px':'0'};" alt="">`
@@ -11045,21 +11047,19 @@ function showProfile(id) {
     </div>` : ''}
 
     <!-- ── Stats (combined) ── -->
-    <div class="stat-card" style="padding:16px 18px;margin-bottom:14px;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px 10px;">
-        ${[
-          ['Wins', actualWins, 'var(--success)'],
-          ['Losses', actualLosses, 'var(--danger)'],
-          ['Win %', wpct+'%', 'var(--primary)'],
-          ['Games', actualGames, 'var(--text-primary)'],
-          ['Streak', !streaks.current ? '—' : `${streaks.type}${streaks.current}`, !streaks.current?'var(--text-muted)':streaks.type==='W'?'var(--success)':'var(--danger)'],
-          ['Best Streak', streaks.best || '—', streaks.best?'var(--success)':'var(--text-muted)']
-        ].map(([l,v,c])=>`
-          <div style="min-width:0;">
-            <div class="stat-label" style="margin-bottom:4px;">${l}</div>
-            <div style="font-size:clamp(15px,3.6vw,22px);font-weight:800;color:${c};line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v}</div>
-          </div>`).join('')}
-      </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:22px;">
+      ${[
+        ['Wins', actualWins, 'var(--text-primary)'],
+        ['Losses', actualLosses, 'var(--text-primary)'],
+        ['Win %', wpct+'%', 'var(--text-primary)'],
+        ['Games', actualGames, 'var(--text-primary)'],
+        ['Streak', !streaks.current ? '—' : `${streaks.type}${streaks.current}`, !streaks.current?'var(--text-muted)':streaks.type==='W'?'var(--success)':'var(--danger)'],
+        ['Best', streaks.best || '—', streaks.best?'var(--text-primary)':'var(--text-muted)']
+      ].map(([l,v,c],i)=>`
+        <div class="stat-card" style="${i>2?'border-top:1px solid var(--border);':''}${i%3===0?'border-left:none;':''}">
+          <div class="stat-label">${l}</div>
+          <div class="stat-val" style="font-size:20px;color:${c};">${v}</div>
+        </div>`).join('')}
     </div>
 
     <!-- ── Badges ── -->
@@ -11067,10 +11067,10 @@ function showProfile(id) {
       const earned = (p.badges || []).map(id => BADGE_DEFS.find(b => b.id === id)).filter(Boolean);
       if (!earned.length) return '';
       return `<div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;">Achievements</div>
+        <div class="sec-label">Achievements</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           ${earned.map(b => `
-            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='rgba(255,62,127,0.45)';this.style.background='rgba(255,62,127,0.07)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-elevated)'">
+            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='var(--border-light)'" onmouseleave="this.style.borderColor='var(--border)'">
               <span>${b.icon}</span>
               <span style="font-weight:600;color:var(--text-secondary);">${b.label}</span>
             </div>`).join('')}
@@ -11080,8 +11080,8 @@ function showProfile(id) {
 
     <!-- ── Head-to-head ── -->
     ${h2h.length ? `
-    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;">
-      <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;text-align:center;margin-bottom:14px;">Head to Head</div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:22px;">
+      <div class="sec-label" style="justify-content:center;margin-bottom:14px;">Head to head</div>
       <div style="display:flex;align-items:center;">
         <div style="flex:1;text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">You</div>
@@ -11111,13 +11111,13 @@ function showProfile(id) {
     <!-- Rating history chart placeholder -->
     <div style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Rating History</div>
+        <div class="sec-label" style="margin-bottom:0;">Rating history</div>
         <span id="modal-rh-count" style="font-size:11px;color:var(--text-muted);"></span>
       </div>
       <div id="modal-rh-chart"></div>
     </div>
 
-    <div style="margin-bottom:8px;font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Game History <span style="font-weight:400;font-size:10px;">(${games.length})</span></div>
+    <div class="sec-label">Game history <span class="sec-count">${games.length}</span></div>
     <div id="profile-game-list"></div>
 
     <!-- ── Clips ── -->
@@ -11136,12 +11136,10 @@ function showProfile(id) {
 
       if (!playerClips.length) return '';
       return `
-      <div style="margin-bottom:8px;margin-top:4px;font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">
-        Clips <span style="font-weight:400;color:var(--text-muted);font-size:10px;">(${playerClips.length})</span>
-      </div>
+      <div class="sec-label" style="margin-top:22px;">Clips <span class="sec-count">${playerClips.length}</span></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px;">
         ${playerClips.slice(0,9).map(c => `
-          <div onclick="openProfileClip('${c.id}')" style="position:relative;aspect-ratio:9/16;background:#0a1628;border-radius:10px;overflow:hidden;cursor:pointer;">
+          <div onclick="openProfileClip('${c.id}')" style="position:relative;aspect-ratio:9/16;background:var(--bg-elevated);border-radius:10px;overflow:hidden;cursor:pointer;">
             <video ${clipVideoSrcAttrs(c.clipUrl, '#t=0.5')} style="width:100%;height:100%;object-fit:cover;pointer-events:none;" preload="metadata" muted playsinline></video>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.55) 0%,transparent 60%);"></div>
             ${c.caption ? `<div style="position:absolute;bottom:5px;left:6px;right:6px;font-size:9.5px;color:rgba(255,255,255,0.85);font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.caption}</div>` : ''}
@@ -11150,13 +11148,11 @@ function showProfile(id) {
       </div>`;
     })()}
 
-    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
-      ${id !== currentUser?.id ? `<div id="modal-friend-btn">${friendBtn(id, true)}</div>` : ''}
-      ${id !== currentUser?.id ? `<div id="modal-follow-btn">${followBtn(id, true)}</div>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-primary btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log Game vs ${escHtml(p.name)}</button>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-accent btn-sm" onclick="openChallengeModal('${id}')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Challenge ${escHtml(p.name)}</button>` : ''}
-      ${id !== currentUser?.id ? `<button class="btn btn-danger btn-sm" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>` : ''}
-    </div>`;
+    ${id !== currentUser?.id ? `
+    <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log a past game vs ${escHtml(p.name.split(' ')[0])}</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>
+    </div>` : ''}`;
 
   openModal('profile-modal');
   renderProfileGames(games, id);
