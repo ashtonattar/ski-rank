@@ -1277,17 +1277,18 @@
       pointer-events:none;
     }
     .auth-card {
-      background:rgba(11,13,16,0.92); border:1px solid rgba(255,62,127,0.2);
-      border-radius:var(--radius-lg); padding:40px;
+      background:rgba(17,20,24,0.94); border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:36px;
       width:100%; max-width:400px;
       max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
-      backdrop-filter:blur(32px);
-      box-shadow:0 30px 80px rgba(0,0,0,0.8), var(--glow-ice);
-      position:relative; z-index:1; animation:authIn .5s cubic-bezier(.22,.68,0,1.2);
+      backdrop-filter:blur(20px);
+      box-shadow:0 24px 60px rgba(0,0,0,0.5);
+      /* Entrance: 300ms ease-out, 12px rise, no overshoot. */
+      position:relative; z-index:1; animation:authIn .3s var(--ease-out);
     }
     @keyframes authIn {
-      from{opacity:0;transform:translateY(28px) scale(.95);}
-      to  {opacity:1;transform:translateY(0)    scale(1); }
+      from{opacity:0;transform:translateY(12px);}
+      to  {opacity:1;transform:translateY(0);}
     }
     /* Auth screen fade-in */
     @keyframes authScreenIn {
@@ -1297,7 +1298,7 @@
     /* Auth exit: card shoots up and fades */
     @keyframes authCardOut {
       from{opacity:1;transform:translateY(0)   scale(1);}
-      to  {opacity:0;transform:translateY(-40px) scale(.96);}
+      to  {opacity:0;transform:translateY(-12px);}
     }
     /* Auth screen overlay fades out */
     @keyframes authScreenOut {
@@ -1310,9 +1311,9 @@
       to  {opacity:1;transform:translateY(0);}
     }
     .auth-screen.animating-in  { animation:authScreenIn  .35s ease forwards; }
-    .auth-screen.animating-out { animation:authScreenOut .45s ease forwards; pointer-events:none; }
-    .auth-card.animating-out   { animation:authCardOut   .35s cubic-bezier(.4,0,1,1) forwards; }
-    #app.animating-in          { animation:appIn         .5s cubic-bezier(.22,.68,0,1.2) forwards; }
+    .auth-screen.animating-out { animation:authScreenOut .3s ease forwards; pointer-events:none; }
+    .auth-card.animating-out   { animation:authCardOut   .2s var(--ease-in) forwards; }
+    #app.animating-in          { animation:appIn         .3s var(--ease-out) forwards; }
 
     /* ── BOOT LOADING SCREEN ── */
     /* Shown while we determine session state, so returning users never see a
@@ -1399,11 +1400,12 @@
       gap:2px;
     }
     .auth-tab {
-      flex:1; padding:8px; text-align:center;
-      font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px;
-      border-radius:var(--radius-sm); cursor:pointer; transition:all .18s;
+      flex:1; padding:9px; text-align:center;
+      font-size:13px; font-weight:600;
+      border-radius:var(--radius-sm); cursor:pointer;
+      transition:background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
       border:none; background:none; color:var(--text-muted);
-      font-family:var(--font-display);
+      font-family:'Inter',sans-serif;
     }
     .auth-tab.active { background:var(--bg-elevated); color:var(--text-primary);  }
     .auth-error {
