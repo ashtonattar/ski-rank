@@ -540,59 +540,16 @@
       filter:brightness(.55) saturate(1.1);
       overflow:hidden;
     }
-    /* Ken-Burns photo rotation (Layer A) — 3 stacked layers cross-fading with a
-       slow zoom, replacing the single static photo. Reuses photo IDs already
-       proven working elsewhere in this file (auth screen, action strip) rather
-       than introducing new unverified stock-photo URLs.
-       Photo #1 shows as a static poster (no animation) until _heroVideoMaybeStart()
-       resolves whether the video will take over — this keeps photo #1 the
-       guaranteed "first slide" instead of the video popping in over whichever
-       photo the rotation happens to have reached by the time it's ready. The
-       .phb-rotating class (added once that decision is settled) starts the
-       actual cross-fade cycle. */
+    /* One still photo: enough to say "mountain" without competing with the UI. */
     .phb-photo {
       position:absolute; inset:0;
       background-size:cover; background-position:60% 30%;
-      opacity:0; transform:scale(1);
-    }
-    .phb-photo:first-of-type { opacity:1; }
-    .play-hero-bg.phb-rotating .phb-photo {
-      animation:heroKenBurns 24s var(--ease-out) infinite;
-    }
-    .play-hero-bg.phb-rotating .phb-photo:first-of-type { opacity:0; }
-    .phb-photo:nth-of-type(1) { background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75'); animation-delay:0s; }
-    .phb-photo:nth-of-type(2) { background-image:url('https://images.unsplash.com/photo-1773757652025-c681a417c129?w=1400&auto=format&fit=crop&q=75'); animation-delay:8s; }
-    .phb-photo:nth-of-type(3) { background-image:url('https://images.unsplash.com/photo-1776789472329-2766e6f4ee17?w=1400&auto=format&fit=crop&q=75'); animation-delay:16s; }
-    @keyframes heroKenBurns {
-      0%           { opacity:0; transform:scale(1); }
-      4.2%         { opacity:1; }
-      29.2%        { opacity:1; transform:scale(1.08); }
-      33.3%, 100%  { opacity:0; transform:scale(1.08); }
-    }
-    /* Gated looping video (Layer B) — progressive enhancement over the photo
-       rotation above, only faded in by JS once a good-connection/reduced-motion
-       check passes (see _heroVideoMaybeStart()). Layer A never gets swapped
-       away from; this just fades on top of it. */
-    .play-hero-video {
-      position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; object-position:60% 30%;
-      opacity:0; transition:opacity 1.2s var(--ease-out);
-    }
-    .play-hero-video.phv-active { opacity:1; }
-    /* Generative snow-drift particles (Layer C) — ambient depth, scoped to the
-       hero's own box only (not full-viewport) to keep GPU/CPU cost small.
-       Sits above the background layers, below the hero content/demo board. */
-    .play-hero-snow {
-      position:absolute; inset:0; z-index:1; pointer-events:none;
+      background-image:url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75');
     }
     .play-hero-bg::after {
       content:''; position:absolute; inset:0;
-      background:linear-gradient(
-        120deg,
-        rgba(11,13,16,0.94) 0%,
-        rgba(11,13,16,0.80) 50%,
-        rgba(11,13,16,0.55) 100%
-      );
+      /* Bottom-weighted scrim: photo reads at the top, text sits on solid dark. */
+      background:linear-gradient(to top, rgba(11,13,16,0.96) 15%, rgba(11,13,16,0.35) 100%);
     }
     /* top accent bar */
     .play-hero::before {
@@ -601,7 +558,7 @@
     }
     .play-hero-content {
       position:relative; z-index:2;
-      padding:32px 32px 30px;
+      padding:28px 24px 22px;
       flex:1 1 300px;
       align-self:flex-end;
     }
@@ -609,31 +566,16 @@
       font-family:var(--font-display);
       font-size:11px; font-weight:700; letter-spacing:1.2px;
       text-transform:uppercase; color:var(--ice);
-      margin-bottom:8px; display:flex; align-items:center; gap:8px;
-    }
-    .play-hero-eyebrow::before {
-      content:''; width:20px; height:1px; background:var(--ice); opacity:.6;
+      margin-bottom:8px;
     }
     .play-hero-title {
       font-family:var(--font-display);font-weight:700;
-      font-size:43px; letter-spacing:-0.02em; line-height:.95;
-      color:#fff; margin-bottom:12px;
-      
+      font-size:36px; letter-spacing:-0.03em; line-height:1;
+      color:#fff; margin-bottom:8px;
     }
     .play-hero-sub {
-      font-size:13px; color:var(--text-secondary); max-width:340px;
-      line-height:1.6; margin-bottom:18px;
-    }
-    .play-hero-pills {
-      display:flex; gap:8px; flex-wrap:wrap;
-    }
-    .play-pill {
-      display:inline-flex; align-items:center; gap:5px;
-      background:rgba(108,196,255,0.08);
-      border:1px solid rgba(108,196,255,0.18);
-      border-radius:99px; padding:4px 12px;
-      font-size:11.5px; font-weight:600; color:var(--text-secondary);
-      backdrop-filter:blur(8px);
+      font-size:14px; color:var(--text-secondary); max-width:340px;
+      line-height:1.5;
     }
     /* ── Live duel preview: real UI components, not marketing art ──
        Chess.com's homepage hero is a literal playable chessboard, not a
@@ -641,6 +583,23 @@
        player-panel / trick-area / ski-letter UI, not a decorative graphic.
        Guest-only: replaces the New Challenge form (.phb-large) in place,
        since signed-out visitors can't submit a real invite anyway. */
+    .opt-settings { border-top:1px solid var(--border); margin:4px 0 18px; }
+    .opt-settings > summary {
+      list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0 4px; font-size:13px; font-weight:600; color:var(--text-secondary);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .opt-settings > summary::-webkit-details-marker { display:none; }
+    .opt-settings > summary::after {
+      content:''; width:7px; height:7px; margin-right:4px;
+      border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor;
+      transform:rotate(45deg); transition:transform var(--dur-fast) var(--ease-out);
+    }
+    .opt-settings[open] > summary::after { transform:rotate(-135deg); }
+    .opt-settings[open] > .opt-settings-body { animation:optIn var(--dur-entrance) var(--ease-out) both; }
+    .opt-settings-body { padding-top:12px; }
+    @keyframes optIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
     .play-hero-board {
       position:relative; z-index:2;
       display:flex; flex-direction:column; gap:12px;
@@ -705,8 +664,8 @@
     .phb-large .phb-letters { gap:8px; }
     @media(max-width:600px) {
       .play-hero { min-height:200px; }
-      .play-hero-title { font-size:42px; }
-      .play-hero-content { padding:22px 18px 20px; }
+      .play-hero-title { font-size:32px; }
+      .play-hero-content { padding:24px 18px 18px; }
     }
     body.light .play-hero-bg { filter:brightness(.65) saturate(.9); }
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
@@ -2467,11 +2426,6 @@
         animation-duration: revert !important;
         animation-iteration-count: infinite !important;
       }
-      /* Without this, all 3 .phb-photo layers would collapse to their final
-         keyframe (opacity:0) and the hero background would go blank instead
-         of just freezing on one photo. */
-      .phb-photo { animation:none !important; opacity:0 !important; }
-      .phb-photo:first-of-type { opacity:1 !important; }
     }
   </style>
   <!-- Sentry error reporting — loaded first so it catches errors from everything below.
@@ -3101,20 +3055,11 @@
       <div class="play-hero" id="play-hero-box">
         <div class="play-hero-bg">
           <div class="phb-photo"></div>
-          <div class="phb-photo"></div>
-          <div class="phb-photo"></div>
-          <video class="play-hero-video" id="play-hero-video" muted loop playsinline preload="none" aria-hidden="true"></video>
         </div>
-        <canvas class="play-hero-snow" id="play-hero-snow" aria-hidden="true"></canvas>
         <div class="play-hero-content">
-          <div class="play-hero-eyebrow">Set It. Match It. Or Take A Letter.</div>
-          <h1 class="play-hero-title">CHALLENGE<br>A RIDER</h1>
-          <p class="play-hero-sub">A real, in-person trick duel on the mountain — set a trick, your opponent copies it or collects a letter.<br>First to spell <strong>S·K·I</strong> loses.</p>
-          <div class="play-hero-pills">
-            <div class="play-pill"><span><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span> Instant invite</div>
-            <div class="play-pill"><span>📱</span> Live scoring</div>
-            <div class="play-pill"><span><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span> No rating needed</div>
-          </div>
+          <div class="play-hero-eyebrow">Set it. Match it. Or take a letter.</div>
+          <h1 class="play-hero-title">Challenge a rider</h1>
+          <p class="play-hero-sub">In-person trick duels on the mountain. First to spell <strong>S·K·I</strong> loses.</p>
         </div>
         </div>
 
@@ -3183,6 +3128,9 @@
               </div>
             </div>
           </div>
+          <details class="opt-settings">
+          <summary>Location, judge &amp; handicap</summary>
+          <div class="opt-settings-body">
           <div class="form-group" style="margin-bottom:14px;">
             <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location (optional)</label>
             <div class="resort-wrap">
@@ -3225,8 +3173,10 @@
             </div>
             <div id="lv-handicap-preview" style="display:none;background:rgba(255,200,0,0.07);border:1px solid rgba(255,200,0,0.2);border-radius:10px;padding:10px 14px;font-size:13px;"></div>
           </div>
+          </div>
+          </details>
 
-          <button class="btn btn-accent btn-lg" onclick="sendLiveInvite()" style="width:100%;">Send Game Invite</button>
+          <button class="btn btn-primary btn-lg" onclick="sendLiveInvite()" style="width:100%;">Send Game Invite</button>
         </div>
 
         <!-- Waiting state (shown after invite sent) -->
@@ -6987,119 +6937,6 @@ function _demoStop() {
   if (_demoTimer) { clearInterval(_demoTimer); _demoTimer = null; }
 }
 
-// ── Hero snow-drift particles (Layer C, ambient depth) ──
-// Scoped to the hero's own bounding rect (not full-viewport) to keep cost
-// small. Unlike the guest-only demo board, this runs for signed-in users
-// too — gated only on the hero being on-screen and reduced-motion.
-let _snowCtx = null, _snowParticles = null, _snowRunning = false, _snowRAF = null;
-
-function _snowInit(canvas) {
-  const rect = canvas.parentElement.getBoundingClientRect();
-  // Guard against a zero-size read (e.g. hero briefly hidden behind the boot
-  // screen on first paint) — bail without marking running, so the next
-  // _demoWatch() tick (800ms later) retries instead of permanently locking
-  // the canvas's intrinsic size at 0x0.
-  if (rect.width < 1 || rect.height < 1) return false;
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  const mobile = window.matchMedia('(max-width:600px)').matches;
-  const count = mobile ? 14 : 32;
-  const colors = ['rgba(108,196,255,', 'rgba(230,235,240,'];
-  _snowParticles = Array.from({ length: count }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: 1 + Math.random() * 2,
-    vy: 0.15 + Math.random() * 0.35,
-    vx: (Math.random() - 0.5) * 0.2,
-    color: colors[Math.floor(Math.random() * colors.length)],
-    alpha: 0.15 + Math.random() * 0.15,
-  }));
-  return true;
-}
-
-function _snowFrame() {
-  if (!_snowRunning || !_snowCtx) return;
-  const canvas = _snowCtx.canvas;
-  _snowCtx.clearRect(0, 0, canvas.width, canvas.height);
-  _snowParticles.forEach((p) => {
-    p.y += p.vy; p.x += p.vx;
-    if (p.y - p.r > canvas.height) { p.y = -p.r; p.x = Math.random() * canvas.width; }
-    if (p.x < -p.r) p.x = canvas.width + p.r;
-    if (p.x > canvas.width + p.r) p.x = -p.r;
-    _snowCtx.beginPath();
-    _snowCtx.fillStyle = p.color + p.alpha + ')';
-    _snowCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    _snowCtx.fill();
-  });
-  _snowRAF = requestAnimationFrame(_snowFrame);
-}
-
-function _snowStart() {
-  if (_snowRunning) return;
-  const canvas = document.getElementById('play-hero-snow');
-  if (!canvas) return;
-  if (!_snowInit(canvas)) return; // zero-size read — retry on the next tick
-  _snowCtx = canvas.getContext('2d');
-  _snowRunning = true;
-  _snowRAF = requestAnimationFrame(_snowFrame);
-}
-
-function _snowStop() {
-  _snowRunning = false;
-  if (_snowRAF) { cancelAnimationFrame(_snowRAF); _snowRAF = null; }
-  if (_snowCtx) { _snowCtx.clearRect(0, 0, _snowCtx.canvas.width, _snowCtx.canvas.height); }
-}
-
-let _snowResizeTimer = null;
-window.addEventListener('resize', () => {
-  if (!_snowRunning || !_snowCtx) return;
-  clearTimeout(_snowResizeTimer);
-  _snowResizeTimer = setTimeout(() => _snowInit(_snowCtx.canvas), 200);
-});
-
-// ── Hero background video (Layer B, progressive enhancement) ──
-// Only activates on connections that can afford it, with motion allowed —
-// runs on mobile too, gated by the connection check below rather than by
-// viewport width. Layer A (the Ken-Burns photo rotation) is the permanent
-// fallback — this only ever fades on top of it, never replaces it in the DOM.
-// Source: Pexels "Dynamic Freestyle Skiing Jump in Spring Snow" by Alex
-// Moliski (pexels.com/video/dynamic-freestyle-skiing-jump-in-spring-snow-31940035,
-// free commercial rights, no attribution required) — swapped in for the prior
-// Coverr "Ski Tricks" clip, which was generic groomer skiing rather than an
-// actual freestyle trick. Re-hosted through the app's existing Cloudinary
-// account (skirank/hero folder) with f_auto,q_auto for automatic per-device
-// format/quality.
-const HERO_VIDEO_URL = 'https://res.cloudinary.com/dlswxctw9/video/upload/f_auto,q_auto/v1787935707/skirank/hero/freeski-jump-hero.mp4';
-let _heroVideoAttempted = false;
-
-function _heroVideoMaybeStart() {
-  if (_heroVideoAttempted) return;
-  _heroVideoAttempted = true;
-  const heroBg = document.querySelector('.play-hero-bg');
-  // Starts the Ken-Burns cross-fade cycle — called once we know whether the
-  // video is taking over (photo #1 stays a frozen "first slide" until then).
-  const startRotation = () => { if (heroBg) heroBg.classList.add('phb-rotating'); };
-  if (!HERO_VIDEO_URL) { startRotation(); return; }
-  const video = document.getElementById('play-hero-video');
-  if (!video) { startRotation(); return; }
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { startRotation(); return; }
-  const conn = navigator.connection;
-  if (conn && (conn.saveData || (conn.effectiveType && !/4g/.test(conn.effectiveType)))) { startRotation(); return; }
-  let settled = false;
-  const settle = () => { if (settled) return; settled = true; startRotation(); };
-  video.addEventListener('canplaythrough', () => {
-    video.play().catch(() => {});
-    video.classList.add('phv-active');
-    settle();
-  }, { once: true });
-  // If the video never loads (network error, unsupported format), fall back
-  // to starting the photo rotation rather than leaving photo #1 frozen forever.
-  video.addEventListener('error', settle, { once: true });
-  setTimeout(settle, 6000);
-  video.src = HERO_VIDEO_URL;
-  video.load();
-}
-
 let _demoLastGuest = null;
 
 function _demoWatch() {
@@ -7130,14 +6967,6 @@ function _demoWatch() {
   if (guest && playViewActive && !reduceMotion) _demoStart();
   else _demoStop();
 
-  // Snow particles run for signed-in users too (unlike the guest-only demo
-  // board) — gated only on the hero being on-screen and reduced-motion.
-  if (playViewActive && !reduceMotion) _snowStart();
-  else _snowStop();
-
-  // One-shot connection/motion check; no-ops immediately if HERO_VIDEO_URL
-  // is unset (see its own comment).
-  if (playViewActive) _heroVideoMaybeStart();
 }
 _demoWatchTimer = setInterval(_demoWatch, 800);
 if (document.readyState === 'loading') {
