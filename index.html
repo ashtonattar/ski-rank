@@ -1114,6 +1114,12 @@
     /* ── EMPTY STATE ── */
     .empty { text-align:center; padding:60px 20px; color:var(--text-muted); animation:rowRise .3s cubic-bezier(.16,.84,.44,1) both; }
     .empty-icon { font-size:48px; margin-bottom:16px; display:block; }
+    .empty-glyph {
+      width:52px; height:52px; margin:0 auto 16px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--bg-elevated); border:1px solid var(--border); font-size:22px;
+    }
+    .empty-glyph .icon { color:var(--text-secondary); }
     .empty h3 { font-size:18px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; font-family:var(--font-display); letter-spacing:-0.02em; }
     .empty p  { font-size:13px; max-width:260px; margin:0 auto 20px; }
 
@@ -1748,9 +1754,9 @@
       padding: 24px 20px calc(110px + env(safe-area-inset-bottom));
     }
     .reel-players {
-      font-size: 17px; font-weight: 800;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-      margin-bottom: 6px;
+      font-size: 16px; font-weight: 700; color:#fff;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+      margin-bottom: 8px;
     }
     .reel-meta {
       font-size: 12.5px; color: rgba(255,255,255,0.75);
@@ -1758,16 +1764,15 @@
       text-shadow: 0 1px 4px rgba(0,0,0,0.7);
     }
     .reel-chip {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.35);
       border-radius: 20px;
       padding: 3px 10px;
       font-size: 11.5px; font-weight: 600;
-      backdrop-filter: blur(4px);
     }
-    .reel-chip.win  { background:rgba(16,185,129,.25); border-color:rgba(16,185,129,.45); color:#6ee7b7; }
-    .reel-chip.ice  { background:rgba(255,62,127,.2);   border-color:rgba(255,62,127,.4);   color:var(--ice); }
-    .reel-chip.fire { background:rgba(34,224,194,.2);    border-color:rgba(34,224,194,.4);    color:#ff7a40; }
+    .reel-chip .icon { color:currentColor; }
+    .reel-chip.win  { color:var(--success); }
+    .reel-chip.ice  { color:var(--ice); }
+    .reel-chip.fire { color:var(--fire); }
     /* Right action sidebar */
     .reel-actions {
       position: absolute;
@@ -1779,16 +1784,15 @@
       cursor: pointer; user-select: none;
     }
     .reel-action-icon {
-      width: 46px; height: 46px;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.2);
+      width: 44px; height: 44px;
+      background: rgba(0,0,0,0.3);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 20px;
-      backdrop-filter: blur(8px);
-      transition: background .15s, transform .15s;
+      transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     }
-    .reel-action-icon:hover { background:rgba(255,255,255,0.22); transform:scale(1.1); }
+    .reel-action-icon .icon { color:#fff; }
+    .reel-action-btn:active .reel-action-icon { transform:scale(0.92); }
     .reel-action-label {
       font-size: 10.5px; color: rgba(255,255,255,0.8);
       font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.7);
@@ -1807,7 +1811,7 @@
       background: var(--bg-elevated); border-radius: 14px;
       padding: 8px 12px; flex: 1; min-width: 0;
     }
-    .comment-author { font-size: 12px; font-weight: 700; color: var(--ice); margin-bottom: 3px; cursor: pointer; }
+    .comment-author { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; cursor: pointer; }
     .comment-text   { font-size: 13px; color: var(--text-primary); word-break: break-word; }
     .comment-time   { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
     .comment-like-btn {
@@ -1822,7 +1826,7 @@
     .reel-scroll-hint {
       position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
       font-size: 11px; color: rgba(255,255,255,0.4);
-      pointer-events: none; animation: hintBob 2s ease-in-out infinite;
+      pointer-events: none;
     }
     @keyframes hintBob {
       0%,100% { transform: translateX(-50%) translateY(0); }
@@ -1889,32 +1893,32 @@
       position:relative;
     }
     .friend-row:hover  { background:rgba(255,255,255,0.05); }
-    .friend-row.active { background:rgba(255,62,127,0.1); }
+    .friend-row.active { background:var(--bg-elevated); box-shadow:inset 0 0 0 1px var(--border-light); }
     .friend-unread {
       min-width:18px; height:18px;
-      background:var(--ice); color:#000;
+      background:var(--pop); color:var(--pop-ink);
       font-size:10px; font-weight:800;
       border-radius:9px;
       display:inline-flex; align-items:center; justify-content:center;
       padding:0 4px; margin-left:auto;
     }
     .msg-bubble {
-      max-width:72%;
-      padding:8px 12px;
-      border-radius:var(--radius-lg);
+      max-width:76%;
+      padding:9px 13px;
+      border-radius:18px;
       font-size:13.5px;
       line-height:1.45;
       word-break:break-word;
     }
     .msg-mine {
       align-self:flex-end;
-      background:var(--ice);
-      color:#04121f;
+      background:var(--pop);
+      color:var(--pop-ink);
       border-bottom-right-radius:4px;
     }
     .msg-theirs {
       align-self:flex-start;
-      background:rgba(255,255,255,0.08);
+      background:var(--bg-elevated);
       color:var(--text-primary);
       border-bottom-left-radius:4px;
     }
@@ -3325,35 +3329,8 @@
     <div id="view-explore" class="view">
       <div id="explore-feed" class="explore-feed"></div>
       <div id="explore-empty" style="display:none;text-align:center;padding:72px 24px 80px;color:var(--text-muted);">
-        <svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:20px;opacity:.85;">
-          <defs>
-            <linearGradient id="ee-mtn1" x1="38" y1="12" x2="38" y2="72" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#3b82f6"/>
-              <stop offset="100%" stop-color="#1d4ed8"/>
-            </linearGradient>
-            <linearGradient id="ee-mtn2" x1="82" y1="26" x2="82" y2="72" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#60a5fa"/>
-              <stop offset="100%" stop-color="#2563eb"/>
-            </linearGradient>
-            <linearGradient id="ee-mtn3" x1="60" y1="4" x2="60" y2="72" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#93c5fd"/>
-              <stop offset="100%" stop-color="#3b82f6"/>
-            </linearGradient>
-          </defs>
-          <!-- back mountains -->
-          <polygon points="8,72 38,12 68,72" fill="url(#ee-mtn1)" opacity=".55"/>
-          <polygon points="52,72 82,26 112,72" fill="url(#ee-mtn2)" opacity=".55"/>
-          <!-- front main mountain -->
-          <polygon points="20,72 60,4 100,72" fill="url(#ee-mtn3)"/>
-          <!-- snow cap -->
-          <polygon points="60,4 72,28 48,28" fill="white" opacity=".88"/>
-          <!-- ground -->
-          <rect x="0" y="72" width="120" height="6" rx="3" fill="white" opacity=".15"/>
-          <!-- film icon -->
-          <rect x="50" y="44" width="20" height="15" rx="2.5" fill="white" opacity=".22"/>
-          <polygon points="70,47.5 78,51.5 70,55.5" fill="white" opacity=".35"/>
-        </svg>
-        <h2 style="font-size:19px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">No clips yet</h2>
+        <div class="empty-glyph"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;color:var(--text-primary);">No clips yet</h2>
         <p style="font-size:13.5px;max-width:240px;margin:0 auto 20px;">Post a ski clip or upload a video when logging a game and it'll show up here for everyone to see.</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="openPostClip()">Post a Clip</button>
@@ -3369,38 +3346,23 @@
           <h2>Friends</h2>
           <p>Chat with your friends</p>
         </div>
-        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="inviteFriends()"><svg class="icon icon-user-plus"><use href="#i-user-plus"/></svg> Invite Friends</button>
+        <button class="btn btn-accent btn-sm" style="white-space:nowrap;flex-shrink:0;" onclick="inviteFriends()"><svg class="icon icon-user-plus"><use href="#i-user-plus"/></svg> Invite</button>
       </div>
       <div class="friends-layout">
         <!-- Left: friend list -->
         <div class="friends-sidebar card" id="friends-list-panel">
-          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">Your Friends</div>
+          <div class="sec-label" style="margin:0 0 12px;">Your friends</div>
           <div id="friends-list-items"></div>
           <div id="friends-list-empty" style="display:none;text-align:center;padding:28px 8px 20px;color:var(--text-muted);">
-            <svg width="72" height="54" viewBox="0 0 72 54" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:12px;opacity:.8;">
-              <defs>
-                <linearGradient id="fl-mtn1" x1="22" y1="7" x2="22" y2="43" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#60a5fa"/>
-                  <stop offset="100%" stop-color="#2563eb"/>
-                </linearGradient>
-                <linearGradient id="fl-mtn2" x1="50" y1="15" x2="50" y2="43" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#93c5fd"/>
-                  <stop offset="100%" stop-color="#3b82f6"/>
-                </linearGradient>
-              </defs>
-              <polygon points="4,43 22,7 40,43" fill="url(#fl-mtn1)" opacity=".6"/>
-              <polygon points="32,43 50,15 68,43" fill="url(#fl-mtn2)"/>
-              <polygon points="50,15 57,28 43,28" fill="white" opacity=".85"/>
-              <rect x="0" y="43" width="72" height="4" rx="2" fill="white" opacity=".12"/>
-            </svg>
+            <div class="empty-glyph"><svg class="icon icon-user-plus"><use href="#i-user-plus"/></svg></div>
             <div style="font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">No friends yet</div>
             <div style="font-size:12px;line-height:1.5;">Add riders from the<br><span style="color:var(--primary);font-weight:600;">Riders</span> tab to get started!</div>
           </div>
         </div>
         <!-- Right: chat panel -->
         <div class="friends-chat card" id="friends-chat-panel">
-          <div id="chat-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;gap:10px;">
-            <div style="font-size:40px;"><svg class="icon icon-chat"><use href="#i-chat"/></svg></div>
+          <div id="chat-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:13px;gap:2px;">
+            <div class="empty-glyph"><svg class="icon icon-chat"><use href="#i-chat"/></svg></div>
             <div>Select a friend to start chatting</div>
           </div>
           <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
@@ -9712,7 +9674,7 @@ function renderExplore() {
       infoHtml = `
         <div class="reel-info">
           <div class="reel-players">
-            ${pLink(poster.id, poster.name, 'color:var(--ice);')}
+            ${pLink(poster.id, poster.name, 'color:#fff;')}
           </div>
           <div class="reel-meta">
             ${item.resort ? `<span class="reel-chip"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(item.resort)}</span>` : ''}
@@ -9731,7 +9693,7 @@ function renderExplore() {
             <div class="reel-action-label">${poster.name.split(' ')[0]}</div>
           </div>
           <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
-            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,90,95,0.3);border-color:rgba(255,90,95,0.6);' : ''}">
+            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,90,95,0.25);' : ''}">
               <div class="reel-like-wrap"><span class="like-icon-inner">${heartSvg(likedC)}</span></div>
             </div>
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
@@ -9767,7 +9729,7 @@ function renderExplore() {
           <div class="reel-overlay"></div>
           <div class="reel-info">
             <div class="reel-players">
-              ${pLink(winner.id, winner.name, 'color:var(--ice);')}
+              ${pLink(winner.id, winner.name, 'color:#fff;')}
               <span style="color:rgba(255,255,255,0.5);font-size:14px;"> defeated </span>
               ${pLink(loser.id, loser.name, 'color:rgba(255,255,255,0.85);')}
             </div>
@@ -9788,7 +9750,7 @@ function renderExplore() {
               <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
             </div>
             <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
-              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,90,95,0.3);border-color:rgba(255,90,95,0.6);' : ''}">
+              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,90,95,0.25);' : ''}">
                 <div class="reel-like-wrap"><span class="like-icon-inner">${heartSvg(iLiked(item.id))}</span></div>
               </div>
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
