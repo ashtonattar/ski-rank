@@ -673,30 +673,29 @@
 
     /* ── STATS GRID ── */
     .stats-grid {
-      display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-      gap:14px; margin-bottom:26px;
+      display:grid; grid-template-columns:repeat(4,1fr);
+      background:var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--radius-lg); margin-bottom:20px; overflow:hidden;
     }
+    .stats-grid:empty { display:none; }
 
     .stat-card {
-      background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius); padding:18px 20px;
-      backdrop-filter:blur(20px); position:relative; overflow:hidden;
-      box-shadow:var(--shadow-surface);
-      transition:transform .2s, border-color .2s, box-shadow .2s;
+      padding:16px 14px; position:relative;
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
     }
-    .stat-card:hover { transform:translateY(-2px); border-color:var(--border-light); }
+    .stats-grid .stat-card { background:none; border:none; border-radius:0; }
+    .stats-grid .stat-card + .stat-card { border-left:1px solid var(--border); }
 
     .stat-label {
-      font-size:10px; font-weight:700; color:var(--text-muted);
-      text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;
+      font-size:10px; font-weight:600; color:var(--text-muted);
+      text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; white-space:nowrap;
     }
     .stat-val {
       font-family:var(--font-display);font-weight:700;
-      font-size:30px; letter-spacing:-0.02em; line-height:1;
+      font-size:24px; letter-spacing:-0.02em; line-height:1; color:var(--text-primary);
+      font-variant-numeric:tabular-nums;
     }
-    .stat-val.c-primary { color:var(--ice);      }
-    .stat-val.c-accent  { color:var(--fire);      }
-    .stat-val.c-success { color:var(--success);  }
+    .stat-val.c-accent  { color:var(--ice); }
 
     /* ── CARD ── */
     .card {
@@ -706,6 +705,21 @@
       overflow:visible;
       box-shadow:var(--shadow-surface);
     }
+
+    /* Segmented control (iOS-style): the active segment is a raised neutral
+       chip, not an accent fill — accent stays reserved for data and actions. */
+    .seg {
+      display:inline-flex; gap:2px; padding:2px; flex-shrink:0;
+      background:var(--bg-base); border:1px solid var(--border); border-radius:10px;
+    }
+    .seg button {
+      border:none; background:transparent; color:var(--text-muted);
+      font:600 12px/1 inherit; font-family:inherit; padding:7px 12px; border-radius:8px; cursor:pointer;
+      transition:background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .seg button.on { background:var(--bg-elevated); color:var(--text-primary); box-shadow:inset 0 0 0 1px var(--border-light); }
+    body.light .seg button.on { background:#fff; }
 
     .card-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
     .card-title { font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; }
@@ -723,16 +737,17 @@
 
     td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-secondary); }
     tr:last-child td { border-bottom:none; }
-    tr:hover td { background:rgba(255,62,127,0.025); }
+    tr:hover td { background:rgba(255,255,255,0.02); }
 
-    .td-rank { font-weight:700; color:var(--text-muted); font-size:13px; }
-    .td-rank.gold { color:var(--fire); }
+    .td-rank { font-weight:700; color:var(--text-muted); font-size:13px; font-variant-numeric:tabular-nums; }
+    .td-rank.gold { color:var(--ice); }
     .td-name { font-weight:700; color:var(--text-primary); cursor:pointer; transition:color .15s; }
     .td-name:hover { color:var(--ice); }
     .td-rating {
       font-family:var(--font-display);font-weight:700; font-size:15px; letter-spacing:-0.02em;
-      color:var(--ice); 
+      color:var(--text-primary); font-variant-numeric:tabular-nums;
     }
+    .lb-rate { display:flex; align-items:center; gap:8px; }
     .td-win  { color:var(--success); font-weight:700; }
     .td-loss { color:var(--danger);  font-weight:700; }
 
@@ -910,17 +925,17 @@
       --tc:#94a3b8;
       gap:6px; padding:2px 11px 2px 2px; border-radius:999px;
       color:var(--tc);
-      background:linear-gradient(135deg, color-mix(in srgb, var(--tc) 24%, transparent), color-mix(in srgb, var(--tc) 6%, transparent));
-      border:1px solid color-mix(in srgb, var(--tc) 42%, transparent);
-      box-shadow:inset 0 1px 0 color-mix(in srgb, var(--tc) 16%, transparent);
-      transition:transform .15s ease, box-shadow .15s ease;
+      background:color-mix(in srgb, var(--tc) 12%, transparent);
+      border:1px solid color-mix(in srgb, var(--tc) 22%, transparent);
+      font-size:10px; letter-spacing:.4px; white-space:nowrap;
+      transition:transform var(--dur-fast) var(--ease-out);
     }
     .tier-badge[onclick] { cursor:pointer; }
-    .tier-badge[onclick]:hover { transform:translateY(-1px); box-shadow:inset 0 1px 0 color-mix(in srgb, var(--tc) 20%, transparent); }
+    .tier-badge[onclick]:active { transform:scale(.96); }
     .tier-badge-icon {
       display:inline-flex; align-items:center; justify-content:center;
       width:16px; height:16px; border-radius:50%; flex-shrink:0;
-      background:color-mix(in srgb, var(--tc) 30%, transparent);
+      background:none;
     }
     .tier-badge-icon .icon { width:10px; height:10px; }
     .badge-accent  { background:rgba(34,224,194,.1);   color:var(--fire);   border:1px solid rgba(34,224,194,.22); }
@@ -2135,12 +2150,14 @@
       .hero-eyebrow { letter-spacing:2px; font-size:10px; white-space:nowrap; overflow:hidden; }
 
       /* ── Stats grid ── */
-      .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
-      .stat-card { padding:14px 12px; border-radius:14px; }
-      .stat-val { font-size:22px; }
+      .stats-grid .stat-card { padding:14px 10px; }
+      .stat-label { font-size:9px; letter-spacing:.5px; }
+      .stat-val { font-size:20px; }
 
       /* ── Leaderboard table ── */
-      .td-loc, .lb-col-games, .lb-col-change { display:none; }
+      .td-loc, .lb-col-games { display:none; }
+      .lb-rate { flex-direction:column; align-items:flex-start; gap:4px; }
+      #lb-table td, #lb-table th { padding-left:8px; padding-right:8px; }
 
       /* ── Forms ── */
       .form-row { grid-template-columns:1fr; }
@@ -2810,7 +2827,7 @@
     <div id="view-leaderboard" class="view">
       <div class="view-header">
         <h2>Rankings</h2>
-        <p>Your stats and where you stand among all riders</p>
+        <p>Where you stand among every rider</p>
       </div>
       <div class="stats-grid" id="global-stats"></div>
 
@@ -2827,15 +2844,14 @@
 
       <div class="card">
         <div class="card-hdr" style="flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-          <span class="card-title" style="width:100%;"><svg class="icon icon-bar-chart"><use href="#i-bar-chart"/></svg> Rankings</span>
           <div style="display:flex;gap:6px;justify-content:space-between;flex-wrap:nowrap;overflow-x:auto;width:100%;">
-            <div style="display:flex;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:2px;flex-shrink:0;">
-              <button id="lb-tab-alltime" onclick="switchLbTab('alltime')" style="border:none;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:var(--primary);color:#000;">All-Time</button>
-              <button id="lb-tab-weekly" onclick="switchLbTab('weekly')" style="border:none;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;background:transparent;color:var(--text-muted);">This Week</button>
+            <div class="seg">
+              <button id="lb-tab-alltime" class="on" onclick="switchLbTab('alltime')">All-time</button>
+              <button id="lb-tab-weekly" onclick="switchLbTab('weekly')">This week</button>
             </div>
-            <div id="lb-sport-filter" style="display:inline-flex;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:2px;flex-shrink:0;">
-              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier"   style="border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;"><svg class="icon icon-skier" style="color:#000;"><use href="#i-skier"/></svg> Skiers</button>
-              <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder" style="border:none;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Boarders</button>
+            <div id="lb-sport-filter" class="seg">
+              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier" class="on">Skiers</button>
+              <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder">Boarders</button>
             </div>
           </div>
         </div>
@@ -2874,7 +2890,7 @@
                 <th class="lb-col-games">Win %</th>
                 <th class="lb-col-games">Streak</th>
                 <th class="lb-col-games">Games</th>
-                <th class="lb-col-change">Last change</th>
+                <th class="lb-col-change">Change</th>
               </tr>
             </thead>
             <tbody id="lb-body"></tbody>
@@ -3293,10 +3309,10 @@
               oninput="filterRiders(this.value)">
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">⌕</span>
           </div>
-          <div style="display:flex;gap:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;">
-            <button onclick="setRidersTypeFilter('all')"     id="riders-rt-all"     style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--primary);color:#000;transition:all .15s;">All</button>
-            <button onclick="setRidersTypeFilter('skier')"   id="riders-rt-skier"   style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-skier"><use href="#i-skier"/></svg></button>
-            <button onclick="setRidersTypeFilter('boarder')" id="riders-rt-boarder" style="border:none;border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;"><svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg></button>
+          <div class="seg">
+            <button onclick="setRidersTypeFilter('all')"     id="riders-rt-all" class="on">All</button>
+            <button onclick="setRidersTypeFilter('skier')"   id="riders-rt-skier">Skiers</button>
+            <button onclick="setRidersTypeFilter('boarder')" id="riders-rt-boarder">Boarders</button>
           </div>
         </div>
         <div id="player-list"></div>
@@ -7413,12 +7429,7 @@ function setLbRiderFilter(type) {
   _lbRiderFilter = type;
   ['skier','boarder'].forEach(t => {
     const btn = document.getElementById(`lb-rt-${t}`);
-    if (btn) {
-      btn.style.background = t === type ? 'var(--primary)' : 'transparent';
-      btn.style.color = t === type ? '#000' : 'var(--text-muted)';
-      const icon = btn.querySelector('svg');
-      if (icon) icon.style.color = t === type ? '#000' : 'var(--text-muted)';
-    }
+    if (btn) btn.classList.toggle('on', t === type);
   });
   const label = type === 'boarder' ? 'Boarder' : 'Skier';
   const th = document.getElementById('lb-th-rider');
@@ -7433,12 +7444,7 @@ function setRidersTypeFilter(type) {
   _ridersTypeFilter = type;
   ['all','skier','boarder'].forEach(t => {
     const btn = document.getElementById(`riders-rt-${t}`);
-    if (btn) {
-      btn.style.background = t === type ? 'var(--primary)' : 'transparent';
-      btn.style.color = t === type ? '#000' : 'var(--text-muted)';
-      const icon = btn.querySelector('svg');
-      if (icon) icon.style.color = t === type ? '#000' : 'var(--text-muted)';
-    }
+    if (btn) btn.classList.toggle('on', t === type);
   });
   filterRiders(document.getElementById('riders-search')?.value || '');
 }
@@ -7471,8 +7477,7 @@ function filterLeaderboard() {
       const isOfficial = row.dataset.official === 'true';
       if (isOfficial) {
         filteredRank++;
-        const medals = ['<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-silver"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-bronze"><use href="#i-medal"/></svg>'];
-        rankCell.innerHTML = medals[filteredRank - 1] || filteredRank;
+        rankCell.textContent = filteredRank;
         rankCell.className = `td-rank${filteredRank <= 3 ? ' gold' : ''}`;
       } else {
         rankCell.textContent = '—';
@@ -7575,8 +7580,8 @@ function switchLbTab(tab) {
   // Tab button styles
   const allBtn = document.getElementById('lb-tab-alltime');
   const wkBtn  = document.getElementById('lb-tab-weekly');
-  if (allBtn) { allBtn.style.background = isWeekly ? 'transparent' : 'var(--primary)'; allBtn.style.color = isWeekly ? 'var(--text-muted)' : '#000'; }
-  if (wkBtn)  { wkBtn.style.background  = isWeekly ? 'var(--primary)' : 'transparent'; wkBtn.style.color  = isWeekly ? '#000' : 'var(--text-muted)'; }
+  if (allBtn) allBtn.classList.toggle('on', !isWeekly);
+  if (wkBtn)  wkBtn.classList.toggle('on', isWeekly);
 
   // Show/hide sections
   const tblWrap   = document.getElementById('lb-table')?.closest('.tbl-wrap');
@@ -7690,10 +7695,11 @@ function renderLeaderboard() {
   const peakDisplay     = myPeakRating   ? fmt(myPeakRating) : '—';
   const winRateDisplay  = myWinRate !== null ? `${myWinRate}%` : '—';
 
-  document.getElementById('global-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Your Rank</div><div class="stat-val c-accent" id="stat-rank">${myRank ? '#0' : rankDisplay}</div></div>
-    <div class="stat-card"><div class="stat-label">Games Played</div><div class="stat-val c-primary" id="stat-games">${me ? '0' : gamesDisplay}</div></div>
-    <div class="stat-card"><div class="stat-label">Peak Rating</div><div class="stat-val c-success" id="stat-peak">${myPeakRating ? '0.00' : peakDisplay}</div></div>
+  // Signed out there are no personal stats — render nothing (strip hides via :empty).
+  document.getElementById('global-stats').innerHTML = !me ? '' : `
+    <div class="stat-card"><div class="stat-label">Rank</div><div class="stat-val c-accent" id="stat-rank">${myRank ? '#0' : rankDisplay}</div></div>
+    <div class="stat-card"><div class="stat-label">Games</div><div class="stat-val c-primary" id="stat-games">${me ? '0' : gamesDisplay}</div></div>
+    <div class="stat-card"><div class="stat-label">Peak</div><div class="stat-val c-success" id="stat-peak">${myPeakRating ? '0.00' : peakDisplay}</div></div>
     <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-val" id="stat-winrate">${myWinRate !== null ? '0%' : winRateDisplay}</div></div>
   `;
   if (myRank)          countUp(document.getElementById('stat-rank'),    myRank,         v => `#${v}`);
@@ -7747,7 +7753,7 @@ function renderLeaderboard() {
     const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
     const delta = lastDelta(p.id);
     const sk = calcStreaks(p.id);
-    const medal = isOfficial ? (['<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-silver"><use href="#i-medal"/></svg>','<svg class="icon icon-medal icon-bronze"><use href="#i-medal"/></svg>'][ratedRank-1] || ratedRank) : '—';
+    const medal = isOfficial ? ratedRank : '—';
     return `
       <tr data-pid="${p.id}" data-mountain="${(p.homeResort||'').toLowerCase()}" data-ridertype="${p.riderType||'skier'}" data-official="${isOfficial}" data-global-rank="${isOfficial ? ratedRank : ''}" onclick="showProfile('${p.id}')" style="cursor:pointer;">
         <td class="td-rank ${isOfficial && ratedRank<=3?'gold':''}">${medal}</td>
@@ -7764,11 +7770,11 @@ function renderLeaderboard() {
           ${isUnrated
             ? `<span style="font-size:12px;color:var(--text-muted);font-style:italic;">Unrated</span>`
             : isProvisional
-              ? `<div style="display:flex;align-items:center;gap:8px;">
+              ? `<div class="lb-rate">
                    <span class="td-rating" style="color:var(--text-muted);">${fmt(p.rating)}<span style="font-size:10px;color:var(--text-muted);margin-left:2px;" title="Provisional — play ${RATED_THRESHOLD - p.gamesPlayed} more games for an official rating">*</span></span>
                    ${tierBadgeHTML(t, `${p.gamesPlayed}/${RATED_THRESHOLD}`)}
                  </div>`
-              : `<div style="display:flex;align-items:center;gap:8px;">
+              : `<div class="lb-rate">
                    <span class="td-rating">${fmt(p.rating)}</span>
                    ${tierBadgeHTML(t, t.label, {clickable:true})}
                  </div>`}
