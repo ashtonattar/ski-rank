@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#14171b">
+  <meta name="theme-color" content="#0b0d10">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,15 +19,15 @@
   <!-- Loaded non-render-blocking: media="print" defers application until onload flips it
        to "all", so a slow/offline font fetch never delays first paint (the boot-loading
        screen is otherwise the very first thing in <body>). -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&display=swap"></noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap"></noscript>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html {
       margin:0; padding:0;
       /* Solid dark fill so Safari's overscroll bounce zone is always dark,
          not the lighter bottom portion of the background photo */
-      background-color:#14171b;
+      background-color:#0b0d10;
     }
     body {
       margin:0; padding:0;
@@ -35,22 +35,26 @@
     }
 
     :root {
-      --bg-base:    #14171b;
-      --bg-surface: rgba(20,23,26,0.74);
-      --bg-elevated:rgba(29,33,38,0.85);
-      --bg-card:    rgba(26,30,34,0.72);
-      --border:      rgba(232,217,163,0.08);
-      --border-light:rgba(232,217,163,0.18);
-      --halogen:     #e8d9a3;
-      --halogen-glow:rgba(232,217,163,0.14);
+      /* Redesign v2 — "competition, not decoration". Near-black, flat solid
+         surfaces, ONE accent (ice blue) reserved for rating/wins/live/primary
+         actions. --fire is now a neutral silver so legacy two-tone call sites
+         collapse to accent + neutral instead of pink vs teal. */
+      --bg-base:    #0b0d10;
+      --bg-surface: #111418;
+      --bg-elevated:#171b20;
+      --bg-card:    #13161a;
+      --border:      rgba(255,255,255,0.07);
+      --border-light:rgba(255,255,255,0.12);
+      --halogen:     #e6ebf0;
+      --halogen-glow:rgba(255,255,255,0.06);
 
-      --ice:        #ff3e7f;
-      --ice-dark:   #cc2f63;
-      --ice-glow:   rgba(255,62,127,0.15);
+      --ice:        #6cc4ff;
+      --ice-dark:   #3fa3ee;
+      --ice-glow:   rgba(108,196,255,0.12);
 
-      --fire:       #22e0c2;
-      --fire-dark:  #1aa88f;
-      --fire-glow:  rgba(34,224,194,0.15);
+      --fire:       #e6ebf0;
+      --fire-dark:  #b8c1ca;
+      --fire-glow:  rgba(230,235,240,0.08);
 
       --primary:      var(--ice);
       --primary-dark: var(--ice-dark);
@@ -59,73 +63,73 @@
       --accent-dark:  var(--fire-dark);
       --accent-glow:  var(--fire-glow);
 
-      --success: #00e676;
-      --danger:  #ff3355;
-      --warning: #ffc400;
+      --success: #3ddc97;
+      --danger:  #ff5a5f;
+      --warning: #ffc24b;
 
-      --text-primary:   #eceeec;
-      --text-secondary: #a3ab9e;
-      --text-muted:     #6b7269;
+      --text-primary:   #f2f4f6;
+      --text-secondary: #9aa3ad;
+      --text-muted:     #626b75;
 
-      --radius-chip: 3px;
-      --radius-sm: 6px;
-      --radius:    10px;
-      --radius-lg: 14px;
-      --shadow:    0 12px 48px rgba(0,0,0,0.7);
-      --glow-ice:  0 0 40px rgba(255,62,127,0.12);
-      --glow-fire: 0 0 40px rgba(34,224,194,0.12);
-      /* Tactile 3-layer surface shadow (chess.com-derived construction) — inset top
-         highlight simulates a light source, two stacked drops give perceivable lift
-         on the dark background without a hard, single-layer shadow edge. */
-      --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.28);
-      --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(0,0,0,0.3);
+      --font-display: 'Inter Tight', 'Inter', sans-serif;
 
-      /* Motion tokens — named by role so intent stays obvious at call sites.
-         Durations/eases below consolidate values already proven in this file
-         (see chess.com-taste.mdc's own .3s/cubic-bezier(0.2,1,0.3,1) contract);
-         --ease-spring/--ease-impact retire several near-duplicate overshoot
-         curves that had accumulated with no functional difference. */
+      --radius-chip: 6px;
+      --radius-sm: 8px;
+      --radius:    12px;
+      --radius-lg: 16px;
+      --shadow:    0 16px 40px rgba(0,0,0,0.45);
+      --glow-ice:  0 0 0 transparent;
+      --glow-fire: 0 0 0 transparent;
+      /* Flat surfaces: a 1px top hairline is all the lift a dark UI needs. */
+      --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.04);
+      --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.03);
+
+      /* Motion tokens — Kowalski duration/distance: small moves 120-160ms,
+         sheets/views 220-280ms, only the duel result gets a longer beat.
+         One ease-out curve for entrances; spring reserved for celebration. */
       --dur-instant:   .05s;
-      --dur-fast:      .2s;
-      --dur-base:      .3s;
-      --dur-entrance:  .35s;
-      --dur-exit:      .22s;
-      --dur-celebrate: .5s;
-      --ease-out:      cubic-bezier(.16,.84,.44,1);
+      --dur-fast:      .14s;
+      --dur-base:      .2s;
+      --dur-entrance:  .26s;
+      --dur-exit:      .16s;
+      --dur-celebrate: .45s;
+      --ease-out:      cubic-bezier(.22,1,.36,1);
       --ease-in:       cubic-bezier(.4,0,1,1);
-      --ease-standard: cubic-bezier(0.2,1,0.3,1);
-      --ease-spring:   cubic-bezier(.34,1.56,.64,1);
+      --ease-standard: cubic-bezier(.22,1,.36,1);
+      --ease-spring:   cubic-bezier(.34,1.4,.64,1);
       --ease-impact:   cubic-bezier(.36,.07,.19,.97);
     }
 
+    [style*="--font-display"], .ra-delta, .admin-stat-val { font-variant-numeric:tabular-nums; }
+
     /* ── LIGHT MODE (daytime session — same accents, sunlit concrete ground) ── */
     body.light {
-      --bg-base:     #ece9e2;
-      --bg-surface:  rgba(255,253,248,0.84);
-      --bg-elevated: rgba(255,253,248,0.95);
-      --bg-card:     rgba(255,253,248,0.80);
-      --border:      rgba(40,40,35,0.10);
-      --border-light:rgba(40,40,35,0.22);
-      --halogen:     #8a6d1f;
-      --halogen-glow:rgba(138,109,31,0.10);
+      --bg-base:     #f5f6f7;
+      --bg-surface:  #ffffff;
+      --bg-elevated: #ffffff;
+      --bg-card:     #ffffff;
+      --border:      rgba(10,14,20,0.08);
+      --border-light:rgba(10,14,20,0.14);
+      --halogen:     #3a4450;
+      --halogen-glow:rgba(10,14,20,0.04);
 
-      --ice:         #d6296b;
-      --ice-dark:    #a81f52;
-      --ice-glow:    rgba(184,15,74,0.12);
+      --ice:         #1677d2;
+      --ice-dark:    #1261ad;
+      --ice-glow:    rgba(22,119,210,0.10);
 
-      --fire:        #0f9e86;
-      --fire-dark:   #0b7e6a;
-      --fire-glow:   rgba(15,158,134,0.12);
+      --fire:        #3a4450;
+      --fire-dark:   #262d36;
+      --fire-glow:   rgba(58,68,80,0.08);
 
-      --text-primary:   #1c1e1a;
-      --text-secondary: #565e54;
-      --text-muted:     #8a9086;
+      --text-primary:   #0d1117;
+      --text-secondary: #4d5761;
+      --text-muted:     #8a939c;
 
-      --shadow:    0 12px 48px rgba(0,0,0,0.10);
-      --glow-ice:  0 0 40px rgba(184,15,74,0.06);
-      --glow-fire: 0 0 40px rgba(15,158,134,0.06);
-      --shadow-surface: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(40,40,35,0.06), 0 2px 6px rgba(40,40,35,0.05);
-      --shadow-surface-sm: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 2px rgba(40,40,35,0.05);
+      --shadow:    0 12px 32px rgba(10,14,20,0.08);
+      --glow-ice:  0 0 0 transparent;
+      --glow-fire: 0 0 0 transparent;
+      --shadow-surface: 0 1px 2px rgba(10,14,20,0.04);
+      --shadow-surface-sm: 0 1px 1px rgba(10,14,20,0.03);
     }
 
   <style>
@@ -146,74 +150,49 @@
     body::before {
       content:'';
       position:fixed; inset:0; z-index:0; pointer-events:none;
-      background: linear-gradient(
-        135deg,
-        rgba(20,22,24,0.82) 0%,
-        rgba(20,22,24,0.75) 50%,
-        rgba(20,22,24,0.82) 100%
-      );
+      background:none;
     }
     body.light::before {
-      background: linear-gradient(
-        135deg,
-        rgba(238,234,224,0.78) 0%,
-        rgba(242,238,229,0.72) 50%,
-        rgba(238,234,224,0.78) 100%
-      );
+      background:none;
     }
 
     /* ── LAYOUT ── */
     .app {
       display:flex; min-height:100vh; position:relative; z-index:1;
       background-color: var(--bg-base);
-      background-image: url('https://images.unsplash.com/photo-1563544769932-7a686e8c1f40?w=1920&auto=format&fit=crop&q=80');
-      background-size: cover;
-      background-position: center center;
-      background-attachment: fixed;
     }
     /* Dark overlay on top of the background photo — same as auth screen */
     .app::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-      background: linear-gradient(160deg,
-        rgba(18,20,22,0.82) 0%,
-        rgba(24,26,29,0.75) 40%,
-        rgba(22,24,27,0.88) 100%
-      );
+      background:none;
     }
     body.light .app::before {
-      background: linear-gradient(160deg,
-        rgba(238,234,224,0.80) 0%,
-        rgba(244,240,232,0.74) 40%,
-        rgba(240,236,227,0.82) 100%
-      );
+      background:none;
     }
     .sidebar, .main { position:relative; z-index:1; }
 
     /* ── SIDEBAR ── */
     .sidebar {
       width: 235px;
-      background: linear-gradient(180deg, rgba(23,25,28,0.88) 0%, rgba(17,19,21,0.92) 100%);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: var(--bg-surface);
       border-right: 1px solid var(--border);
       display: flex; flex-direction:column;
       position: fixed; height:100vh; z-index:100;
-      box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+      
     }
 
     body.light .sidebar {
-      background: linear-gradient(180deg, rgba(255,253,248,0.96) 0%, rgba(250,247,240,0.98) 100%);
-      box-shadow: 4px 0 30px rgba(0,0,0,0.08);
+      background: var(--bg-surface);
     }
     body.light .sidebar::after {
-      background: linear-gradient(transparent, rgba(138,109,31,0.05));
+      background:none;
     }
 
     /* Mountain ridge at sidebar bottom, lit from below like a floodlit park at night */
     .sidebar::after {
       content:'';
       position:absolute; bottom:0; left:0; right:0; height:110px;
-      background: linear-gradient(transparent, rgba(255,62,127,0.05) 60%, rgba(34,224,194,0.05));
+      background:none;
       clip-path: polygon(0% 100%, 0% 65%, 12% 38%, 25% 60%, 38% 22%, 52% 50%, 65% 28%, 78% 52%, 90% 32%, 100% 45%, 100% 100%);
       pointer-events:none;
     }
@@ -225,13 +204,9 @@
     }
 
     .logo-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px; letter-spacing: 3px; line-height:1;
-      background: linear-gradient(140deg, #ff3e7f 0%, #ffffff 45%, #22e0c2 100%);
-      background-size: 220% 220%;
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip:text;
-      filter: drop-shadow(0 0 16px rgba(255,62,127,0.35));
-      animation: logoSheen 7s ease-in-out infinite;
+      font-family: var(--font-display);font-weight:700;
+      font-size:16px; letter-spacing:-0.02em; line-height:1;
+      color:var(--text-primary);
     }
     @keyframes logoSheen {
       0%, 100% { background-position: 0% 50%; }
@@ -261,12 +236,12 @@
       content:''; position:absolute;
       left:0; top:0; bottom:0; width:2px;
       background:var(--ice); border-radius:0 2px 2px 0;
-      box-shadow:0 0 8px rgba(255,62,127,0.6);
+      
       opacity:0; transform:scaleY(0); transform-origin:center;
-      transition:opacity 0.22s, transform 0.28s cubic-bezier(.2,.9,.3,1.3);
+      transition:opacity .16s, transform .2s var(--ease-out);
     }
 
-    .nav-btn:hover { background:rgba(255,62,127,0.05); color:var(--text-secondary); transform:translateX(2px); }
+    .nav-btn:hover { background:rgba(255,255,255,0.04); color:var(--text-secondary); }
     .nav-btn { transition:background-color 0.18s, color 0.18s, border-color 0.18s, transform 0.18s; }
 
     .nav-badge {
@@ -275,24 +250,24 @@
       background:var(--danger); color:#fff;
       border-radius:9px; font-size:9.5px; font-weight:800;
       margin-left:auto; flex-shrink:0;
-      box-shadow:0 0 10px rgba(255,51,85,0.6);
-      animation:pulseBadge 2s ease-in-out infinite;
+      
     }
     @keyframes spin {
       from { transform:rotate(0deg); }
       to   { transform:rotate(360deg); }
     }
     @keyframes pulseBadge {
-      0%,100% { box-shadow:0 0 8px rgba(255,51,85,0.55); }
-      50%      { box-shadow:0 0 18px rgba(255,51,85,0.9); }
+      0%,100% {  }
+      50%      {  }
     }
 
     /* ── Global entrance choreography (app-wide, not just mobile) ── */
     @keyframes viewIn {
-      from { opacity:0; transform:translateY(14px) scale(0.99); }
-      to   { opacity:1; transform:translateY(0) scale(1); }
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
     }
-    .view.active { animation:viewIn .4s cubic-bezier(.16,.84,.44,1) both; }
+    /* View change is a small local move -> 240ms, 6px (Kowalski duration/distance). */
+    .view.active { animation:viewIn .24s var(--ease-out) both; }
 
     @keyframes rowRise {
       from { opacity:0; transform:translateY(9px); }
@@ -302,7 +277,7 @@
     .tbl-wrap tbody tr,
     .stats-grid > *,
     .profile-grid > * {
-      animation: rowRise .38s cubic-bezier(.16,.84,.44,1) both;
+      animation: rowRise .26s var(--ease-out) both;
     }
     .tbl-wrap tbody tr:nth-child(n)  { animation-delay: calc(var(--row-i, 0) * 30ms); }
     .stats-grid > *:nth-child(1), .profile-grid > *:nth-child(1) { animation-delay: 0ms;   }
@@ -328,15 +303,15 @@
     }
 
     .nav-btn.active {
-      background:rgba(255,62,127,0.10);
+      background:rgba(108,196,255,0.10);
       color:var(--ice);
-      border-color:rgba(255,62,127,0.22);
+      border-color:rgba(108,196,255,0.22);
       font-weight:700;
     }
     .nav-btn.active::before { opacity:1; transform:scaleY(0.64); }
     /* Play button always gets a subtle ice tint even when inactive */
     .nav-btn[data-view="live-game"] { color:var(--text-secondary); }
-    .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(255,62,127,0.18),rgba(255,62,127,0.06)); border-color:rgba(255,62,127,0.28); color:var(--ice); }
+    .nav-btn[data-view="live-game"].active { background:rgba(108,196,255,0.10); border-color:transparent; color:var(--ice); }
 
     .nav-icon { font-size:17px; width:20px; text-align:center; flex-shrink:0; }
 
@@ -372,12 +347,11 @@
     }
     .topbar-signin {
       display:flex; align-items:center; gap:6px;
-      background:var(--fire); color:#fff; border:none;
-      box-shadow:0 0 0 1px rgba(34,224,194,0.3);
-      cursor:pointer; padding:7px 14px; border-radius:999px;
+      background:var(--ice); color:#04121f; border:none;
+            cursor:pointer; padding:7px 14px; border-radius:999px;
       font-size:12.5px; font-weight:700;
     }
-    .topbar-signin:hover { background:#ff6a1f; }
+    .topbar-signin:hover { background:#8fd2ff; }
     .topbar-signin:active { transform:scale(0.96); }
 
     /* ── NATIVE SHELL: bottom tab bar ── */
@@ -405,9 +379,9 @@
     .tabbar .nav-btn::before { display:none; }
     .tabbar .nav-btn .nav-icon { font-size:19px; line-height:1; }
     .tabbar .nav-btn .nav-badge { position:absolute; top:2px; right:10px; margin-left:0; }
-    .tabbar .nav-btn.active { background:rgba(255,62,127,0.13); color:var(--ice); }
-    .tabbar .nav-btn.active .nav-icon { filter:drop-shadow(0 0 6px rgba(255,62,127,0.5)); }
-    .tabbar .nav-btn:hover { transform:none; background:rgba(255,62,127,0.06); }
+    .tabbar .nav-btn.active { background:none; border-color:transparent; color:var(--ice); }
+    .tabbar .nav-btn.active .nav-icon {  }
+    .tabbar .nav-btn:hover { transform:none; background:none; }
 
     /* More sheet (slide-up overflow: Riders, Log, Tourneys, Inbox) */
     .more-sheet-overlay {
@@ -436,8 +410,8 @@
     .more-sheet-handle { width:36px; height:4px; border-radius:2px; background:var(--border-light); margin:4px auto 6px; flex-shrink:0; position:relative; cursor:pointer; }
     .more-sheet-handle::before { content:''; position:absolute; inset:-20px -24px; }
     .more-sheet-title {
-      font-family:'Barlow Condensed',sans-serif;
-      font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+      font-family:var(--font-display);
+      font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
       color:var(--text-muted); padding:6px 8px 12px;
     }
     .more-sheet-list { display:flex; flex-direction:column; gap:3px; }
@@ -454,8 +428,8 @@
       display:flex; align-items:center; justify-content:center;
       border-radius:var(--radius-sm); background:rgba(255,255,255,0.05);
     }
-    .more-sheet .nav-btn.active { background:rgba(255,62,127,0.10); color:var(--ice); font-weight:700; }
-    .more-sheet .nav-btn.active .nav-icon { background:rgba(255,62,127,0.16); }
+    .more-sheet .nav-btn.active { background:rgba(108,196,255,0.10); color:var(--ice); font-weight:700; }
+    .more-sheet .nav-btn.active .nav-icon { background:rgba(108,196,255,0.16); }
     .more-sheet .nav-btn:hover { background:rgba(255,255,255,0.045); transform:none; }
     .more-sheet .nav-btn::before { display:none; }
     .more-sheet .nav-badge { position:static; margin-left:auto; }
@@ -463,8 +437,8 @@
     /* ── VIEW HEADER ── */
     .view-header { margin-bottom:26px; }
     .view-header h2 {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:34px; font-weight:400; letter-spacing:2.5px;
+      font-family:var(--font-display);
+      font-size:25px; font-weight:700; letter-spacing:-0.02em;
     }
     .view-header p { color:var(--text-muted); margin-top:4px; font-size:13px; }
 
@@ -475,10 +449,10 @@
       background-color:#14171b;
       background-image: url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75');
       background-size:cover; background-position:75% 35%;
-      border:1px solid rgba(255,62,127,0.18);
+      border:1px solid rgba(108,196,255,0.18);
       padding: 38px 38px 44px;
       margin-bottom:26px;
-      box-shadow: var(--glow-ice), 0 24px 64px rgba(0,0,0,0.7);
+      box-shadow:0 24px 64px rgba(0,0,0,0.7);
     }
 
     /* Dark photo overlay so text stays readable */
@@ -496,13 +470,13 @@
     .hero::after {
       content:''; position:absolute;
       top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg, transparent 0%, var(--ice) 30%, var(--fire) 70%, transparent 100%);
+      background:none;
     }
 
     .hero-eyebrow {
-      font-family:'Barlow Condensed',sans-serif;
+      font-family:var(--font-display);
       font-size:11px; font-weight:700;
-      letter-spacing:4px; text-transform:uppercase;
+      letter-spacing:1.2px; text-transform:uppercase;
       color:var(--ice); margin-bottom:10px;
       position:relative; display:flex; align-items:center; gap:8px;
     }
@@ -512,10 +486,10 @@
     }
 
     .hero h1 {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:64px; letter-spacing:6px; line-height:1;
+      font-family:var(--font-display);font-weight:700;
+      font-size:47px; letter-spacing:-0.02em; line-height:1;
       color:#fff; position:relative; margin-bottom:10px;
-      text-shadow:0 0 50px rgba(255,62,127,0.45), 0 0 100px rgba(255,62,127,0.15);
+      
     }
 
     .hero p {
@@ -525,8 +499,8 @@
 
     .hero-pill {
       position:absolute; top:30px; right:32px;
-      background:rgba(255,62,127,0.07);
-      border:1px solid rgba(255,62,127,0.18);
+      background:rgba(108,196,255,0.07);
+      border:1px solid rgba(108,196,255,0.18);
       border-radius:var(--radius);
       padding:14px 18px; text-align:center;
       backdrop-filter:blur(12px);
@@ -542,9 +516,9 @@
       position:relative; overflow:hidden;
       border-radius:var(--radius-lg);
       background:#14171b;
-      border:1px solid rgba(255,62,127,0.20);
+      border:1px solid rgba(108,196,255,0.20);
       margin-bottom:18px;
-      box-shadow: var(--glow-ice), 0 24px 64px rgba(0,0,0,0.75);
+      box-shadow:0 24px 64px rgba(0,0,0,0.75);
       min-height:240px;
       display:flex; align-items:stretch; flex-wrap:wrap;
     }
@@ -602,15 +576,15 @@
       content:''; position:absolute; inset:0;
       background:linear-gradient(
         120deg,
-        rgba(2,12,30,0.92) 0%,
-        rgba(2,12,30,0.70) 50%,
-        rgba(2,12,30,0.30) 100%
+        rgba(11,13,16,0.94) 0%,
+        rgba(11,13,16,0.80) 50%,
+        rgba(11,13,16,0.55) 100%
       );
     }
     /* top accent bar */
     .play-hero::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px; z-index:2;
-      background:linear-gradient(90deg, transparent 0%, var(--ice) 30%, var(--fire) 70%, transparent 100%);
+      background:none;
     }
     .play-hero-content {
       position:relative; z-index:2;
@@ -619,8 +593,8 @@
       align-self:flex-end;
     }
     .play-hero-eyebrow {
-      font-family:'Barlow Condensed',sans-serif;
-      font-size:11px; font-weight:700; letter-spacing:4px;
+      font-family:var(--font-display);
+      font-size:11px; font-weight:700; letter-spacing:1.2px;
       text-transform:uppercase; color:var(--ice);
       margin-bottom:8px; display:flex; align-items:center; gap:8px;
     }
@@ -628,10 +602,10 @@
       content:''; width:20px; height:1px; background:var(--ice); opacity:.6;
     }
     .play-hero-title {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:58px; letter-spacing:5px; line-height:.95;
+      font-family:var(--font-display);font-weight:700;
+      font-size:43px; letter-spacing:-0.02em; line-height:.95;
       color:#fff; margin-bottom:12px;
-      text-shadow:0 0 40px rgba(255,62,127,0.40), 0 0 80px rgba(255,62,127,0.12);
+      
     }
     .play-hero-sub {
       font-size:13px; color:var(--text-secondary); max-width:340px;
@@ -642,8 +616,8 @@
     }
     .play-pill {
       display:inline-flex; align-items:center; gap:5px;
-      background:rgba(255,62,127,0.08);
-      border:1px solid rgba(255,62,127,0.18);
+      background:rgba(108,196,255,0.08);
+      border:1px solid rgba(108,196,255,0.18);
       border-radius:99px; padding:4px 12px;
       font-size:11.5px; font-weight:600; color:var(--text-secondary);
       backdrop-filter:blur(8px);
@@ -676,7 +650,7 @@
     .phb-large .phb-eyebrow { font-size:11px; letter-spacing:2px; gap:7px; justify-content:center; }
     .phb-eyebrow-dot {
       width:6px; height:6px; border-radius:50%; background:var(--success);
-      box-shadow:0 0 8px rgba(0,230,118,0.7);
+      
       animation:pulseBadge 2s ease-in-out infinite;
     }
     .phb-large .phb-eyebrow-dot { width:7px; height:7px; }
@@ -689,8 +663,8 @@
       box-shadow:var(--shadow-surface-sm);
     }
     .phb-large .phb-panel { padding:14px 8px; }
-    .phb-panel.phb-setter { border-color:rgba(34,224,194,.45); }
-    .phb-panel.phb-copier { border-color:rgba(255,62,127,.4); }
+    .phb-panel.phb-setter { border-color:rgba(230,235,240,.45); }
+    .phb-panel.phb-copier { border-color:rgba(108,196,255,.4); }
     .phb-name { font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .phb-large .phb-name { font-size:14px; }
     .phb-role {
@@ -700,7 +674,7 @@
     .phb-large .phb-role { font-size:10px; margin-top:3px; }
     .phb-panel.phb-setter .phb-role { color:var(--fire); }
     .phb-panel.phb-copier .phb-role { color:var(--ice); }
-    .phb-vs { font-family:'Bebas Neue',sans-serif; font-size:14px; color:rgba(255,255,255,0.2); flex-shrink:0; }
+    .phb-vs { font-family:var(--font-display);font-weight:700; font-size:14px; color:rgba(255,255,255,0.2); flex-shrink:0; }
     .phb-large .phb-vs { font-size:18px; }
     .phb-trick {
       display:flex; align-items:center; gap:6px;
@@ -711,8 +685,8 @@
     .phb-large .phb-trick { justify-content:center; font-size:13px; gap:7px; padding:10px 12px; }
     .phb-trick svg { width:14px; height:14px; flex-shrink:0; }
     .phb-large .phb-trick svg { width:16px; height:16px; }
-    .phb-trick.phb-trick-landed { background:rgba(0,230,118,0.06); border:1px solid rgba(0,230,118,0.18); }
-    .phb-trick.phb-trick-missed { background:rgba(255,51,85,0.06); border:1px solid rgba(255,51,85,0.18); }
+    .phb-trick.phb-trick-landed { background:rgba(61,220,151,0.06); border:1px solid rgba(61,220,151,0.18); }
+    .phb-trick.phb-trick-missed { background:rgba(255,90,95,0.06); border:1px solid rgba(255,90,95,0.18); }
     .phb-letters { display:flex; align-items:center; justify-content:center; gap:6px; }
     .phb-large .phb-letters { gap:8px; }
     @media(max-width:600px) {
@@ -724,7 +698,7 @@
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
        real live-game S·K·I tracker (.ski-letter, defined further down) since
        it has no light-mode color of its own otherwise. */
-    body.light .ski-letter { color:rgba(184,15,74,0.15); }
+    body.light .ski-letter { color:rgba(22,119,210,0.15); }
 
     /* ── STATS GRID ── */
     .stats-grid {
@@ -746,12 +720,12 @@
       text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;
     }
     .stat-val {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:40px; letter-spacing:1px; line-height:1;
+      font-family:var(--font-display);font-weight:700;
+      font-size:30px; letter-spacing:-0.02em; line-height:1;
     }
-    .stat-val.c-primary { color:var(--ice);     text-shadow:0 0 20px rgba(255,62,127,0.5); }
-    .stat-val.c-accent  { color:var(--fire);    text-shadow:0 0 20px rgba(34,224,194,0.5);  }
-    .stat-val.c-success { color:var(--success); text-shadow:0 0 20px rgba(0,230,118,0.4); }
+    .stat-val.c-primary { color:var(--ice);      }
+    .stat-val.c-accent  { color:var(--fire);      }
+    .stat-val.c-success { color:var(--success);  }
 
     /* ── CARD ── */
     .card {
@@ -778,15 +752,15 @@
 
     td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-secondary); }
     tr:last-child td { border-bottom:none; }
-    tr:hover td { background:rgba(255,62,127,0.025); }
+    tr:hover td { background:rgba(108,196,255,0.025); }
 
     .td-rank { font-weight:700; color:var(--text-muted); font-size:13px; }
     .td-rank.gold { color:var(--fire); }
     .td-name { font-weight:700; color:var(--text-primary); cursor:pointer; transition:color .15s; }
     .td-name:hover { color:var(--ice); }
     .td-rating {
-      font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:.5px;
-      color:var(--ice); text-shadow:0 0 14px rgba(255,62,127,0.5);
+      font-family:var(--font-display);font-weight:700; font-size:15px; letter-spacing:-0.02em;
+      color:var(--ice); 
     }
     .td-win  { color:var(--success); font-weight:700; }
     .td-loss { color:var(--danger);  font-weight:700; }
@@ -795,10 +769,10 @@
     .btn {
       display:inline-flex; align-items:center; gap:8px;
       padding:8px 18px; border-radius:var(--radius-sm);
-      font-size:12px; font-weight:700; letter-spacing:.5px;
+      font-size:12px; font-weight:700; letter-spacing:1.2px;
       text-transform:uppercase;
       cursor:pointer; border:none; transition:background-color .18s, color .18s, box-shadow .18s, transform .18s;
-      font-family:'Barlow Condensed',sans-serif;
+      font-family:var(--font-display);
       position:relative; overflow:hidden;
       -webkit-tap-highlight-color:transparent;
     }
@@ -819,9 +793,9 @@
 
     /* ── Landed: green pulse burst ── */
     @keyframes landedPulse {
-      0%   { box-shadow:0 0 0 0 rgba(0,230,118,0.7); transform:scale(1); }
-      40%  { box-shadow:0 0 0 14px rgba(0,230,118,0); transform:scale(1.04); }
-      100% { box-shadow:0 4px 22px rgba(0,230,118,0.3); transform:scale(1); }
+      0%   { box-shadow:0 0 0 0 rgba(61,220,151,0.7); transform:scale(1); }
+      40%  { box-shadow:0 0 0 14px rgba(61,220,151,0); transform:scale(1.04); }
+      100% {  transform:scale(1); }
     }
     .btn-landed.btn-fired { animation:landedPulse .45s var(--ease-spring) forwards; }
 
@@ -836,50 +810,48 @@
     .btn-missed.btn-fired { animation:missedShake .42s var(--ease-impact) forwards; }
 
     .btn-primary {
-      background:var(--ice-dark); color:#fff;
-      box-shadow:0 0 0 1px rgba(255,62,127,0.2);
+      background:var(--ice); color:#04121f; font-weight:700;
     }
-    .btn-primary:hover {
-      background:var(--ice); color:#001824;
-      transform:translateY(-1px); box-shadow:0 4px 22px rgba(255,62,127,0.5);
-    }
+    .btn-primary:hover { background:#8fd2ff; }
+    body.light .btn-primary { color:#fff; }
+    body.light .btn-primary:hover { background:var(--ice-dark); }
 
     .btn-accent {
-      background:var(--fire); color:#fff;
-      box-shadow:0 0 0 1px rgba(34,224,194,0.3);
+      background:var(--bg-elevated); color:var(--text-primary);
+      box-shadow:inset 0 0 0 1px var(--border-light);
     }
     .btn-accent:hover {
-      background:#ff6a1f; transform:translateY(-1px);
-      box-shadow:0 4px 22px rgba(34,224,194,0.5);
+      background:#1e232a;
+      
     }
 
     .btn-outline { background:var(--bg-elevated); color:var(--text-secondary); border:1px solid var(--border); box-shadow:var(--shadow-surface-sm); }
-    .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(255,62,127,0.05); }
+    .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(108,196,255,0.05); }
 
     .btn-ghost { background:transparent; color:var(--text-muted); border:none; }
-    .btn-ghost:hover { color:var(--danger); background:rgba(255,51,85,0.08); }
+    .btn-ghost:hover { color:var(--danger); background:rgba(255,90,95,0.08); }
 
-    .btn-danger { background:transparent; color:var(--danger); border:1px solid rgba(255,51,85,0.25); }
-    .btn-danger:hover { background:rgba(255,51,85,0.1); }
+    .btn-danger { background:transparent; color:var(--danger); border:1px solid rgba(255,90,95,0.25); }
+    .btn-danger:hover { background:rgba(255,90,95,0.1); }
 
     .btn-sm { padding:4px 12px; font-size:10.5px; }
     .btn-lg { padding:12px 28px; font-size:14px; border-radius:var(--radius); }
 
     .btn-landed {
-      background:linear-gradient(135deg,#00b854,#00e676);
+      background:var(--success);
       color:#fff; padding:14px; font-size:15px; width:100%; justify-content:center;
       text-shadow:0 1px 3px rgba(0,0,0,0.3); letter-spacing:.8px;
-      box-shadow:0 4px 22px rgba(0,230,118,0.3);
+      
     }
-    .btn-landed:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 8px 28px rgba(0,230,118,0.4); }
+    .btn-landed:hover { filter:brightness(1.1); transform:translateY(-1px);  }
 
     .btn-missed {
-      background:linear-gradient(135deg,#cc1e3a,#ff3355);
+      background:var(--danger);
       color:#fff; padding:14px; font-size:15px; width:100%; justify-content:center;
       text-shadow:0 1px 3px rgba(0,0,0,0.3); letter-spacing:.8px;
-      box-shadow:0 4px 22px rgba(255,51,85,0.3);
+      
     }
-    .btn-missed:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 8px 28px rgba(255,51,85,0.4); }
+    .btn-missed:hover { filter:brightness(1.1); transform:translateY(-1px);  }
 
     /* ── FORMS ── */
     .form-group { display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
@@ -908,7 +880,7 @@
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(255,62,127,0.1), 0 0 14px rgba(255,62,127,0.12);
+      box-shadow:0 0 0 3px rgba(108,196,255,0.1), 0 0 14px rgba(108,196,255,0.12);
     }
     .form-select option { background:#061525; }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -924,7 +896,7 @@
     }
     .pp-trigger:focus, .pp-trigger.open {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(255,62,127,0.1), 0 0 14px rgba(255,62,127,0.12);
+      box-shadow:0 0 0 3px rgba(108,196,255,0.1), 0 0 14px rgba(108,196,255,0.12);
     }
     .pp-trigger .pp-caret { color:var(--text-muted); font-size:11px; flex-shrink:0; margin-left:6px; transition:transform .15s; }
     .pp-trigger.open .pp-caret { transform:rotate(180deg); }
@@ -947,7 +919,7 @@
       padding:8px 12px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:10px;
       transition:background .1s;
     }
-    .pp-item:hover, .pp-item.selected { background:rgba(255,62,127,0.08); }
+    .pp-item:hover, .pp-item.selected { background:rgba(108,196,255,0.08); }
     .pp-item .pp-item-name { font-weight:600; flex:1; }
     .pp-item .pp-item-rating { font-size:12px; color:var(--text-muted); }
     .pp-empty { padding:14px 13px; font-size:13px; color:var(--text-muted); text-align:center; }
@@ -960,9 +932,9 @@
       font-size:10px; font-weight:700;
       text-transform:uppercase; letter-spacing:.7px;
     }
-    .badge-primary { background:rgba(255,62,127,.1);  color:var(--ice);     border:1px solid rgba(255,62,127,.22); }
-    .badge-success { background:rgba(0,230,118,.1);  color:var(--success); border:1px solid rgba(0,230,118,.22); }
-    .badge-danger  { background:rgba(255,51,85,.1);  color:var(--danger);  border:1px solid rgba(255,51,85,.22); }
+    .badge-primary { background:rgba(108,196,255,.1);  color:var(--ice);     border:1px solid rgba(108,196,255,.22); }
+    .badge-success { background:rgba(61,220,151,.1);  color:var(--success); border:1px solid rgba(61,220,151,.22); }
+    .badge-danger  { background:rgba(255,90,95,.1);  color:var(--danger);  border:1px solid rgba(255,90,95,.22); }
 
     /* ── TIER / RATING BADGES ── */
     .tier-badge {
@@ -982,11 +954,11 @@
       background:color-mix(in srgb, var(--tc) 30%, transparent);
     }
     .tier-badge-icon .icon { width:10px; height:10px; }
-    .badge-accent  { background:rgba(34,224,194,.1);   color:var(--fire);   border:1px solid rgba(34,224,194,.22); animation:badgeGlow 2.2s ease-in-out infinite; }
+    .badge-accent  { background:rgba(230,235,240,.1);   color:var(--fire);   border:1px solid rgba(230,235,240,.22); }
     .badge-muted   { background:rgba(45,90,115,.1);  color:var(--text-muted); border:1px solid rgba(45,90,115,.2); }
     @keyframes badgeGlow {
-      0%,100% { box-shadow:0 0 0 rgba(34,224,194,0); }
-      50%     { box-shadow:0 0 10px rgba(34,224,194,0.45); }
+      0%,100% { box-shadow:0 0 0 rgba(230,235,240,0); }
+      50%     {  }
     }
     @media (prefers-reduced-motion: reduce) { .badge-accent { animation:none; } }
 
@@ -996,7 +968,7 @@
     .ski-letter {
       width:48px; height:48px; border-radius:var(--radius);
       display:flex; align-items:center; justify-content:center;
-      font-family:'Bebas Neue',sans-serif; font-size:28px;
+      font-family:var(--font-display);font-weight:700; font-size:21px;
       border:2px solid rgba(255,255,255,0.07);
       color:rgba(255,255,255,0.12);
       background:rgba(255,255,255,0.02);
@@ -1008,8 +980,8 @@
     .ski-letter.earned {
       border-color:var(--danger);
       color:var(--danger);
-      background:rgba(255,51,85,0.12);
-      box-shadow:0 0 22px rgba(255,51,85,0.45), inset 0 0 14px rgba(255,51,85,0.1);
+      background:rgba(255,90,95,0.12);
+      box-shadow:0 0 22px rgba(255,90,95,0.45), inset 0 0 14px rgba(255,90,95,0.1);
       text-shadow:0 0 12px var(--danger);
       animation:letterPop .45s cubic-bezier(0.175,0.885,0.32,1.275);
     }
@@ -1035,26 +1007,26 @@
     }
 
     .player-panel.is-setter {
-      border-color:rgba(34,224,194,.5);
+      border-color:rgba(230,235,240,.5);
       background:rgba(255,40,0,0.04);
-      box-shadow:var(--shadow-surface), 0 0 32px rgba(34,224,194,0.15), inset 0 0 24px rgba(34,224,194,0.03);
+      box-shadow:var(--shadow-surface), 0 0 32px rgba(230,235,240,0.15), inset 0 0 24px rgba(230,235,240,0.03);
     }
     .player-panel.is-copier {
-      border-color:rgba(255,62,127,.42);
+      border-color:rgba(108,196,255,.42);
       background:rgba(0,150,200,0.04);
-      box-shadow:var(--shadow-surface), 0 0 32px rgba(255,62,127,0.12);
+      box-shadow:var(--shadow-surface), 0 0 32px rgba(108,196,255,0.12);
     }
 
     .pp-name {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:24px; letter-spacing:1.5px;
+      font-family:var(--font-display);font-weight:700;
+      font-size:18px; letter-spacing:-0.02em;
       margin-bottom:6px;
     }
     .pp-rating { font-size:11.5px; color:var(--text-muted); margin-bottom:14px; letter-spacing:.5px; }
 
     .vs-text {
-      font-family:'Bebas Neue',sans-serif; font-size:36px;
-      text-align:center; color:rgba(255,255,255,0.12); letter-spacing:2px;
+      font-family:var(--font-display);font-weight:700; font-size:27px;
+      text-align:center; color:rgba(255,255,255,0.12); letter-spacing:-0.02em;
     }
 
     .trick-area {
@@ -1070,8 +1042,8 @@
     .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
 
     .log-row {
-      background:rgba(255,62,127,0.03);
-      border:1px solid rgba(255,62,127,0.06);
+      background:rgba(108,196,255,0.03);
+      border:1px solid rgba(108,196,255,0.06);
       border-radius:var(--radius-sm); padding:8px 13px;
       font-size:12.5px; display:flex; align-items:center; gap:8px;
       animation:slideIn .2s ease;
@@ -1116,7 +1088,7 @@
     @keyframes slideDown { to { opacity:0; transform:translateY(14px) scale(0.98); } }
 
     .modal {
-      background:linear-gradient(180deg,#081a34 0%,#04101e 100%);
+      background:var(--bg-elevated);
       border:1px solid var(--border);
       border-radius:var(--radius-lg);
       padding:26px; width:100%; max-width:560px;
@@ -1128,14 +1100,14 @@
     .modal::before {
       content:''; position:absolute;
       top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent,var(--ice),transparent);
+      background:none;
       border-radius:var(--radius-lg) var(--radius-lg) 0 0;
     }
 
     .modal-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
     .modal-title {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:22px; font-weight:400; letter-spacing:2px;
+      font-family:var(--font-display);
+      font-size:16px; font-weight:700; letter-spacing:-0.02em;
     }
     .modal-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:4px; border-radius:5px; transition:color .2s; }
     .modal-close:hover { color:var(--danger); }
@@ -1148,22 +1120,22 @@
     /* Dominant-win (Tier 3) glow pulse behind the winner's card — no color-token
        changes, just an animated box-shadow using the existing brand colors. */
     @keyframes tier3Glow {
-      0%, 100% { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); }
-      50%      { box-shadow:0 0 48px 6px rgba(255,62,127,0.35), 0 0 30px 4px rgba(34,224,194,0.22), var(--shadow-surface); }
+      0%, 100% { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); }
+      50%      { box-shadow:0 0 48px 6px rgba(108,196,255,0.35), 0 0 30px 4px rgba(230,235,240,0.22), var(--shadow-surface); }
     }
     #rating-anim-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(18,20,22,0.88); align-items:center; justify-content:center; backdrop-filter:blur(14px); animation:fadeIn .25s ease; }
     #rating-anim-overlay.visible { display:flex; }
-    .ra-card { background:linear-gradient(160deg,#232830,#14171b); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both; }
-    .ra-card.tier3-glow { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
+    .ra-card { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both; }
+    .ra-card.tier3-glow { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
     .ra-card.loser { animation-delay:.08s; }
-    .ra-delta { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1; animation:deltaCountIn .4s .3s var(--ease-out) both; }
+    .ra-delta { font-family:var(--font-display);font-weight:700; font-size:38px; line-height:1; animation:deltaCountIn .4s .3s var(--ease-out) both; }
     .ra-delta.win { color:var(--success); }
     .ra-delta.loss { color:var(--danger); }
 
     /* ── EMPTY STATE ── */
     .empty { text-align:center; padding:60px 20px; color:var(--text-muted); animation:rowRise .3s cubic-bezier(.16,.84,.44,1) both; }
     .empty-icon { font-size:48px; margin-bottom:16px; display:block; }
-    .empty h3 { font-size:18px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; font-family:'Bebas Neue',sans-serif; letter-spacing:1px; }
+    .empty h3 { font-size:18px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; font-family:var(--font-display); letter-spacing:-0.02em; }
     .empty p  { font-size:13px; max-width:260px; margin:0 auto 20px; }
 
     /* ── SKELETON LOADERS ──
@@ -1182,8 +1154,8 @@
 
     /* ── PREVIEW BOX ── */
     .preview-box {
-      background:rgba(255,62,127,0.03);
-      border:1px solid rgba(255,62,127,0.1);
+      background:rgba(108,196,255,0.03);
+      border:1px solid rgba(108,196,255,0.1);
       border-radius:var(--radius-sm);
       padding:12px 16px; margin-bottom:12px; font-size:13px;
     }
@@ -1196,25 +1168,25 @@
       margin-bottom:10px; transition:border-color .2s, transform .2s;
       backdrop-filter:blur(20px);
     }
-    .hist-entry:hover { border-color:rgba(255,62,127,0.22); transform:translateX(3px); }
+    .hist-entry:hover { border-color:rgba(108,196,255,0.22); transform:translateX(3px); }
 
     /* ── GAME OVER ── */
     .game-over-banner {
-      background:linear-gradient(135deg, rgba(34,224,194,0.1), rgba(255,62,127,0.06));
-      border:1px solid rgba(34,224,194,0.4);
+      background:var(--bg-card);
+      border:1px solid var(--border-light);
       border-radius:var(--radius-lg); padding:34px;
       text-align:center; margin-bottom:20px; position:relative; overflow:hidden;
     }
     .game-over-banner::before {
       content:''; position:absolute;
       top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent,var(--fire),transparent);
+      background:none;
     }
     .game-over-banner h2 {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:64px; letter-spacing:7px;
+      font-family:var(--font-display);font-weight:700;
+      font-size:47px; letter-spacing:-0.02em;
       color:var(--fire); margin-bottom:10px;
-      text-shadow:0 0 35px rgba(34,224,194,0.6), 0 0 70px rgba(34,224,194,0.2);
+      
     }
 
     /* ── TOAST ── */
@@ -1230,8 +1202,8 @@
       max-width:280px; backdrop-filter:blur(20px);
     }
     .toast.leaving { animation:fadeOut .22s ease forwards; }
-    .toast.ok  { border-color:var(--success); box-shadow:0 0 20px rgba(0,230,118,0.2); }
-    .toast.err { border-color:var(--danger);  box-shadow:0 0 20px rgba(255,51,85,0.2); }
+    .toast.ok  { border-color:var(--success);  }
+    .toast.err { border-color:var(--danger);   }
 
     @keyframes slideInR { from{transform:translateX(110%);opacity:0;} to{transform:translateX(0);opacity:1;} }
     @keyframes fadeOut  { to{opacity:0;transform:translateX(110%);} }
@@ -1266,7 +1238,7 @@
       border-bottom-color:rgba(0,120,180,0.13);
     }
     body.light .pp-item:hover { background:rgba(0,120,180,0.06); }
-    body.light .pp-item.selected { background:rgba(184,15,74,0.12); }
+    body.light .pp-item.selected { background:rgba(22,119,210,0.12); }
     body.light .toast {
       background:rgba(255,253,248,0.97);
       color:var(--text-primary);
@@ -1297,8 +1269,8 @@
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width:4px; height:4px; }
     ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:rgba(255,62,127,0.2); border-radius:2px; }
-    ::-webkit-scrollbar-thumb:hover { background:rgba(255,62,127,0.4); }
+    ::-webkit-scrollbar-thumb { background:rgba(108,196,255,0.2); border-radius:2px; }
+    ::-webkit-scrollbar-thumb:hover { background:rgba(108,196,255,0.4); }
 
     /* ── AUTH SCREEN ── */
     .auth-screen {
@@ -1320,7 +1292,7 @@
       pointer-events:none;
     }
     .auth-card {
-      background:rgba(3,12,28,0.92); border:1px solid rgba(255,62,127,0.2);
+      background:rgba(3,12,28,0.92); border:1px solid rgba(108,196,255,0.2);
       border-radius:var(--radius-lg); padding:40px;
       width:100%; max-width:400px;
       max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1369,8 +1341,8 @@
     #boot-loading .auth-logo { margin-bottom:0; }
     .boot-spinner {
       width:36px; height:36px; border-radius:50%;
-      border:3px solid rgba(255,62,127,0.18);
-      border-top-color:var(--ice, #ff3e7f);
+      border:3px solid rgba(108,196,255,0.18);
+      border-top-color:var(--ice, #6cc4ff);
       animation:bootSpin .8s linear infinite;
     }
     @keyframes bootSpin { to { transform:rotate(360deg); } }
@@ -1381,14 +1353,14 @@
     .boot-rail-leg { stroke:var(--text-muted); stroke-width:2; stroke-linecap:round; opacity:.35; }
     .boot-rail-bar { stroke:var(--text-muted); stroke-width:3; stroke-linecap:round; opacity:.45; }
     .boot-rail-glow {
-      fill:none; stroke:var(--ice, #ff3e7f); stroke-width:3; stroke-linecap:round;
+      fill:none; stroke:var(--ice, #6cc4ff); stroke-width:3; stroke-linecap:round;
       stroke-dasharray:44; stroke-dashoffset:44; opacity:0;
-      filter:drop-shadow(0 0 5px rgba(255,62,127,.55));
+      
       animation:bootRailGlow 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
     .boot-skier {
-      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #ff3e7f);
-      filter:drop-shadow(0 0 6px rgba(255,62,127,.45));
+      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #6cc4ff);
+      
       animation:bootSkierMove 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
     @keyframes bootRailGlow {
@@ -1422,16 +1394,14 @@
     .boot-loading-msg.visible { opacity:1; }
     .auth-card::before {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent,var(--ice),var(--fire),transparent);
+      background:none;
       border-radius:var(--radius-lg) var(--radius-lg) 0 0;
     }
     .auth-logo { text-align:center; margin-bottom:28px; }
     .auth-logo .logo-big {
-      font-family:'Bebas Neue',sans-serif; font-size:54px;
-      letter-spacing:7px; line-height:1;
-      background:linear-gradient(140deg,#ff3e7f 0%,#ffffff 45%,#22e0c2 100%);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-      filter:drop-shadow(0 0 22px rgba(255,62,127,0.45));
+      font-family:var(--font-display);font-weight:700; font-size:40px;
+      letter-spacing:-0.02em; line-height:1;
+      color:var(--text-primary);
     }
     .auth-logo .logo-tag {
       font-size:9.5px; color:var(--text-muted);
@@ -1445,14 +1415,14 @@
     }
     .auth-tab {
       flex:1; padding:8px; text-align:center;
-      font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+      font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px;
       border-radius:var(--radius-sm); cursor:pointer; transition:all .18s;
       border:none; background:none; color:var(--text-muted);
-      font-family:'Barlow Condensed',sans-serif;
+      font-family:var(--font-display);
     }
-    .auth-tab.active { background:var(--ice-dark); color:#fff; box-shadow:0 2px 14px rgba(255,62,127,0.35); }
+    .auth-tab.active { background:var(--bg-elevated); color:var(--text-primary);  }
     .auth-error {
-      background:rgba(255,51,85,0.1); border:1px solid rgba(255,51,85,0.3);
+      background:rgba(255,90,95,0.1); border:1px solid rgba(255,90,95,0.3);
       border-radius:var(--radius-sm); padding:10px 12px;
       font-size:13px; color:var(--danger); margin-bottom:14px; display:none;
     }
@@ -1504,10 +1474,10 @@
       background-color:#14171b;
       background-image: url('https://images.unsplash.com/photo-1488771025462-7cd35f97a021?w=1400&auto=format&fit=crop&q=70');
       background-size:cover; background-position:center 40%;
-      border:1px solid rgba(255,62,127,0.18);
+      border:1px solid rgba(108,196,255,0.18);
       padding:36px 36px 40px;
       margin-bottom:24px;
-      box-shadow:var(--glow-ice),0 24px 64px rgba(0,0,0,0.7);
+      box-shadow:0 24px 64px rgba(0,0,0,0.7);
       display:flex; align-items:center; gap:30px;
     }
     .profile-hero::before {
@@ -1522,7 +1492,7 @@
     .profile-hero::after {
       content:''; position:absolute;
       top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent 0%,var(--ice) 30%,var(--fire) 70%,transparent 100%);
+      background:none;
     }
 
     .profile-avatar-wrap {
@@ -1532,16 +1502,16 @@
     .profile-avatar-img {
       width:96px; height:96px; border-radius:50%;
       object-fit:cover;
-      border:3px solid rgba(255,62,127,0.35);
-      box-shadow:0 0 28px rgba(255,62,127,0.25);
+      border:3px solid rgba(108,196,255,0.35);
+      
       display:block;
     }
     .profile-avatar-fallback {
       width:96px; height:96px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      font-family:'Bebas Neue',sans-serif; font-size:34px; color:#fff;
-      border:3px solid rgba(255,62,127,0.35);
-      box-shadow:0 0 28px rgba(255,62,127,0.25);
+      font-family:var(--font-display);font-weight:700; font-size:25px; color:#fff;
+      border:3px solid rgba(108,196,255,0.35);
+      
       flex-shrink:0;
     }
     .profile-avatar-overlay {
@@ -1553,17 +1523,17 @@
     }
     .profile-hero-info { flex:1; position:relative; }
     .profile-hero-name {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:46px; letter-spacing:3px; line-height:1;
-      color:#fff; text-shadow:0 0 40px rgba(255,62,127,0.35);
+      font-family:var(--font-display);font-weight:700;
+      font-size:34px; letter-spacing:-0.02em; line-height:1;
+      color:#fff; 
       margin-bottom:6px;
     }
     .profile-hero-meta {
       display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;
     }
     .profile-hero-rating {
-      font-family:'Bebas Neue',sans-serif; font-size:28px;
-      color:var(--ice); letter-spacing:2px;
+      font-family:var(--font-display);font-weight:700; font-size:21px;
+      color:var(--ice); letter-spacing:-0.02em;
     }
     .profile-hero-bio-preview {
       font-size:13px; color:var(--text-secondary); max-width:440px;
@@ -1593,7 +1563,7 @@
       min-height:110px; line-height:1.6; transition:border-color .18s;
       outline:none;
     }
-    .prof-textarea:focus { border-color:rgba(255,62,127,0.45); }
+    .prof-textarea:focus { border-color:rgba(108,196,255,0.45); }
     .prof-textarea::placeholder { color:var(--text-muted); }
 
     .profile-game-row {
@@ -1633,11 +1603,11 @@
     .tourney-card:hover { border-color:var(--ice); box-shadow:0 0 18px var(--ice-glow); }
     .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
     .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
-    .pc-drag-over { border-color:var(--ice) !important; background:rgba(255,62,127,0.10) !important; }
+    .pc-drag-over { border-color:var(--ice) !important; background:rgba(108,196,255,0.10) !important; }
     .tourney-badge { font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase; }
     .tourney-badge.setup   { background:rgba(255,196,0,.15);color:var(--warning); }
-    .tourney-badge.active  { background:rgba(0,230,118,.15);color:var(--success); }
-    .tourney-badge.complete{ background:rgba(255,62,127,.12);color:var(--ice); }
+    .tourney-badge.active  { background:rgba(61,220,151,.15);color:var(--success); }
+    .tourney-badge.complete{ background:rgba(108,196,255,.12);color:var(--ice); }
     .tourney-meta { font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap; }
 
     /* Bracket */
@@ -1677,7 +1647,7 @@
       border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
     }
     .invite-pick-item:last-child { border-bottom:none; }
-    .invite-pick-item:hover { background:rgba(255,62,127,0.04); }
+    .invite-pick-item:hover { background:rgba(108,196,255,0.04); }
     .invite-pick-item input[type=checkbox] { accent-color:var(--ice);width:15px;height:15px; }
     .tinv-tab {
       font-size:11.5px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;
@@ -1697,7 +1667,7 @@
     .pending-card::before {
       content:''; position:absolute;
       top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent,var(--warning),transparent);
+      background:none;
     }
     .pending-card-header {
       display:flex; align-items:center; justify-content:space-between;
@@ -1708,21 +1678,21 @@
     }
     .sent-card {
       border-radius:var(--radius);
-      border:1px solid rgba(255,62,127,0.14);
-      background:rgba(255,62,127,0.03);
+      border:1px solid rgba(108,196,255,0.14);
+      background:rgba(108,196,255,0.03);
       padding:14px 18px;
       margin-bottom:10px;
       display:flex; align-items:center; gap:14px;
     }
     /* ── Video clip box ── */
     .clip-box {
-      border:2px dashed rgba(255,62,127,0.25);
+      border:2px dashed rgba(108,196,255,0.25);
       border-radius:var(--radius);
       padding:16px;
-      background:rgba(255,62,127,0.03);
+      background:rgba(108,196,255,0.03);
       transition:border-color .2s;
     }
-    .clip-box:focus-within { border-color:rgba(255,62,127,0.55); }
+    .clip-box:focus-within { border-color:rgba(108,196,255,0.55); }
     .clip-box-inner { display:flex;flex-direction:column;align-items:center;text-align:center; }
     .clip-thumb {
       width:100%; border-radius:8px; overflow:hidden;
@@ -1822,8 +1792,8 @@
       backdrop-filter: blur(4px);
     }
     .reel-chip.win  { background:rgba(16,185,129,.25); border-color:rgba(16,185,129,.45); color:#6ee7b7; }
-    .reel-chip.ice  { background:rgba(255,62,127,.2);   border-color:rgba(255,62,127,.4);   color:var(--ice); }
-    .reel-chip.fire { background:rgba(34,224,194,.2);    border-color:rgba(34,224,194,.4);    color:#ff7a40; }
+    .reel-chip.ice  { background:rgba(108,196,255,.2);   border-color:rgba(108,196,255,.4);   color:var(--ice); }
+    .reel-chip.fire { background:rgba(230,235,240,.2);    border-color:rgba(230,235,240,.4);    color:#ff7a40; }
     /* Right action sidebar */
     .reel-actions {
       position: absolute;
@@ -1903,7 +1873,7 @@
       position: absolute;
       width: 46px; height: 46px;
       border-radius: 50%;
-      background: rgba(255,51,85,0.35);
+      background: rgba(255,90,95,0.35);
       pointer-events: none;
       animation: likeRipple .5s ease-out forwards;
     }
@@ -1945,7 +1915,7 @@
       position:relative;
     }
     .friend-row:hover  { background:rgba(255,255,255,0.05); }
-    .friend-row.active { background:rgba(255,62,127,0.1); }
+    .friend-row.active { background:rgba(108,196,255,0.1); }
     .friend-unread {
       min-width:18px; height:18px;
       background:var(--ice); color:#000;
@@ -1964,8 +1934,8 @@
     }
     .msg-mine {
       align-self:flex-end;
-      background:linear-gradient(135deg,var(--ice),#a81f52);
-      color:#fff;
+      background:var(--ice);
+      color:#04121f;
       border-bottom-right-radius:4px;
     }
     .msg-theirs {
@@ -1994,11 +1964,11 @@
     }
     .ski-letter-btn:hover { border-color:var(--ice); color:var(--ice); }
     .ski-letter-btn.active {
-      border-color:var(--danger); background:rgba(255,51,85,0.15);
-      color:var(--danger); box-shadow:0 0 8px rgba(255,51,85,0.2);
+      border-color:var(--danger); background:rgba(255,90,95,0.15);
+      color:var(--danger); 
     }
     .ski-letter-loser {
-      border-color:var(--danger); background:rgba(255,51,85,0.15);
+      border-color:var(--danger); background:rgba(255,90,95,0.15);
       color:var(--danger); cursor:default;
     }
     .ski-score-display {
@@ -2015,8 +1985,8 @@
       padding:2px 7px; border-radius:4px;
     }
     .badge-disputed {
-      background:rgba(255,51,85,0.12); color:var(--danger);
-      border:1px solid rgba(255,51,85,0.28);
+      background:rgba(255,90,95,0.12); color:var(--danger);
+      border:1px solid rgba(255,90,95,0.28);
       font-size:9.5px; font-weight:800; letter-spacing:.6px;
       padding:2px 7px; border-radius:4px;
     }
@@ -2026,10 +1996,10 @@
     .resort-dropdown {
       position:absolute; top:calc(100% + 5px); left:0; right:0; z-index:200;
       background:rgba(5,16,34,0.97);
-      border:1px solid rgba(255,62,127,0.28);
+      border:1px solid rgba(108,196,255,0.28);
       border-radius:var(--radius-sm);
       backdrop-filter:blur(24px);
-      box-shadow:0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,62,127,0.06);
+      box-shadow:0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(108,196,255,0.06);
       overflow:hidden;
       max-height:220px; overflow-y:auto;
       display:none;
@@ -2037,17 +2007,17 @@
     .resort-dropdown.open { display:block; animation:slideIn .13s ease; }
     .resort-dropdown::-webkit-scrollbar { width:4px; }
     .resort-dropdown::-webkit-scrollbar-track { background:transparent; }
-    .resort-dropdown::-webkit-scrollbar-thumb { background:rgba(255,62,127,0.2); border-radius:2px; }
+    .resort-dropdown::-webkit-scrollbar-thumb { background:rgba(108,196,255,0.2); border-radius:2px; }
 
     .resort-item {
       padding:10px 14px; cursor:pointer; font-size:13.5px;
       display:flex; align-items:center; gap:10px;
-      border-bottom:1px solid rgba(255,62,127,0.05);
+      border-bottom:1px solid rgba(108,196,255,0.05);
       transition:background .1s;
     }
     .resort-item:last-child { border-bottom:none; }
     .resort-item:hover, .resort-item.active {
-      background:rgba(255,62,127,0.1);
+      background:rgba(108,196,255,0.1);
       color:var(--ice);
     }
     .resort-item-icon { font-size:15px; flex-shrink:0; }
@@ -2070,14 +2040,14 @@
       color:var(--text-muted); cursor:pointer; font-size:16px;
       padding:5px 7px; border-radius:5px; transition:all .18s; line-height:1;
     }
-    .btn-logout:hover { color:var(--danger); background:rgba(255,51,85,0.1); }
+    .btn-logout:hover { color:var(--danger); background:rgba(255,90,95,0.1); }
     .btn-notif {
       position:relative; background:none; border:none;
       color:var(--text-muted); cursor:pointer; font-size:16px;
       padding:5px 7px; border-radius:5px; transition:all .18s; line-height:1;
       flex-shrink:0;
     }
-    .btn-notif:hover { color:var(--ice); background:rgba(255,62,127,0.1); }
+    .btn-notif:hover { color:var(--ice); background:rgba(108,196,255,0.1); }
     .btn-notif.active { color:var(--ice); }
 
     /* ── RESPONSIVE ── */
@@ -2099,7 +2069,7 @@
         width:calc(100% - 20px) !important; left:10px; right:10px; height:auto !important;
         position:fixed; bottom:0; top:auto;
         flex-direction:row; border-right:none;
-        border:1px solid rgba(255,62,127,0.15);
+        border:1px solid rgba(108,196,255,0.15);
         border-top-left-radius:22px;
         border-top-right-radius:22px;
         border-bottom-left-radius:0;
@@ -2134,12 +2104,12 @@
       .nav-btn::before { display:none; }
       .nav-btn .nav-badge { position:absolute; top:2px; right:6px; margin-left:0; }
       .nav-btn.active {
-        background:rgba(255,62,127,0.13);
+        background:rgba(108,196,255,0.13);
         color:var(--ice);
         font-weight:800;
       }
-      .nav-btn.active .nav-icon { filter:drop-shadow(0 0 6px rgba(255,62,127,0.5)); }
-      .nav-btn[data-view="live-game"].active { background:linear-gradient(135deg,rgba(255,62,127,0.18),rgba(255,62,127,0.07)); }
+      .nav-btn.active .nav-icon {  }
+      .nav-btn[data-view="live-game"].active { background:none; }
 
       /* Toasts above the fixed bottom tab bar — otherwise they render partially
          or fully hidden behind it (tab bar is ~64px + safe-area tall). */
@@ -2156,7 +2126,7 @@
         bottom:calc(64px + env(safe-area-inset-bottom));
         left:10px; right:10px;
         padding:8px 14px;
-        border:1px solid rgba(255,62,127,0.15);
+        border:1px solid rgba(108,196,255,0.15);
         border-radius:var(--radius-lg);
         background:rgba(3,10,24,0.97);
         backdrop-filter:blur(32px);
@@ -2181,11 +2151,9 @@
       .card {
         min-width:0;
         padding:16px;
-        border-radius:18px;
-        border:1px solid rgba(255,255,255,0.06);
-        background:rgba(6,18,38,0.72);
-        backdrop-filter:blur(16px);
-        -webkit-backdrop-filter:blur(16px);
+        border-radius:var(--radius-lg);
+        border:1px solid var(--border);
+        background:var(--bg-card);
       }
 
       /* Buttons — bigger tap targets */
@@ -2311,9 +2279,9 @@
     .admin-table th { padding:10px 14px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
     .admin-table td { padding:10px 14px; border-bottom:1px solid rgba(0,200,255,0.05); vertical-align:middle; }
     .admin-table tr:last-child td { border-bottom:none; }
-    .admin-table tr:hover td { background:rgba(255,62,127,0.03); }
+    .admin-table tr:hover td { background:rgba(108,196,255,0.03); }
     .admin-stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
-    .admin-stat-val { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--primary); letter-spacing:1px; }
+    .admin-stat-val { font-family:var(--font-display);font-weight:700; font-size:24px; color:var(--primary); letter-spacing:-0.02em; }
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
 
     /* ── Trick Library Modal ── */
@@ -2324,7 +2292,7 @@
       align-items:flex-end; justify-content:center;
     }
     #trick-lib-sheet {
-      background:rgba(4,14,32,0.99); border:1px solid rgba(255,62,127,0.2);
+      background:rgba(4,14,32,0.99); border:1px solid rgba(108,196,255,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       width:100%; max-width:560px;
       box-shadow:0 -12px 60px rgba(0,0,0,0.85);
@@ -2338,11 +2306,11 @@
     #trick-lib-drag   { width:40px; height:5px; border-radius:99px; background:rgba(255,255,255,0.18); margin:0 auto 14px; touch-action:none; cursor:grab; }
     #trick-lib-search {
       width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06);
-      border:1px solid rgba(255,62,127,0.2); border-radius:12px;
+      border:1px solid rgba(108,196,255,0.2); border-radius:12px;
       padding:10px 14px; color:var(--text-primary); font-size:16px;
       outline:none; margin-bottom:10px;
     }
-    #trick-lib-search:focus { border-color:rgba(255,62,127,0.5); }
+    #trick-lib-search:focus { border-color:rgba(108,196,255,0.5); }
     #trick-lib-cats {
       display:flex; gap:7px; overflow-x:auto; padding-bottom:10px;
       scrollbar-width:none;
@@ -2354,7 +2322,7 @@
       color:var(--text-muted); cursor:pointer; transition:all .15s;
       -webkit-tap-highlight-color:transparent;
     }
-    .tcat-btn.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
+    .tcat-btn.active { background:rgba(108,196,255,0.12); border-color:rgba(108,196,255,0.45); color:var(--ice); }
     #trick-lib-list {
       flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
       padding:0 12px 12px;
@@ -2369,7 +2337,7 @@
       transition:background .12s; margin-bottom:4px;
       -webkit-tap-highlight-color:transparent;
     }
-    .trick-item:hover, .trick-item:active { background:rgba(255,62,127,0.08); }
+    .trick-item:hover, .trick-item:active { background:rgba(108,196,255,0.08); }
     .trick-item-name { font-size:14px; font-weight:600; color:var(--text-primary); }
     .trick-item-diff {
       font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;
@@ -2391,7 +2359,7 @@
       cursor:pointer; text-align:center; -webkit-tap-highlight-color:transparent;
       transition:all .15s;
     }
-    .builder-mode-tab.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
+    .builder-mode-tab.active { background:rgba(108,196,255,0.12); border-color:rgba(108,196,255,0.45); color:var(--ice); }
     .builder-section { margin-bottom:14px; }
     .builder-section-label {
       font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
@@ -2405,9 +2373,9 @@
       -webkit-tap-highlight-color:transparent;
     }
     .builder-pill:active { transform:scale(0.94); }
-    .builder-pill.selected { background:rgba(255,62,127,0.14); border-color:rgba(255,62,127,0.5); color:var(--ice); }
+    .builder-pill.selected { background:rgba(108,196,255,0.14); border-color:rgba(108,196,255,0.5); color:var(--ice); }
     .builder-preview {
-      background:rgba(255,62,127,0.06); border:1px solid rgba(255,62,127,0.2);
+      background:rgba(108,196,255,0.06); border:1px solid rgba(108,196,255,0.2);
       border-radius:14px; padding:14px 16px; margin:0 0 4px;
     }
     .builder-preview-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
@@ -2423,7 +2391,7 @@
       align-items:flex-end; justify-content:center;
     }
     #onboard-card {
-      background:rgba(4,14,32,0.99); border:1px solid rgba(255,62,127,0.2);
+      background:rgba(4,14,32,0.99); border:1px solid rgba(108,196,255,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       border-bottom-left-radius:0; border-bottom-right-radius:0;
       padding:12px 24px 0; width:100%; max-width:520px;
@@ -2636,7 +2604,7 @@
     <div id="auth-back-row" style="display:none;margin-bottom:4px;">
       <button onclick="dismissAuthScreen()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;transition:color .15s;" onmouseenter="this.style.color='var(--ice)'" onmouseleave="this.style.color='var(--text-muted)'"><svg class="icon icon-back"><use href="#i-back"/></svg> Back to preview</button>
     </div>
-    <div id="auth-hint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(255,62,127,0.08);border:1px solid rgba(255,62,127,0.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ice);text-align:center;line-height:1.5;"></div>
+    <div id="auth-hint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(108,196,255,0.08);border:1px solid rgba(108,196,255,0.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ice);text-align:center;line-height:1.5;"></div>
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-origin-notice" class="auth-origin-notice">
       <strong><svg class="icon icon-warning"><use href="#i-warning"/></svg> Opening as a local file</strong><br>
@@ -2717,7 +2685,7 @@
         <label class="form-label">I ride as a…</label>
         <div style="display:flex;gap:8px;">
           <button type="button" id="su-type-skier" onclick="selectRiderType('skier')"
-            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(108,196,255,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
             <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
           </button>
           <button type="button" id="su-type-boarder" onclick="selectRiderType('boarder')"
@@ -2776,7 +2744,7 @@
         <label class="form-label">I ride as a…</label>
         <div style="display:flex;gap:8px;">
           <button type="button" id="sc-type-skier" onclick="selectRiderType('skier')"
-            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(108,196,255,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
             <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
           </button>
           <button type="button" id="sc-type-boarder" onclick="selectRiderType('boarder')"
@@ -2827,7 +2795,7 @@
       <span class="logo-title">SLOPE BATTLES</span>
     </div>
     <button class="topbar-account" onclick="nav('profile');closeMoreSheet()" title="My Profile" id="topbar-account">
-      <span class="avatar avatar-sm" id="sb-avatar" style="background:linear-gradient(135deg,#cc2f63,#22e0c2);">?</span>
+      <span class="avatar avatar-sm" id="sb-avatar" style="background:var(--bg-elevated);">?</span>
       <span class="topbar-account-name" id="sb-name"></span>
     </button>
     <button class="topbar-signin" onclick="showAuthScreen()" title="Sign In / Create Account" id="topbar-signin" style="display:none;">
@@ -2890,7 +2858,7 @@
       <div class="stats-grid" id="global-stats"></div>
 
       <!-- Play CTA — shown to users with 0 games -->
-      <div id="lb-play-cta" class="card" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(255,62,127,0.10),rgba(255,62,127,0.03));border:1px solid rgba(255,62,127,0.25);display:none;">
+      <div id="lb-play-cta" class="card" style="margin-bottom:16px;background:var(--bg-card);border:1px solid rgba(108,196,255,0.25);display:none;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;">
             <div style="font-weight:800;font-size:15px;margin-bottom:4px;">You haven't played yet</div>
@@ -2932,7 +2900,7 @@
           </div>
         </div>
         <div id="lb-active-filter" style="display:none;margin-bottom:12px;">
-          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 12px;background:rgba(255,62,127,0.12);border:1px solid rgba(255,62,127,0.3);border-radius:20px;font-size:12px;color:var(--ice);">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 12px;background:rgba(108,196,255,0.12);border:1px solid rgba(108,196,255,0.3);border-radius:20px;font-size:12px;color:var(--ice);">
             <span id="lb-filter-label"></span>
             <span onclick="clearMountainFilter()" style="cursor:pointer;font-size:13px;opacity:.7;" title="Clear filter"><svg class="icon icon-close"><use href="#i-close"/></svg></span>
           </span>
@@ -3252,7 +3220,7 @@
         <!-- Waiting state (shown after invite sent) -->
         <div id="live-invite-waiting" style="display:none;text-align:center;padding:10px 0;">
           <div style="font-size:36px;margin-bottom:10px;animation:spin 2s linear infinite;display:inline-block;"><svg class="icon icon-skier"><use href="#i-skier"/></svg></div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:6px;">Waiting for opponent…</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.02em;margin-bottom:6px;">Waiting for opponent…</div>
           <div id="live-invite-waiting-text" style="font-size:13px;color:var(--text-muted);margin-bottom:18px;"></div>
           <button class="btn btn-ghost btn-sm" onclick="cancelLiveInvite()">Cancel Invite</button>
         </div>
@@ -3738,7 +3706,7 @@
        animation (which leaves a residual transform on its containing block
        via fill-mode "both") can't turn this fixed button into something that
        scrolls with page content. -->
-  <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(255,62,127,0.45);letter-spacing:.3px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Post Clip</button>
+  <button id="post-clip-fab" onclick="openPostClip()" style="display:none;position:fixed;top:calc(70px + env(safe-area-inset-top));right:18px;z-index:90;background:var(--ice);color:#14171b;border:none;border-radius:99px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.3px;"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Post Clip</button>
 </div>
 
 <!-- Profile Modal -->
@@ -3797,9 +3765,9 @@
 <div id="admin-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(1,6,14,0.97);backdrop-filter:blur(8px);overflow-y:auto;">
   <!-- Access-denied gate (shown when the signed-in account isn't an admin) -->
   <div id="admin-gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
-    <div style="background:rgba(5,16,34,0.95);border:1px solid rgba(255,62,127,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
+    <div style="background:rgba(5,16,34,0.95);border:1px solid rgba(108,196,255,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">🔒</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--primary);margin-bottom:6px;">ACCESS DENIED</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--primary);margin-bottom:6px;">ACCESS DENIED</div>
       <div id="admin-gate-msg" style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Sign in with an admin account to use the Admin Console.</div>
       <button class="btn btn-ghost btn-sm" onclick="closeAdmin()">Close</button>
     </div>
@@ -3808,7 +3776,7 @@
   <div id="admin-dashboard" style="display:none;max-width:960px;margin:0 auto;padding:28px 20px 60px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--primary);"><svg class="icon icon-gear"><use href="#i-gear"/></svg> ADMIN CONSOLE</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;color:var(--primary);"><svg class="icon icon-gear"><use href="#i-gear"/></svg> ADMIN CONSOLE</div>
         <div style="font-size:12px;color:var(--text-muted);">Slope Battles · Restricted</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="closeAdmin()"><svg class="icon icon-close"><use href="#i-close"/></svg> Close</button>
@@ -5241,14 +5209,14 @@ function _paintRiderTypeButtons(prefix, type) {
   if (!skierBtn || !boarderBtn) return;
   if (type === 'skier') {
     skierBtn.style.borderColor  = 'var(--primary)';
-    skierBtn.style.background   = 'rgba(255,62,127,0.12)';
+    skierBtn.style.background   = 'rgba(108,196,255,0.12)';
     skierBtn.style.color        = 'var(--primary)';
     boarderBtn.style.borderColor = 'var(--border)';
     boarderBtn.style.background  = 'transparent';
     boarderBtn.style.color       = 'var(--text-muted)';
   } else {
     boarderBtn.style.borderColor = 'var(--primary)';
-    boarderBtn.style.background  = 'rgba(255,62,127,0.12)';
+    boarderBtn.style.background  = 'rgba(108,196,255,0.12)';
     boarderBtn.style.color       = 'var(--primary)';
     skierBtn.style.borderColor   = 'var(--border)';
     skierBtn.style.background    = 'transparent';
@@ -5909,8 +5877,8 @@ async function sendPasswordReset() {
   const showMsg = (m, ok) => {
     msgEl.textContent = m;
     msgEl.style.display = 'block';
-    msgEl.style.background = ok ? 'rgba(34,224,194,0.1)' : 'rgba(255,62,127,0.08)';
-    msgEl.style.border = `1px solid ${ok ? 'rgba(34,224,194,0.3)' : 'rgba(255,62,127,0.25)'}`;
+    msgEl.style.background = ok ? 'rgba(230,235,240,0.1)' : 'rgba(108,196,255,0.08)';
+    msgEl.style.border = `1px solid ${ok ? 'rgba(230,235,240,0.3)' : 'rgba(108,196,255,0.25)'}`;
     msgEl.style.color = ok ? 'var(--ice)' : 'var(--fire)';
   };
 
@@ -7024,7 +6992,7 @@ function _snowInit(canvas) {
   canvas.height = rect.height;
   const mobile = window.matchMedia('(max-width:600px)').matches;
   const count = mobile ? 14 : 32;
-  const colors = ['rgba(255,62,127,', 'rgba(34,224,194,'];
+  const colors = ['rgba(108,196,255,', 'rgba(230,235,240,'];
   _snowParticles = Array.from({ length: count }, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
@@ -7172,7 +7140,7 @@ function dateFmt(ts) {
 
 function avatarGrad(id) {
   const h = parseInt(id.slice(-5), 36) % 360;
-  return `linear-gradient(135deg,hsl(${h},65%,42%),hsl(${(h+50)%360},75%,56%))`;
+  return `hsl(${h},22%,30%)`;
 }
 
 // Renders an avatar — uses photo if available, falls back to gradient + initials
@@ -7737,7 +7705,7 @@ function lbFindMe(meIdx) {
   if (!row) return;
   row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   row.style.transition = 'background-color .6s ease';
-  row.style.backgroundColor = 'rgba(255,62,127,0.16)';
+  row.style.backgroundColor = 'rgba(108,196,255,0.16)';
   setTimeout(() => { row.style.backgroundColor = ''; }, 1400);
 }
 
@@ -7848,7 +7816,7 @@ function renderWeeklyLeaderboard() {
         </div>
       </td>
       <td>
-        <span class="${r.delta >= 0 ? 'rc-pos' : 'rc-neg'}" style="font-family:'Bebas Neue',sans-serif;font-size:20px;">
+        <span class="${r.delta >= 0 ? 'rc-pos' : 'rc-neg'}" style="font-family:var(--font-display);font-weight:700;font-size:15px;">
           ${r.delta >= 0 ? '+' : ''}${r.delta}
         </span>
       </td>
@@ -8188,18 +8156,18 @@ function refreshMatchupPreview() {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
         <div style="flex:1;text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">RATING</div>
-          <div style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:var(--primary);">${ratingDisplay(p1.rating)}</div>
+          <div style="font-size:15px;font-family:var(--font-display);font-weight:700;color:var(--primary);">${ratingDisplay(p1.rating)}</div>
           <div style="font-weight:700;">${pLink(p1.id, p1.name)}</div>
         </div>
         <div style="font-size:18px;color:var(--text-muted);">VS</div>
         <div style="flex:1;text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">RATING</div>
-          <div style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:var(--primary);">${ratingDisplay(p2.rating)}</div>
+          <div style="font-size:15px;font-family:var(--font-display);font-weight:700;color:var(--primary);">${ratingDisplay(p2.rating)}</div>
           <div style="font-weight:700;">${pLink(p2.id, p2.name)}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:0;border-radius:6px;overflow:hidden;height:22px;">
-        <div style="width:${favPct}%;background:rgba(255,62,127,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ice);white-space:nowrap;padding:0 6px;min-width:40px;">
+        <div style="width:${favPct}%;background:rgba(108,196,255,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ice);white-space:nowrap;padding:0 6px;min-width:40px;">
           ${pLink(fav.id, fav.name)} ${favPct}%
         </div>
         <div style="width:${dogPct}%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);white-space:nowrap;padding:0 6px;min-width:40px;">
@@ -8599,7 +8567,7 @@ function renderLiveSetup() {
       document.getElementById('live-invite-waiting').style.display = 'block';
       document.getElementById('live-invite-waiting').innerHTML = `
         <div style="display:inline-block;font-size:44px;animation:spin 2.5s linear infinite;margin-bottom:14px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg></div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:4px;">YOU'RE THE JUDGE</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-0.02em;margin-bottom:4px;">YOU'RE THE JUDGE</div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">
           <strong style="color:var(--text-primary);">${p1Name}</strong> vs <strong style="color:var(--text-primary);">${p2Name}</strong>
         </div>
@@ -9627,7 +9595,7 @@ function friendBtn(otherId, modal=false) {
       return `<button class="btn btn-ghost" onclick="cancelFriendRequest('${otherId}')" style="color:var(--text-muted);padding:10px 22px;font-size:14px;border-radius:10px;">Requested <svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
     if (status === 'pending_received')
       return `<button class="btn btn-primary" onclick="acceptFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;"><svg class="icon icon-check"><use href="#i-check"/></svg> Accept Request</button>`;
-    return `<button class="btn btn-primary" onclick="sendFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--ice),#a81f52);border:none;">+ Add Friend</button>`;
+    return `<button class="btn btn-primary" onclick="sendFriendRequest('${otherId}')" style="padding:10px 22px;font-size:14px;font-weight:700;border-radius:10px;border:none;">+ Add Friend</button>`;
   }
   // Compact version for the riders list
   if (status === 'friends')
@@ -9928,7 +9896,7 @@ function renderExplore() {
             <div class="reel-action-label">${poster.name.split(' ')[0]}</div>
           </div>
           <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
-            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">
+            <div class="reel-action-icon" style="${likedC ? 'background:rgba(255,90,95,0.3);border-color:rgba(255,90,95,0.6);' : ''}">
               <div class="reel-like-wrap"><span class="like-icon-inner">${heartSvg(likedC)}</span></div>
             </div>
             <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
@@ -9985,7 +9953,7 @@ function renderExplore() {
               <div class="reel-action-label">${winner.name.split(' ')[0]}</div>
             </div>
             <div class="reel-action-btn" onclick="toggleLike('${item.id}',this)">
-              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);' : ''}">
+              <div class="reel-action-icon" style="${iLiked(item.id) ? 'background:rgba(255,90,95,0.3);border-color:rgba(255,90,95,0.6);' : ''}">
                 <div class="reel-like-wrap"><span class="like-icon-inner">${heartSvg(iLiked(item.id))}</span></div>
               </div>
               <div class="reel-action-label">${getLikeCount(item.id) || ''}</div>
@@ -10486,7 +10454,7 @@ async function submitPostClip() {
 
 function heartSvg(filled) {
   return filled
-    ? `<svg viewBox="0 0 24 24" fill="#ff3355" stroke="#ff3355" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 6.1 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21Z"/></svg>`
+    ? `<svg viewBox="0 0 24 24" fill="#ff5a5f" stroke="#ff5a5f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 6.1 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21Z"/></svg>`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0 1 12 6.1 5 5 0 0 1 21 8.5C21 14.5 12 21 12 21Z"/></svg>`;
 }
 
@@ -10527,7 +10495,7 @@ function toggleLike(itemId, el) {
       // Update icon container colour
       const iconBox = btn.querySelector('.reel-action-icon');
       if (iconBox) iconBox.style.cssText += liking
-        ? 'background:rgba(255,51,85,0.3);border-color:rgba(255,51,85,0.6);'
+        ? 'background:rgba(255,90,95,0.3);border-color:rgba(255,90,95,0.6);'
         : 'background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);';
     }
     if (wrap && liking) {
@@ -10909,7 +10877,7 @@ function renderStoredClip(clipUrl) {
   return `
     <div style="margin-top:8px;">
       <a href="${clipUrl}" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:rgba(255,62,127,0.08);border-radius:7px;border:1px solid rgba(255,62,127,0.2);color:var(--ice);font-size:12.5px;text-decoration:none;">
+        style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:rgba(108,196,255,0.08);border-radius:7px;border:1px solid rgba(108,196,255,0.2);color:var(--ice);font-size:12.5px;text-decoration:none;">
         ${clip.icon||'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>'} ${clip.label||'View Clip'} ↗
       </a>
     </div>`;
@@ -11043,17 +11011,17 @@ function showGameDetail(gameId) {
         <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${winner.id}')">${escHtml(winner.name)}</div>
         <span class="badge badge-success" style="margin-top:4px;">WIN</span>
         <div style="margin-top:6px;">
-          <span class="rc-pos" style="font-family:'Bebas Neue',sans-serif;font-size:28px;">+${game.winnerDelta}</span>
+          <span class="rc-pos" style="font-family:var(--font-display);font-weight:700;font-size:21px;">+${game.winnerDelta}</span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${fmt2(game.player1StartRating)} → <span style="color:var(--primary);">${fmt2(game.player1EndRating)}</span></div>
       </div>
-      <div style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--border);">VS</div>
+      <div style="text-align:center;font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:-0.02em;color:var(--border);">VS</div>
       <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
         <div style="margin-bottom:6px;display:flex;justify-content:center;">${avatarHtml(loser, 'avatar-md')}</div>
         <div style="font-weight:700;font-size:14px;cursor:pointer;" onclick="closeModal('game-detail-modal');showProfile('${loser.id}')">${escHtml(loser.name)}</div>
         <span class="badge badge-danger" style="margin-top:4px;">LOSS</span>
         <div style="margin-top:6px;">
-          <span class="rc-neg" style="font-family:'Bebas Neue',sans-serif;font-size:28px;">${game.loserDelta}</span>
+          <span class="rc-neg" style="font-family:var(--font-display);font-weight:700;font-size:21px;">${game.loserDelta}</span>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${fmt2(game.player2StartRating)} → <span style="color:var(--text-secondary);">${fmt2(game.player2EndRating)}</span></div>
       </div>
@@ -11191,16 +11159,16 @@ function showProfile(id) {
   const followingN = followingCount(id);
 
   const avatarHtml = p.avatarUrl
-    ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,62,127,0.35);" alt="">`
+    ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(108,196,255,0.35);" alt="">`
     : `<div class="avatar avatar-lg" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
 
   document.getElementById('profile-content').innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:18px;background:var(--bg-elevated);border-radius:var(--radius);">
       ${avatarHtml}
       <div style="flex:1;min-width:0;">
-        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${escHtml(p.name)}${rank ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:.5px;">#${rank}</span>` : ''}</h2>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:8px;">${escHtml(p.name)}${rank ? `<span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px;letter-spacing:-0.02em;">#${rank}</span>` : ''}</h2>
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:${p.rating == null ? '6px' : '0'};">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:${p.rating == null ? '28px' : '44px'};color:${p.rating == null ? 'var(--text-muted)' : isRated(p) ? 'var(--primary)' : '#94a3b8'};line-height:1;">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
           ${t.provisional
             ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
             : `${tierBadgeHTML(t, t.label)}`}
@@ -11264,7 +11232,7 @@ function showProfile(id) {
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;">Achievements</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           ${earned.map(b => `
-            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='rgba(255,62,127,0.45)';this.style.background='rgba(255,62,127,0.07)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-elevated)'">
+            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='rgba(108,196,255,0.45)';this.style.background='rgba(108,196,255,0.07)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-elevated)'">
               <span>${b.icon}</span>
               <span style="font-weight:600;color:var(--text-secondary);">${b.label}</span>
             </div>`).join('')}
@@ -11279,16 +11247,16 @@ function showProfile(id) {
       <div style="display:flex;align-items:center;">
         <div style="flex:1;text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">You</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;color:${h2hW>h2hL?'var(--success)':h2hW<h2hL?'var(--danger)':'var(--text-primary)'};">${h2hW}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:36px;line-height:1;color:${h2hW>h2hL?'var(--success)':h2hW<h2hL?'var(--danger)':'var(--text-primary)'};">${h2hW}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">wins</div>
         </div>
         <div style="text-align:center;padding:0 16px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--text-muted);">VS</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.02em;color:var(--text-muted);">VS</div>
           <div style="font-size:10px;color:var(--text-muted);margin-top:4px;white-space:nowrap;">${h2h.length} game${h2h.length!==1?'s':''}</div>
         </div>
         <div style="flex:1;text-align:center;">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name.split(' ')[0]}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;color:${h2hL>h2hW?'var(--success)':h2hL<h2hW?'var(--danger)':'var(--text-primary)'};">${h2hL}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:36px;line-height:1;color:${h2hL>h2hW?'var(--success)':h2hL<h2hW?'var(--danger)':'var(--text-primary)'};">${h2hL}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">wins</div>
         </div>
       </div>
@@ -11557,8 +11525,8 @@ function renderChallenges() {
     const other = byId(isIncoming ? c.fromId : c.toId);
     const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     const timeStr = c.time ? ` at ${c.time}` : '';
-    const borderCol = isAccepted ? 'rgba(0,230,118,0.35)' : isIncoming ? 'rgba(34,224,194,0.3)' : 'rgba(255,200,0,0.2)';
-    const bgCol     = isAccepted ? 'rgba(0,230,118,0.04)'  : isIncoming ? 'rgba(34,224,194,0.04)' : 'rgba(255,200,0,0.03)';
+    const borderCol = isAccepted ? 'rgba(61,220,151,0.35)' : isIncoming ? 'rgba(230,235,240,0.3)' : 'rgba(255,200,0,0.2)';
+    const bgCol     = isAccepted ? 'rgba(61,220,151,0.04)'  : isIncoming ? 'rgba(230,235,240,0.04)' : 'rgba(255,200,0,0.03)';
 
     return `
       <div class="pending-card" style="border-color:${borderCol};background:${bgCol};">
@@ -12014,7 +11982,7 @@ function showTourneyWin(tourneyName) {
   }
   inn.innerHTML = `
     <div style="font-size:72px;line-height:1;margin-bottom:12px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:4px;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
+    <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
     <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
     <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:99px;padding:6px 16px;margin-bottom:24px;">
@@ -12102,7 +12070,7 @@ function renderTournaments() {
     if (invCount) invCount.textContent = pendingInvites.length;
     if (invList) {
       invList.innerHTML = pendingInvites.map(t => `
-        <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
+        <div class="pending-card" style="border-color:rgba(108,196,255,0.2);background:rgba(108,196,255,0.03);">
           <div class="pending-card-header">
             <div>
               <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${escHtml(t.name)}</strong></div>
@@ -12181,7 +12149,7 @@ function openTourneyDetail(tourneyId) {
 
   // Complete banner
   if (status === 'complete' && t.winnerName) {
-    html += `<div style="text-align:center;padding:18px;background:linear-gradient(135deg,rgba(255,196,0,.15),rgba(34,224,194,.08));border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
+    html += `<div style="text-align:center;padding:18px;background:rgba(255,196,0,.08);border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
       <div style="font-size:28px;margin-bottom:4px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></div>
       <div style="font-size:18px;font-weight:800;">${escHtml(t.winnerName)}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Tournament Champion</div>
@@ -12296,14 +12264,14 @@ function renderBracketHTML(t) {
   }
 
   const C_LINE   = '#1e3a52';
-  const C_WIN    = '#00e676';
+  const C_WIN    = '#3ddc97';
   const C_LOSE   = '#2d5a73';
   const C_TEXT   = '#d9dcd6';
   const C_MUTED  = '#3a6a84';
-  const C_ICE    = '#ff3e7f';
+  const C_ICE    = '#6cc4ff';
   const C_ORANGE = '#ff7a00';
   const C_BG     = 'rgba(3,12,28,0.55)';
-  const C_PLAY   = 'rgba(255,62,127,0.10)';
+  const C_PLAY   = 'rgba(108,196,255,0.10)';
 
   let lines = '', boxes = '', labels = '';
 
@@ -12483,7 +12451,7 @@ function renderBracketHTML(t) {
     <div style="text-align:center;margin-top:12px;padding-bottom:8px;">
       <div style="display:inline-block;border-top:2px solid var(--text-primary);border-bottom:2px solid var(--text-primary);
         padding:5px 32px;margin-top:4px;">
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2px;
+        <span style="font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-0.02em;
           color:${champName ? 'var(--warning)' : 'var(--text-muted)'};">
           ${champName ? '<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ' + champName : 'Champion'}
         </span>
@@ -12656,7 +12624,7 @@ function renderConfirmations() {
   } else {
     frEmpty.style.display = 'none';
     frList.innerHTML = myFriendReqs.map(r => `
-      <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
+      <div class="pending-card" style="border-color:rgba(108,196,255,0.2);background:rgba(108,196,255,0.03);">
         <div class="pending-card-header">
           <div style="display:flex;align-items:center;gap:10px;">
             ${avatarHtml(byId(r.fromId) || {id:r.fromId, name:r.fromName}, 'avatar-sm')}
@@ -12686,7 +12654,7 @@ function renderConfirmations() {
     inviteList.innerHTML = myInvites.map(inv => {
       const isJudge = inv.role === 'judge';
       return `
-      <div class="pending-card" style="border-color:${isJudge ? 'rgba(255,62,127,0.3)' : 'rgba(34,224,194,0.3)'};background:${isJudge ? 'rgba(255,62,127,0.04)' : 'rgba(34,224,194,0.04)'};">
+      <div class="pending-card" style="border-color:${isJudge ? 'rgba(108,196,255,0.3)' : 'rgba(230,235,240,0.3)'};background:${isJudge ? 'rgba(108,196,255,0.04)' : 'rgba(230,235,240,0.04)'};">
         <div class="pending-card-header">
           <div style="display:flex;align-items:center;gap:10px;">
             ${avatarHtml(byId(inv.fromId) || {id:inv.fromId, name:inv.fromName}, 'avatar-sm')}
@@ -13552,8 +13520,8 @@ function renderRatingHistory(playerId, container, countEl) {
   const isLight = document.body.classList.contains('light');
   const gridColor   = isLight ? 'rgba(0,0,0,0.06)'  : 'rgba(255,255,255,0.05)';
   const labelColor  = isLight ? 'rgba(0,0,0,0.40)'  : 'rgba(255,255,255,0.35)';
-  const lineColor   = isLight ? '#d6296b'            : '#ff3e7f';
-  const gradStop    = isLight ? '#d6296b'            : '#ff3e7f';
+  const lineColor   = isLight ? '#1677d2'            : '#6cc4ff';
+  const gradStop    = isLight ? '#1677d2'            : '#6cc4ff';
   let yLabels = '';
   for (let i = 0; i <= yTicks; i++) {
     const r = rLo + (rHi - rLo) * (i / yTicks);
@@ -13587,7 +13555,7 @@ function renderRatingHistory(playerId, container, countEl) {
   let dots = '';
   points.forEach((p, i) => {
     const x = xOf(i), y = yOf(p.rating);
-    const col = p.isWin ? '#00e676' : '#ff3355';
+    const col = p.isWin ? '#3ddc97' : '#ff5a5f';
     dots += `<circle class="rh-dot" cx="${x}" cy="${y}" r="6" fill="${col}" stroke="var(--bg-card,#14171b)" stroke-width="2"
       data-idx="${i}" style="cursor:pointer;transition:r .15s;" />
     <circle cx="${x}" cy="${y}" r="14" fill="transparent" data-idx="${i}" style="cursor:pointer;" class="rh-dot-tap"/>`;
@@ -13625,7 +13593,7 @@ function renderRatingHistory(playerId, container, countEl) {
   if (!tooltip) {
     tooltip = document.createElement('div');
     tooltip.id = 'rh-tooltip-dynamic';
-    tooltip.style.cssText = 'position:fixed;z-index:20000;pointer-events:none;background:var(--bg-elevated,#0d2040);border:1px solid rgba(255,62,127,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text-primary,#fff);box-shadow:0 8px 28px rgba(0,0,0,0.5);white-space:nowrap;opacity:0;transition:opacity .15s;';
+    tooltip.style.cssText = 'position:fixed;z-index:20000;pointer-events:none;background:var(--bg-elevated,#0d2040);border:1px solid rgba(108,196,255,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text-primary,#fff);box-shadow:0 8px 28px rgba(0,0,0,0.5);white-space:nowrap;opacity:0;transition:opacity .15s;';
     document.body.appendChild(tooltip);
   }
   let _pinnedDot = null;
@@ -13636,7 +13604,7 @@ function renderRatingHistory(playerId, container, countEl) {
     const sign = pt.delta >= 0 ? '+' : '';
     tooltip.innerHTML = `
       <div style="font-weight:700;font-size:13px;margin-bottom:3px;">${fmt(pt.rating)}</div>
-      <div style="color:${pt.isWin ? '#00e676' : '#ff3355'};font-size:11px;font-weight:600;">${pt.isWin ? '<svg class="icon icon-check"><use href="#i-check"/></svg> Win' : '<svg class="icon icon-close"><use href="#i-close"/></svg> Loss'} vs ${pt.oppName}</div>
+      <div style="color:${pt.isWin ? '#3ddc97' : '#ff5a5f'};font-size:11px;font-weight:600;">${pt.isWin ? '<svg class="icon icon-check"><use href="#i-check"/></svg> Win' : '<svg class="icon icon-close"><use href="#i-close"/></svg> Loss'} vs ${pt.oppName}</div>
       <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px;">${sign}${pt.delta} pts · ${dateStr}</div>`;
     // Position relative to the dot element so it works on mobile without needing clientX/Y
     const rect = anchorEl.getBoundingClientRect();
@@ -13993,7 +13961,7 @@ function fireLandedBurst(clientX, clientY) {
   burst({
     particleCount: mobile ? 10 : 18,
     spread: 55, startVelocity: 22, gravity: 0.9, scalar: 0.7, ticks: 60,
-    colors: ['#00e676', '#22e0c2'],
+    colors: ['#3ddc97', '#e6ebf0'],
     origin: { x:0.5, y:0.5 },
   });
   setTimeout(() => canvas.remove(), 1200);
@@ -14013,7 +13981,7 @@ function fireMissedShatter(clientX, clientY) {
   function draw(now) {
     const t = Math.min(1, (now - start) / duration);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = `rgba(255,51,85,${0.8 * (1 - t)})`;
+    ctx.strokeStyle = `rgba(255,90,95,${0.8 * (1 - t)})`;
     ctx.lineWidth = 2;
     cracks.forEach(({ angle, len }) => {
       ctx.beginPath();
@@ -14169,14 +14137,14 @@ function showRatingAnim(winner, loser, game) {
   const wD = game.winnerDelta, lD = game.loserDelta;
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:4px;color:var(--text-muted);">RATINGS UPDATED</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:-0.02em;color:var(--text-muted);">RATINGS UPDATED</div>
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div class="ra-card${wD>=15?' tier3-glow':''}">
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${escHtml(winner.name)}</div>
           <div class="ra-delta win">+${wD}${wD>=15?' <svg class="icon icon-fire"><use href="#i-fire"/></svg>':''}</div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--primary);font-weight:700;">${wNew}</span></div>
         </div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--border);">VS</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--border);">VS</div>
         <div class="ra-card loser">
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">${escHtml(loser.name)}</div>
           <div class="ra-delta loss">${lD}</div>
@@ -14524,7 +14492,7 @@ function renderAdminData(panel) {
   panel.innerHTML = `
     <div style="display:grid;gap:14px;">
 
-      <div class="admin-card" style="padding:20px;border:1px solid rgba(0,230,118,0.25);">
+      <div class="admin-card" style="padding:20px;border:1px solid rgba(61,220,151,0.25);">
         <div style="font-weight:700;font-size:14px;margin-bottom:4px;">💾 Export</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Download what this browser currently sees as JSON. Restores now go through the server-side backup scripts, not the app.</div>
         <button class="btn btn-outline" onclick="adminExportJSON()">⬇️ Export JSON</button>
@@ -14678,7 +14646,7 @@ async function adminWipeEverything() {
              ondragover="event.preventDefault();this.classList.add('pc-drag-over')"
              ondragleave="this.classList.remove('pc-drag-over')"
              ondrop="pcHandleDrop(event)"
-             style="border:2px dashed rgba(255,62,127,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,62,127,0.04);">
+             style="border:2px dashed rgba(108,196,255,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(108,196,255,0.04);">
           <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
           <div id="pc-drop-label">
             <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
@@ -14708,7 +14676,7 @@ async function adminWipeEverything() {
 
 <!-- Tier info modal -->
 <div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
+  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
     <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Rank Tiers</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -14743,7 +14711,7 @@ async function adminWipeEverything() {
     <div id="trick-lib-header">
       <div id="trick-lib-drag"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;" class="trick-lib-sport-label"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.02em;" class="trick-lib-sport-label"><svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks</div>
         <button onclick="closeTrickLib()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
       </div>
       <!-- List mode (snowboard) -->
@@ -14781,7 +14749,7 @@ async function adminWipeEverything() {
     <!-- scrollable content -->
     <div id="onboard-scroll">
       <div id="onboard-icon" style="font-size:62px;text-align:center;margin-bottom:14px;line-height:1;"></div>
-      <div id="onboard-title" style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;text-align:center;margin-bottom:12px;color:var(--text-primary);"></div>
+      <div id="onboard-title" style="font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;text-align:center;margin-bottom:12px;color:var(--text-primary);"></div>
       <div id="onboard-body" style="font-size:15px;line-height:1.7;color:var(--text-secondary);text-align:center;margin-bottom:8px;"></div>
     </div>
     <!-- sticky footer -->
@@ -14795,7 +14763,7 @@ async function adminWipeEverything() {
 
 <!-- Badge detail modal -->
 <div id="badge-modal-overlay" onclick="closeBadgeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10001;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
+  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
     <button onclick="closeBadgeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div id="badge-modal-icon" style="font-size:52px;line-height:1;margin-bottom:14px;"></div>
     <div id="badge-modal-label" style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;"></div>
