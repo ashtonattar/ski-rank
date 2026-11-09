@@ -1571,16 +1571,15 @@
 
     /* ── TOURNAMENT ── */
     .tourney-card {
-      border:1px solid var(--border-light);
+      border:1px solid var(--border);
       border-radius:var(--radius);
-      background:var(--bg-card);
+      background:var(--bg-elevated);
       padding:16px 18px;
-      margin-bottom:12px;
+      margin-bottom:10px;
       cursor:pointer;
-      box-shadow:var(--shadow-surface-sm);
-      transition:border-color .15s, box-shadow .15s;
+      transition:border-color var(--dur-fast) var(--ease-out);
     }
-    .tourney-card:hover { border-color:var(--ice); box-shadow:none; }
+    .tourney-card:hover { border-color:rgba(255,255,255,0.2); }
     .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
     .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
     .pc-drag-over { border-color:var(--ice) !important; background:rgba(255,62,127,0.10) !important; }
@@ -1603,7 +1602,7 @@
       overflow:hidden;
     }
     .bracket-match.clickable { cursor:pointer; transition:border-color .15s; }
-    .bracket-match.clickable:hover { border-color:var(--ice); }
+    .bracket-match.clickable:hover { border-color:rgba(255,255,255,0.2); }
     .bracket-slot {
       display:flex;align-items:center;gap:8px;
       padding:8px 10px;
@@ -1627,7 +1626,7 @@
       border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
     }
     .invite-pick-item:last-child { border-bottom:none; }
-    .invite-pick-item:hover { background:rgba(255,62,127,0.04); }
+    .invite-pick-item:hover { background:rgba(255,255,255,0.03); }
     .invite-pick-item input[type=checkbox] { accent-color:var(--ice);width:15px;height:15px; }
     .tinv-tab {
       font-size:11.5px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;
@@ -3465,9 +3464,9 @@
       <div class="view-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
         <div>
           <h2>Tournaments</h2>
-          <p>Create and run single-elimination or round-robin brackets with your crew</p>
+          <p>Brackets and round-robins with your crew</p>
         </div>
-        <button class="btn btn-accent" style="white-space:nowrap;flex-shrink:0;" onclick="openCreateTournamentModal()"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Create</button>
+        <button class="btn btn-primary btn-sm" style="white-space:nowrap;flex-shrink:0;" onclick="openCreateTournamentModal()">+ Create</button>
       </div>
       <!-- Tournament invites (incoming) -->
       <div class="card" id="tourney-invites-card" style="margin-bottom:20px;display:none;">
@@ -11777,9 +11776,9 @@ function showTourneyWin(tourneyName) {
     }
   }
   inn.innerHTML = `
-    <div style="font-size:72px;line-height:1;margin-bottom:12px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></div>
-    <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;color:#ffd700;margin-bottom:6px;">CHAMPION</div>
-    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
+    <div style="font-size:56px;line-height:1;margin-bottom:14px;"><svg class="icon icon-trophy icon-gold"><use href="#i-trophy"/></svg></div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#ffd700;margin-bottom:6px;">Champion</div>
+    <div style="font-family:var(--font-display);font-size:30px;font-weight:800;letter-spacing:-0.03em;color:#fff;margin-bottom:4px;">${currentUser?.name || 'You'}</div>
     <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:16px;">won <strong style="color:rgba(255,255,255,0.85);">${tourneyName}</strong></div>
     <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:99px;padding:6px 16px;margin-bottom:24px;">
       <span style="font-size:16px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></span>
