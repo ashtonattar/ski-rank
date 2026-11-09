@@ -36,9 +36,8 @@
 
     :root {
       /* Redesign v2 — "competition, not decoration". Near-black, flat solid
-         surfaces, ONE accent (ice blue) reserved for rating/wins/live/primary
-         actions. --fire is now a neutral silver so legacy two-tone call sites
-         collapse to accent + neutral instead of pink vs teal. */
+         surfaces, brand pink + teal from the logo used as flat accents only
+         (no gradients, no glows). Pink = primary/action, teal = secondary. */
       --bg-base:    #0b0d10;
       --bg-surface: #111418;
       --bg-elevated:#171b20;
@@ -48,13 +47,13 @@
       --halogen:     #e6ebf0;
       --halogen-glow:rgba(255,255,255,0.06);
 
-      --ice:        #6cc4ff;
-      --ice-dark:   #3fa3ee;
-      --ice-glow:   rgba(108,196,255,0.12);
+      --ice:        #ff3e7f;
+      --ice-dark:   #cc2f63;
+      --ice-glow:   rgba(255,62,127,0.12);
 
-      --fire:       #e6ebf0;
-      --fire-dark:  #b8c1ca;
-      --fire-glow:  rgba(230,235,240,0.08);
+      --fire:       #22e0c2;
+      --fire-dark:  #1aa88f;
+      --fire-glow:  rgba(34,224,194,0.08);
 
       --primary:      var(--ice);
       --primary-dark: var(--ice-dark);
@@ -63,12 +62,11 @@
       --accent-dark:  var(--fire-dark);
       --accent-glow:  var(--fire-glow);
 
-      /* Second accent: signal orange = ACTION (primary CTAs, live duel, live
-         indicators). Ice blue stays IDENTITY (ratings, active nav, links). */
-      --pop:      #ff6a2b;
-      --pop-hover:#ff8450;
-      --pop-ink:  #1a0700;
-      --pop-soft: rgba(255,106,43,0.12);
+      /* Action colour (primary CTAs, live duel, live indicators): brand pink. */
+      --pop:      #ff3e7f;
+      --pop-hover:#ff5f95;
+      --pop-ink:  #1a0610;
+      --pop-soft: rgba(255,62,127,0.12);
 
       --success: #3ddc97;
       --danger:  #ff5a5f;
@@ -120,18 +118,18 @@
       --halogen:     #3a4450;
       --halogen-glow:rgba(10,14,20,0.04);
 
-      --ice:         #1677d2;
-      --ice-dark:    #1261ad;
-      --ice-glow:    rgba(22,119,210,0.10);
+      --ice:         #d6296b;
+      --ice-dark:    #a81f52;
+      --ice-glow:    rgba(184,15,74,0.10);
 
-      --fire:        #3a4450;
-      --fire-dark:   #262d36;
-      --fire-glow:   rgba(58,68,80,0.08);
+      --fire:        #0f9e86;
+      --fire-dark:   #0b7e6a;
+      --fire-glow:   rgba(15,158,134,0.08);
 
-      --pop:      #e8551a;
-      --pop-hover:#cf4810;
+      --pop:      #d6296b;
+      --pop-hover:#a81f52;
       --pop-ink:  #ffffff;
-      --pop-soft: rgba(232,85,26,0.10);
+      --pop-soft: rgba(214,41,107,0.10);
 
       --text-primary:   #0d1117;
       --text-secondary: #4d5761;
@@ -315,9 +313,9 @@
     }
 
     .nav-btn.active {
-      background:rgba(108,196,255,0.10);
+      background:rgba(255,62,127,0.10);
       color:var(--ice);
-      border-color:rgba(108,196,255,0.22);
+      border-color:rgba(255,62,127,0.22);
       font-weight:700;
     }
     .nav-btn.active::before { opacity:1; transform:scaleY(0.64); }
@@ -441,8 +439,8 @@
       display:flex; align-items:center; justify-content:center;
       border-radius:var(--radius-sm); background:rgba(255,255,255,0.05);
     }
-    .more-sheet .nav-btn.active { background:rgba(108,196,255,0.10); color:var(--ice); font-weight:700; }
-    .more-sheet .nav-btn.active .nav-icon { background:rgba(108,196,255,0.16); }
+    .more-sheet .nav-btn.active { background:rgba(255,62,127,0.10); color:var(--ice); font-weight:700; }
+    .more-sheet .nav-btn.active .nav-icon { background:rgba(255,62,127,0.16); }
     .more-sheet .nav-btn:hover { background:rgba(255,255,255,0.045); transform:none; }
     .more-sheet .nav-btn::before { display:none; }
     .more-sheet .nav-badge { position:static; margin-left:auto; }
@@ -462,7 +460,7 @@
       background-color:#14171b;
       background-image: url('https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1400&auto=format&fit=crop&q=75');
       background-size:cover; background-position:75% 35%;
-      border:1px solid rgba(108,196,255,0.18);
+      border:1px solid rgba(255,62,127,0.18);
       padding: 38px 38px 44px;
       margin-bottom:26px;
       box-shadow:0 24px 64px rgba(0,0,0,0.7);
@@ -512,8 +510,8 @@
 
     .hero-pill {
       position:absolute; top:30px; right:32px;
-      background:rgba(108,196,255,0.07);
-      border:1px solid rgba(108,196,255,0.18);
+      background:rgba(255,62,127,0.07);
+      border:1px solid rgba(255,62,127,0.18);
       border-radius:var(--radius);
       padding:14px 18px; text-align:center;
       backdrop-filter:blur(12px);
@@ -529,7 +527,7 @@
       position:relative; overflow:hidden;
       border-radius:var(--radius-lg);
       background:#14171b;
-      border:1px solid rgba(108,196,255,0.20);
+      border:1px solid rgba(255,62,127,0.20);
       margin-bottom:18px;
       box-shadow:0 24px 64px rgba(0,0,0,0.75);
       min-height:240px;
@@ -636,8 +634,8 @@
       box-shadow:var(--shadow-surface-sm);
     }
     .phb-large .phb-panel { padding:14px 8px; }
-    .phb-panel.phb-setter { border-color:rgba(230,235,240,.45); }
-    .phb-panel.phb-copier { border-color:rgba(108,196,255,.4); }
+    .phb-panel.phb-setter { border-color:rgba(34,224,194,.45); }
+    .phb-panel.phb-copier { border-color:rgba(255,62,127,.4); }
     .phb-name { font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .phb-large .phb-name { font-size:14px; }
     .phb-role {
@@ -671,7 +669,7 @@
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
        real live-game S·K·I tracker (.ski-letter, defined further down) since
        it has no light-mode color of its own otherwise. */
-    body.light .ski-letter { color:rgba(22,119,210,0.15); }
+    body.light .ski-letter { color:rgba(184,15,74,0.15); }
 
     /* ── STATS GRID ── */
     .stats-grid {
@@ -725,7 +723,7 @@
 
     td { padding:12px 14px; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text-secondary); }
     tr:last-child td { border-bottom:none; }
-    tr:hover td { background:rgba(108,196,255,0.025); }
+    tr:hover td { background:rgba(255,62,127,0.025); }
 
     .td-rank { font-weight:700; color:var(--text-muted); font-size:13px; }
     .td-rank.gold { color:var(--fire); }
@@ -797,7 +795,7 @@
     }
 
     .btn-outline { background:var(--bg-elevated); color:var(--text-secondary); border:1px solid var(--border); box-shadow:var(--shadow-surface-sm); }
-    .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(108,196,255,0.05); }
+    .btn-outline:hover { border-color:var(--ice); color:var(--ice); background:rgba(255,62,127,0.05); }
 
     .btn-ghost { background:transparent; color:var(--text-muted); border:none; }
     .btn-ghost:hover { color:var(--danger); background:rgba(255,90,95,0.08); }
@@ -851,7 +849,7 @@
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(108,196,255,0.1);
+      box-shadow:0 0 0 3px rgba(255,62,127,0.1);
     }
     .form-select option { background:#061525; }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -867,7 +865,7 @@
     }
     .pp-trigger:focus, .pp-trigger.open {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(108,196,255,0.1);
+      box-shadow:0 0 0 3px rgba(255,62,127,0.1);
     }
     .pp-trigger .pp-caret { color:var(--text-muted); font-size:11px; flex-shrink:0; margin-left:6px; transition:transform .15s; }
     .pp-trigger.open .pp-caret { transform:rotate(180deg); }
@@ -890,7 +888,7 @@
       padding:8px 12px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:10px;
       transition:background .1s;
     }
-    .pp-item:hover, .pp-item.selected { background:rgba(108,196,255,0.08); }
+    .pp-item:hover, .pp-item.selected { background:rgba(255,62,127,0.08); }
     .pp-item .pp-item-name { font-weight:600; flex:1; }
     .pp-item .pp-item-rating { font-size:12px; color:var(--text-muted); }
     .pp-empty { padding:14px 13px; font-size:13px; color:var(--text-muted); text-align:center; }
@@ -903,7 +901,7 @@
       font-size:10px; font-weight:700;
       text-transform:uppercase; letter-spacing:.7px;
     }
-    .badge-primary { background:rgba(108,196,255,.1);  color:var(--ice);     border:1px solid rgba(108,196,255,.22); }
+    .badge-primary { background:rgba(255,62,127,.1);  color:var(--ice);     border:1px solid rgba(255,62,127,.22); }
     .badge-success { background:rgba(61,220,151,.1);  color:var(--success); border:1px solid rgba(61,220,151,.22); }
     .badge-danger  { background:rgba(255,90,95,.1);  color:var(--danger);  border:1px solid rgba(255,90,95,.22); }
 
@@ -925,10 +923,10 @@
       background:color-mix(in srgb, var(--tc) 30%, transparent);
     }
     .tier-badge-icon .icon { width:10px; height:10px; }
-    .badge-accent  { background:rgba(230,235,240,.1);   color:var(--fire);   border:1px solid rgba(230,235,240,.22); }
+    .badge-accent  { background:rgba(34,224,194,.1);   color:var(--fire);   border:1px solid rgba(34,224,194,.22); }
     .badge-muted   { background:rgba(255,255,255,.1);  color:var(--text-muted); border:1px solid rgba(255,255,255,.2); }
     @keyframes badgeGlow {
-      0%,100% { box-shadow:0 0 0 rgba(230,235,240,0); }
+      0%,100% { box-shadow:0 0 0 rgba(34,224,194,0); }
       50%     {  }
     }
     @media (prefers-reduced-motion: reduce) { .badge-accent { animation:none; } }
@@ -972,14 +970,14 @@
       position:relative; overflow:hidden;
     }
 
-    /* Whose move it is reads from one ring: orange = setting (acting), ice = copying. */
-    .player-panel.is-setter { border-color:var(--pop); }
+    /* Whose move it is reads from one ring: teal = setting, pink = copying. */
+    .player-panel.is-setter { border-color:var(--fire); }
     .player-panel.is-copier { border-color:var(--ice); }
     .role-tag {
       display:inline-flex; align-items:center; gap:5px; margin-top:12px;
       font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
     }
-    .role-tag.role-set  { color:var(--pop); }
+    .role-tag.role-set  { color:var(--fire); }
     .role-tag.role-copy { color:var(--ice); }
     .role-hint { font-size:11px; color:var(--text-muted); margin-top:3px; line-height:1.35; }
 
@@ -1006,8 +1004,8 @@
     .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
 
     .log-row {
-      background:rgba(108,196,255,0.03);
-      border:1px solid rgba(108,196,255,0.06);
+      background:rgba(255,62,127,0.03);
+      border:1px solid rgba(255,62,127,0.06);
       border-radius:var(--radius-sm); padding:8px 13px;
       font-size:12.5px; display:flex; align-items:center; gap:8px;
       animation:slideIn .2s ease;
@@ -1084,13 +1082,13 @@
     /* Dominant-win (Tier 3) glow pulse behind the winner's card — no color-token
        changes, just an animated box-shadow using the existing brand colors. */
     @keyframes tier3Glow {
-      0%, 100% { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); }
+      0%, 100% { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); }
       50%      { box-shadow:var(--shadow-surface); }
     }
     #rating-anim-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(11,13,16,0.94); align-items:center; justify-content:center; animation:fadeIn .2s ease; }
     #rating-anim-overlay.visible { display:flex; }
     .ra-card { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both; }
-    .ra-card.tier3-glow { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
+    .ra-card.tier3-glow { box-shadow:0 0 0 rgba(255,62,127,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
     .ra-card.loser { animation-delay:.08s; }
     .ra-delta { font-family:var(--font-display);font-weight:800; font-size:44px; letter-spacing:-0.03em; line-height:1; animation:deltaCountIn .3s .15s var(--ease-out) both; }
     .ra-delta.win { color:var(--success); }
@@ -1118,8 +1116,8 @@
 
     /* ── PREVIEW BOX ── */
     .preview-box {
-      background:rgba(108,196,255,0.03);
-      border:1px solid rgba(108,196,255,0.1);
+      background:rgba(255,62,127,0.03);
+      border:1px solid rgba(255,62,127,0.1);
       border-radius:var(--radius-sm);
       padding:12px 16px; margin-bottom:12px; font-size:13px;
     }
@@ -1132,7 +1130,7 @@
       margin-bottom:10px; transition:border-color .2s, transform .2s;
       backdrop-filter:blur(20px);
     }
-    .hist-entry:hover { border-color:rgba(108,196,255,0.22); transform:translateX(3px); }
+    .hist-entry:hover { border-color:rgba(255,62,127,0.22); transform:translateX(3px); }
 
     /* ── GAME OVER ── */
     .game-over-banner {
@@ -1184,7 +1182,7 @@
     body.light .form-select,
     body.light .form-textarea {
       background:rgba(255,255,255,0.90);
-      border-color:rgba(108,196,255,0.18);
+      border-color:rgba(255,62,127,0.18);
       color:var(--text-primary);
     }
     body.light .form-input::placeholder,
@@ -1192,17 +1190,17 @@
     body.light .form-select option { background:#e8f4ff; color:#081828; }
     body.light .pp-trigger {
       background:rgba(255,255,255,0.90);
-      border-color:rgba(108,196,255,0.18);
+      border-color:rgba(255,62,127,0.18);
     }
     body.light .pp-dropdown {
       box-shadow:0 12px 32px rgba(0,0,0,0.12);
     }
     body.light .pp-search {
       background:rgba(0,0,0,0.04);
-      border-bottom-color:rgba(108,196,255,0.13);
+      border-bottom-color:rgba(255,62,127,0.13);
     }
-    body.light .pp-item:hover { background:rgba(108,196,255,0.06); }
-    body.light .pp-item.selected { background:rgba(22,119,210,0.12); }
+    body.light .pp-item:hover { background:rgba(255,62,127,0.06); }
+    body.light .pp-item.selected { background:rgba(184,15,74,0.12); }
     body.light .toast {
       background:rgba(255,253,248,0.97);
       color:var(--text-primary);
@@ -1213,7 +1211,7 @@
     }
     body.light .auth-card {
       background:rgba(255,255,255,0.94);
-      border-color:rgba(108,196,255,0.20);
+      border-color:rgba(255,62,127,0.20);
       box-shadow:0 24px 64px rgba(0,0,0,0.12), var(--glow-ice);
     }
     body.light .auth-screen::before {
@@ -1224,17 +1222,17 @@
       );
     }
     body.light .nav-btn { color:var(--text-secondary); }
-    body.light .nav-btn:hover { background:rgba(108,196,255,0.07); }
-    body.light .nav-btn.active { color:var(--ice); background:rgba(108,196,255,0.10); }
-    body.light td { color:var(--text-secondary); border-bottom-color:rgba(108,196,255,0.07); }
-    body.light tr:hover td { background:rgba(108,196,255,0.04); }
+    body.light .nav-btn:hover { background:rgba(255,62,127,0.07); }
+    body.light .nav-btn.active { color:var(--ice); background:rgba(255,62,127,0.10); }
+    body.light td { color:var(--text-secondary); border-bottom-color:rgba(255,62,127,0.07); }
+    body.light tr:hover td { background:rgba(255,62,127,0.04); }
     body.light #rating-anim-overlay { background:rgba(220,235,245,0.92); }
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width:4px; height:4px; }
     ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:rgba(108,196,255,0.2); border-radius:2px; }
-    ::-webkit-scrollbar-thumb:hover { background:rgba(108,196,255,0.4); }
+    ::-webkit-scrollbar-thumb { background:rgba(255,62,127,0.2); border-radius:2px; }
+    ::-webkit-scrollbar-thumb:hover { background:rgba(255,62,127,0.4); }
 
     /* ── AUTH SCREEN ── */
     .auth-screen {
@@ -1256,7 +1254,7 @@
       pointer-events:none;
     }
     .auth-card {
-      background:rgba(11,13,16,0.92); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.92); border:1px solid rgba(255,62,127,0.2);
       border-radius:var(--radius-lg); padding:40px;
       width:100%; max-width:400px;
       max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1305,8 +1303,8 @@
     #boot-loading .auth-logo { margin-bottom:0; }
     .boot-spinner {
       width:36px; height:36px; border-radius:50%;
-      border:3px solid rgba(108,196,255,0.18);
-      border-top-color:var(--ice, #6cc4ff);
+      border:3px solid rgba(255,62,127,0.18);
+      border-top-color:var(--ice, #ff3e7f);
       animation:bootSpin .8s linear infinite;
     }
     @keyframes bootSpin { to { transform:rotate(360deg); } }
@@ -1317,13 +1315,13 @@
     .boot-rail-leg { stroke:var(--text-muted); stroke-width:2; stroke-linecap:round; opacity:.35; }
     .boot-rail-bar { stroke:var(--text-muted); stroke-width:3; stroke-linecap:round; opacity:.45; }
     .boot-rail-glow {
-      fill:none; stroke:var(--ice, #6cc4ff); stroke-width:3; stroke-linecap:round;
+      fill:none; stroke:var(--ice, #ff3e7f); stroke-width:3; stroke-linecap:round;
       stroke-dasharray:44; stroke-dashoffset:44; opacity:0;
       
       animation:bootRailGlow 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
     .boot-skier {
-      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #6cc4ff);
+      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #ff3e7f);
       
       animation:bootSkierMove 3.2s cubic-bezier(.4,0,.2,1) infinite;
     }
@@ -1438,7 +1436,7 @@
       background-color:#14171b;
       background-image: url('https://images.unsplash.com/photo-1488771025462-7cd35f97a021?w=1400&auto=format&fit=crop&q=70');
       background-size:cover; background-position:center 40%;
-      border:1px solid rgba(108,196,255,0.18);
+      border:1px solid rgba(255,62,127,0.18);
       padding:36px 36px 40px;
       margin-bottom:24px;
       box-shadow:0 24px 64px rgba(0,0,0,0.7);
@@ -1466,7 +1464,7 @@
     .profile-avatar-img {
       width:96px; height:96px; border-radius:50%;
       object-fit:cover;
-      border:3px solid rgba(108,196,255,0.35);
+      border:3px solid rgba(255,62,127,0.35);
       
       display:block;
     }
@@ -1474,7 +1472,7 @@
       width:96px; height:96px; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
       font-family:var(--font-display);font-weight:700; font-size:25px; color:#fff;
-      border:3px solid rgba(108,196,255,0.35);
+      border:3px solid rgba(255,62,127,0.35);
       
       flex-shrink:0;
     }
@@ -1527,7 +1525,7 @@
       min-height:110px; line-height:1.6; transition:border-color .18s;
       outline:none;
     }
-    .prof-textarea:focus { border-color:rgba(108,196,255,0.45); }
+    .prof-textarea:focus { border-color:rgba(255,62,127,0.45); }
     .prof-textarea::placeholder { color:var(--text-muted); }
 
     .profile-game-row {
@@ -1567,11 +1565,11 @@
     .tourney-card:hover { border-color:var(--ice); box-shadow:none; }
     .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
     .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
-    .pc-drag-over { border-color:var(--ice) !important; background:rgba(108,196,255,0.10) !important; }
+    .pc-drag-over { border-color:var(--ice) !important; background:rgba(255,62,127,0.10) !important; }
     .tourney-badge { font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase; }
     .tourney-badge.setup   { background:rgba(255,196,0,.15);color:var(--warning); }
     .tourney-badge.active  { background:rgba(61,220,151,.15);color:var(--success); }
-    .tourney-badge.complete{ background:rgba(108,196,255,.12);color:var(--ice); }
+    .tourney-badge.complete{ background:rgba(255,62,127,.12);color:var(--ice); }
     .tourney-meta { font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap; }
 
     /* Bracket */
@@ -1611,7 +1609,7 @@
       border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;
     }
     .invite-pick-item:last-child { border-bottom:none; }
-    .invite-pick-item:hover { background:rgba(108,196,255,0.04); }
+    .invite-pick-item:hover { background:rgba(255,62,127,0.04); }
     .invite-pick-item input[type=checkbox] { accent-color:var(--ice);width:15px;height:15px; }
     .tinv-tab {
       font-size:11.5px;font-weight:600;padding:4px 12px;border-radius:99px;border:none;
@@ -1642,21 +1640,21 @@
     }
     .sent-card {
       border-radius:var(--radius);
-      border:1px solid rgba(108,196,255,0.14);
-      background:rgba(108,196,255,0.03);
+      border:1px solid rgba(255,62,127,0.14);
+      background:rgba(255,62,127,0.03);
       padding:14px 18px;
       margin-bottom:10px;
       display:flex; align-items:center; gap:14px;
     }
     /* ── Video clip box ── */
     .clip-box {
-      border:2px dashed rgba(108,196,255,0.25);
+      border:2px dashed rgba(255,62,127,0.25);
       border-radius:var(--radius);
       padding:16px;
-      background:rgba(108,196,255,0.03);
+      background:rgba(255,62,127,0.03);
       transition:border-color .2s;
     }
-    .clip-box:focus-within { border-color:rgba(108,196,255,0.55); }
+    .clip-box:focus-within { border-color:rgba(255,62,127,0.55); }
     .clip-box-inner { display:flex;flex-direction:column;align-items:center;text-align:center; }
     .clip-thumb {
       width:100%; border-radius:8px; overflow:hidden;
@@ -1756,8 +1754,8 @@
       backdrop-filter: blur(4px);
     }
     .reel-chip.win  { background:rgba(16,185,129,.25); border-color:rgba(16,185,129,.45); color:#6ee7b7; }
-    .reel-chip.ice  { background:rgba(108,196,255,.2);   border-color:rgba(108,196,255,.4);   color:var(--ice); }
-    .reel-chip.fire { background:rgba(230,235,240,.2);    border-color:rgba(230,235,240,.4);    color:#ff7a40; }
+    .reel-chip.ice  { background:rgba(255,62,127,.2);   border-color:rgba(255,62,127,.4);   color:var(--ice); }
+    .reel-chip.fire { background:rgba(34,224,194,.2);    border-color:rgba(34,224,194,.4);    color:#ff7a40; }
     /* Right action sidebar */
     .reel-actions {
       position: absolute;
@@ -1879,7 +1877,7 @@
       position:relative;
     }
     .friend-row:hover  { background:rgba(255,255,255,0.05); }
-    .friend-row.active { background:rgba(108,196,255,0.1); }
+    .friend-row.active { background:rgba(255,62,127,0.1); }
     .friend-unread {
       min-width:18px; height:18px;
       background:var(--ice); color:#000;
@@ -1960,10 +1958,10 @@
     .resort-dropdown {
       position:absolute; top:calc(100% + 5px); left:0; right:0; z-index:200;
       background:rgba(11,13,16,0.97);
-      border:1px solid rgba(108,196,255,0.28);
+      border:1px solid rgba(255,62,127,0.28);
       border-radius:var(--radius-sm);
       backdrop-filter:blur(24px);
-      box-shadow:0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(108,196,255,0.06);
+      box-shadow:0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,62,127,0.06);
       overflow:hidden;
       max-height:220px; overflow-y:auto;
       display:none;
@@ -1971,17 +1969,17 @@
     .resort-dropdown.open { display:block; animation:slideIn .13s ease; }
     .resort-dropdown::-webkit-scrollbar { width:4px; }
     .resort-dropdown::-webkit-scrollbar-track { background:transparent; }
-    .resort-dropdown::-webkit-scrollbar-thumb { background:rgba(108,196,255,0.2); border-radius:2px; }
+    .resort-dropdown::-webkit-scrollbar-thumb { background:rgba(255,62,127,0.2); border-radius:2px; }
 
     .resort-item {
       padding:10px 14px; cursor:pointer; font-size:13.5px;
       display:flex; align-items:center; gap:10px;
-      border-bottom:1px solid rgba(108,196,255,0.05);
+      border-bottom:1px solid rgba(255,62,127,0.05);
       transition:background .1s;
     }
     .resort-item:last-child { border-bottom:none; }
     .resort-item:hover, .resort-item.active {
-      background:rgba(108,196,255,0.1);
+      background:rgba(255,62,127,0.1);
       color:var(--ice);
     }
     .resort-item-icon { font-size:15px; flex-shrink:0; }
@@ -2011,7 +2009,7 @@
       padding:5px 7px; border-radius:5px; transition:all .18s; line-height:1;
       flex-shrink:0;
     }
-    .btn-notif:hover { color:var(--ice); background:rgba(108,196,255,0.1); }
+    .btn-notif:hover { color:var(--ice); background:rgba(255,62,127,0.1); }
     .btn-notif.active { color:var(--ice); }
 
     /* ── RESPONSIVE ── */
@@ -2033,7 +2031,7 @@
         width:calc(100% - 20px) !important; left:10px; right:10px; height:auto !important;
         position:fixed; bottom:0; top:auto;
         flex-direction:row; border-right:none;
-        border:1px solid rgba(108,196,255,0.15);
+        border:1px solid rgba(255,62,127,0.15);
         border-top-left-radius:22px;
         border-top-right-radius:22px;
         border-bottom-left-radius:0;
@@ -2068,7 +2066,7 @@
       .nav-btn::before { display:none; }
       .nav-btn .nav-badge { position:absolute; top:2px; right:6px; margin-left:0; }
       .nav-btn.active {
-        background:rgba(108,196,255,0.13);
+        background:rgba(255,62,127,0.13);
         color:var(--ice);
         font-weight:800;
       }
@@ -2090,7 +2088,7 @@
         bottom:calc(64px + env(safe-area-inset-bottom));
         left:10px; right:10px;
         padding:8px 14px;
-        border:1px solid rgba(108,196,255,0.15);
+        border:1px solid rgba(255,62,127,0.15);
         border-radius:var(--radius-lg);
         background:rgba(11,13,16,0.97);
         backdrop-filter:blur(32px);
@@ -2241,9 +2239,9 @@
     .admin-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
     .admin-table { width:100%; border-collapse:collapse; font-size:13px; }
     .admin-table th { padding:10px 14px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
-    .admin-table td { padding:10px 14px; border-bottom:1px solid rgba(108,196,255,0.05); vertical-align:middle; }
+    .admin-table td { padding:10px 14px; border-bottom:1px solid rgba(255,62,127,0.05); vertical-align:middle; }
     .admin-table tr:last-child td { border-bottom:none; }
-    .admin-table tr:hover td { background:rgba(108,196,255,0.03); }
+    .admin-table tr:hover td { background:rgba(255,62,127,0.03); }
     .admin-stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
     .admin-stat-val { font-family:var(--font-display);font-weight:700; font-size:24px; color:var(--primary); letter-spacing:-0.02em; }
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
@@ -2256,7 +2254,7 @@
       align-items:flex-end; justify-content:center;
     }
     #trick-lib-sheet {
-      background:rgba(11,13,16,0.99); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.99); border:1px solid rgba(255,62,127,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       width:100%; max-width:560px;
       box-shadow:0 -12px 60px rgba(0,0,0,0.85);
@@ -2270,11 +2268,11 @@
     #trick-lib-drag   { width:40px; height:5px; border-radius:99px; background:rgba(255,255,255,0.18); margin:0 auto 14px; touch-action:none; cursor:grab; }
     #trick-lib-search {
       width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06);
-      border:1px solid rgba(108,196,255,0.2); border-radius:12px;
+      border:1px solid rgba(255,62,127,0.2); border-radius:12px;
       padding:10px 14px; color:var(--text-primary); font-size:16px;
       outline:none; margin-bottom:10px;
     }
-    #trick-lib-search:focus { border-color:rgba(108,196,255,0.5); }
+    #trick-lib-search:focus { border-color:rgba(255,62,127,0.5); }
     #trick-lib-cats {
       display:flex; gap:7px; overflow-x:auto; padding-bottom:10px;
       scrollbar-width:none;
@@ -2286,7 +2284,7 @@
       color:var(--text-muted); cursor:pointer; transition:all .15s;
       -webkit-tap-highlight-color:transparent;
     }
-    .tcat-btn.active { background:rgba(108,196,255,0.12); border-color:rgba(108,196,255,0.45); color:var(--ice); }
+    .tcat-btn.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
     #trick-lib-list {
       flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
       padding:0 12px 12px;
@@ -2301,7 +2299,7 @@
       transition:background .12s; margin-bottom:4px;
       -webkit-tap-highlight-color:transparent;
     }
-    .trick-item:hover, .trick-item:active { background:rgba(108,196,255,0.08); }
+    .trick-item:hover, .trick-item:active { background:rgba(255,62,127,0.08); }
     .trick-item-name { font-size:14px; font-weight:600; color:var(--text-primary); }
     .trick-item-diff {
       font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;
@@ -2323,7 +2321,7 @@
       cursor:pointer; text-align:center; -webkit-tap-highlight-color:transparent;
       transition:all .15s;
     }
-    .builder-mode-tab.active { background:rgba(108,196,255,0.12); border-color:rgba(108,196,255,0.45); color:var(--ice); }
+    .builder-mode-tab.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
     .builder-section { margin-bottom:14px; }
     .builder-section-label {
       font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
@@ -2337,9 +2335,9 @@
       -webkit-tap-highlight-color:transparent;
     }
     .builder-pill:active { transform:scale(0.94); }
-    .builder-pill.selected { background:rgba(108,196,255,0.14); border-color:rgba(108,196,255,0.5); color:var(--ice); }
+    .builder-pill.selected { background:rgba(255,62,127,0.14); border-color:rgba(255,62,127,0.5); color:var(--ice); }
     .builder-preview {
-      background:rgba(108,196,255,0.06); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(255,62,127,0.06); border:1px solid rgba(255,62,127,0.2);
       border-radius:14px; padding:14px 16px; margin:0 0 4px;
     }
     .builder-preview-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
@@ -2355,7 +2353,7 @@
       align-items:flex-end; justify-content:center;
     }
     #onboard-card {
-      background:rgba(11,13,16,0.99); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.99); border:1px solid rgba(255,62,127,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       border-bottom-left-radius:0; border-bottom-right-radius:0;
       padding:12px 24px 0; width:100%; max-width:520px;
@@ -2563,7 +2561,7 @@
     <div id="auth-back-row" style="display:none;margin-bottom:4px;">
       <button onclick="dismissAuthScreen()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;transition:color .15s;" onmouseenter="this.style.color='var(--ice)'" onmouseleave="this.style.color='var(--text-muted)'"><svg class="icon icon-back"><use href="#i-back"/></svg> Back to preview</button>
     </div>
-    <div id="auth-hint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(108,196,255,0.08);border:1px solid rgba(108,196,255,0.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ice);text-align:center;line-height:1.5;"></div>
+    <div id="auth-hint" style="display:none;margin-bottom:12px;padding:10px 14px;background:rgba(255,62,127,0.08);border:1px solid rgba(255,62,127,0.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--ice);text-align:center;line-height:1.5;"></div>
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-origin-notice" class="auth-origin-notice">
       <strong><svg class="icon icon-warning"><use href="#i-warning"/></svg> Opening as a local file</strong><br>
@@ -2644,7 +2642,7 @@
         <label class="form-label">I ride as a…</label>
         <div style="display:flex;gap:8px;">
           <button type="button" id="su-type-skier" onclick="selectRiderType('skier')"
-            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(108,196,255,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
             <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
           </button>
           <button type="button" id="su-type-boarder" onclick="selectRiderType('boarder')"
@@ -2703,7 +2701,7 @@
         <label class="form-label">I ride as a…</label>
         <div style="display:flex;gap:8px;">
           <button type="button" id="sc-type-skier" onclick="selectRiderType('skier')"
-            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(108,196,255,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
+            style="flex:1;padding:10px;border-radius:var(--radius);border:2px solid var(--primary);background:rgba(255,62,127,0.12);color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">
             <svg class="icon icon-skier"><use href="#i-skier"/></svg> Skier
           </button>
           <button type="button" id="sc-type-boarder" onclick="selectRiderType('boarder')"
@@ -2817,7 +2815,7 @@
       <div class="stats-grid" id="global-stats"></div>
 
       <!-- Play CTA — shown to users with 0 games -->
-      <div id="lb-play-cta" class="card" style="margin-bottom:16px;background:var(--bg-card);border:1px solid rgba(108,196,255,0.25);display:none;">
+      <div id="lb-play-cta" class="card" style="margin-bottom:16px;background:var(--bg-card);border:1px solid rgba(255,62,127,0.25);display:none;">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;">
             <div style="font-weight:800;font-size:15px;margin-bottom:4px;">You haven't played yet</div>
@@ -2859,7 +2857,7 @@
           </div>
         </div>
         <div id="lb-active-filter" style="display:none;margin-bottom:12px;">
-          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 12px;background:rgba(108,196,255,0.12);border:1px solid rgba(108,196,255,0.3);border-radius:20px;font-size:12px;color:var(--ice);">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 12px;background:rgba(255,62,127,0.12);border:1px solid rgba(255,62,127,0.3);border-radius:20px;font-size:12px;color:var(--ice);">
             <span id="lb-filter-label"></span>
             <span onclick="clearMountainFilter()" style="cursor:pointer;font-size:13px;opacity:.7;" title="Clear filter"><svg class="icon icon-close"><use href="#i-close"/></svg></span>
           </span>
@@ -3720,7 +3718,7 @@
 <div id="admin-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(11,13,16,0.97);backdrop-filter:blur(8px);overflow-y:auto;">
   <!-- Access-denied gate (shown when the signed-in account isn't an admin) -->
   <div id="admin-gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
-    <div style="background:rgba(11,13,16,0.95);border:1px solid rgba(108,196,255,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
+    <div style="background:rgba(11,13,16,0.95);border:1px solid rgba(255,62,127,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">🔒</div>
       <div style="font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--primary);margin-bottom:6px;">ACCESS DENIED</div>
       <div id="admin-gate-msg" style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Sign in with an admin account to use the Admin Console.</div>
@@ -5164,14 +5162,14 @@ function _paintRiderTypeButtons(prefix, type) {
   if (!skierBtn || !boarderBtn) return;
   if (type === 'skier') {
     skierBtn.style.borderColor  = 'var(--primary)';
-    skierBtn.style.background   = 'rgba(108,196,255,0.12)';
+    skierBtn.style.background   = 'rgba(255,62,127,0.12)';
     skierBtn.style.color        = 'var(--primary)';
     boarderBtn.style.borderColor = 'var(--border)';
     boarderBtn.style.background  = 'transparent';
     boarderBtn.style.color       = 'var(--text-muted)';
   } else {
     boarderBtn.style.borderColor = 'var(--primary)';
-    boarderBtn.style.background  = 'rgba(108,196,255,0.12)';
+    boarderBtn.style.background  = 'rgba(255,62,127,0.12)';
     boarderBtn.style.color       = 'var(--primary)';
     skierBtn.style.borderColor   = 'var(--border)';
     skierBtn.style.background    = 'transparent';
@@ -5832,8 +5830,8 @@ async function sendPasswordReset() {
   const showMsg = (m, ok) => {
     msgEl.textContent = m;
     msgEl.style.display = 'block';
-    msgEl.style.background = ok ? 'rgba(230,235,240,0.1)' : 'rgba(108,196,255,0.08)';
-    msgEl.style.border = `1px solid ${ok ? 'rgba(230,235,240,0.3)' : 'rgba(108,196,255,0.25)'}`;
+    msgEl.style.background = ok ? 'rgba(34,224,194,0.1)' : 'rgba(255,62,127,0.08)';
+    msgEl.style.border = `1px solid ${ok ? 'rgba(34,224,194,0.3)' : 'rgba(255,62,127,0.25)'}`;
     msgEl.style.color = ok ? 'var(--ice)' : 'var(--fire)';
   };
 
@@ -7539,7 +7537,7 @@ function lbFindMe(meIdx) {
   if (!row) return;
   row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   row.style.transition = 'background-color .6s ease';
-  row.style.backgroundColor = 'rgba(108,196,255,0.16)';
+  row.style.backgroundColor = 'rgba(255,62,127,0.16)';
   setTimeout(() => { row.style.backgroundColor = ''; }, 1400);
 }
 
@@ -8001,7 +7999,7 @@ function refreshMatchupPreview() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:0;border-radius:6px;overflow:hidden;height:22px;">
-        <div style="width:${favPct}%;background:rgba(108,196,255,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ice);white-space:nowrap;padding:0 6px;min-width:40px;">
+        <div style="width:${favPct}%;background:rgba(255,62,127,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ice);white-space:nowrap;padding:0 6px;min-width:40px;">
           ${pLink(fav.id, fav.name)} ${favPct}%
         </div>
         <div style="width:${dogPct}%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);white-space:nowrap;padding:0 6px;min-width:40px;">
@@ -10587,7 +10585,7 @@ function clipPreviewHtml(clip, prefix) {
     <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'vimeo') return `
     <div class="clip-thumb" onclick="this.innerHTML='<iframe src=\\'${clip.embed}\\' frameborder=\\'0\\' allow=\\'autoplay;fullscreen\\' allowfullscreen style=\\'width:100%;height:100%;position:absolute;inset:0;\\'></iframe>'" style="cursor:pointer;">
-      <div style="width:100%;height:100%;background:rgba(108,196,255,0.12);display:flex;align-items:center;justify-content:center;font-size:48px;">▶</div>
+      <div style="width:100%;height:100%;background:rgba(255,62,127,0.12);display:flex;align-items:center;justify-content:center;font-size:48px;">▶</div>
     </div>
     <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'file') return `
@@ -10711,7 +10709,7 @@ function renderStoredClip(clipUrl) {
   return `
     <div style="margin-top:8px;">
       <a href="${clipUrl}" target="_blank" rel="noopener"
-        style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:rgba(108,196,255,0.08);border-radius:7px;border:1px solid rgba(108,196,255,0.2);color:var(--ice);font-size:12.5px;text-decoration:none;">
+        style="display:inline-flex;align-items:center;gap:7px;padding:7px 12px;background:rgba(255,62,127,0.08);border-radius:7px;border:1px solid rgba(255,62,127,0.2);color:var(--ice);font-size:12.5px;text-decoration:none;">
         ${clip.icon||'<svg class="icon icon-clapper"><use href="#i-clapper"/></svg>'} ${clip.label||'View Clip'} ↗
       </a>
     </div>`;
@@ -10993,7 +10991,7 @@ function showProfile(id) {
   const followingN = followingCount(id);
 
   const avatarHtml = p.avatarUrl
-    ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(108,196,255,0.35);" alt="">`
+    ? `<img src="${p.avatarUrl}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,62,127,0.35);" alt="">`
     : `<div class="avatar avatar-lg" style="background:${avatarGrad(p.id)}">${initials(p.name)}</div>`;
 
   document.getElementById('profile-content').innerHTML = `
@@ -11066,7 +11064,7 @@ function showProfile(id) {
         <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;">Achievements</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           ${earned.map(b => `
-            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='rgba(108,196,255,0.45)';this.style.background='rgba(108,196,255,0.07)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-elevated)'">
+            <div onclick="showBadgeModal('${b.id}')" style="display:flex;align-items:center;gap:5px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;" onmouseenter="this.style.borderColor='rgba(255,62,127,0.45)';this.style.background='rgba(255,62,127,0.07)'" onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-elevated)'">
               <span>${b.icon}</span>
               <span style="font-weight:600;color:var(--text-secondary);">${b.label}</span>
             </div>`).join('')}
@@ -11359,8 +11357,8 @@ function renderChallenges() {
     const other = byId(isIncoming ? c.fromId : c.toId);
     const dateStr = new Date(c.date + 'T12:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     const timeStr = c.time ? ` at ${c.time}` : '';
-    const borderCol = isAccepted ? 'rgba(61,220,151,0.35)' : isIncoming ? 'rgba(230,235,240,0.3)' : 'rgba(255,200,0,0.2)';
-    const bgCol     = isAccepted ? 'rgba(61,220,151,0.04)'  : isIncoming ? 'rgba(230,235,240,0.04)' : 'rgba(255,200,0,0.03)';
+    const borderCol = isAccepted ? 'rgba(61,220,151,0.35)' : isIncoming ? 'rgba(34,224,194,0.3)' : 'rgba(255,200,0,0.2)';
+    const bgCol     = isAccepted ? 'rgba(61,220,151,0.04)'  : isIncoming ? 'rgba(34,224,194,0.04)' : 'rgba(255,200,0,0.03)';
 
     return `
       <div class="pending-card" style="border-color:${borderCol};background:${bgCol};">
@@ -11904,7 +11902,7 @@ function renderTournaments() {
     if (invCount) invCount.textContent = pendingInvites.length;
     if (invList) {
       invList.innerHTML = pendingInvites.map(t => `
-        <div class="pending-card" style="border-color:rgba(108,196,255,0.2);background:rgba(108,196,255,0.03);">
+        <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
           <div class="pending-card-header">
             <div>
               <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${escHtml(t.name)}</strong></div>
@@ -12102,10 +12100,10 @@ function renderBracketHTML(t) {
   const C_LOSE   = '#2d5a73';
   const C_TEXT   = '#d9dcd6';
   const C_MUTED  = '#3a6a84';
-  const C_ICE    = '#6cc4ff';
+  const C_ICE    = '#ff3e7f';
   const C_ORANGE = '#ff7a00';
   const C_BG     = 'rgba(11,13,16,0.55)';
-  const C_PLAY   = 'rgba(108,196,255,0.10)';
+  const C_PLAY   = 'rgba(255,62,127,0.10)';
 
   let lines = '', boxes = '', labels = '';
 
@@ -12458,7 +12456,7 @@ function renderConfirmations() {
   } else {
     frEmpty.style.display = 'none';
     frList.innerHTML = myFriendReqs.map(r => `
-      <div class="pending-card" style="border-color:rgba(108,196,255,0.2);background:rgba(108,196,255,0.03);">
+      <div class="pending-card" style="border-color:rgba(255,62,127,0.2);background:rgba(255,62,127,0.03);">
         <div class="pending-card-header">
           <div style="display:flex;align-items:center;gap:10px;">
             ${avatarHtml(byId(r.fromId) || {id:r.fromId, name:r.fromName}, 'avatar-sm')}
@@ -12488,7 +12486,7 @@ function renderConfirmations() {
     inviteList.innerHTML = myInvites.map(inv => {
       const isJudge = inv.role === 'judge';
       return `
-      <div class="pending-card" style="border-color:${isJudge ? 'rgba(108,196,255,0.3)' : 'rgba(230,235,240,0.3)'};background:${isJudge ? 'rgba(108,196,255,0.04)' : 'rgba(230,235,240,0.04)'};">
+      <div class="pending-card" style="border-color:${isJudge ? 'rgba(255,62,127,0.3)' : 'rgba(34,224,194,0.3)'};background:${isJudge ? 'rgba(255,62,127,0.04)' : 'rgba(34,224,194,0.04)'};">
         <div class="pending-card-header">
           <div style="display:flex;align-items:center;gap:10px;">
             ${avatarHtml(byId(inv.fromId) || {id:inv.fromId, name:inv.fromName}, 'avatar-sm')}
@@ -13241,7 +13239,7 @@ function resortInput(el, ddId='resort-dropdown') {
     const passBadge = r.pass === 'ikon'
       ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(232,97,26,0.18);color:#f07030;font-weight:800;letter-spacing:.5px;flex-shrink:0;">IKON</span>`
       : r.pass === 'epic'
-      ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(108,196,255,0.18);color:#5aaff0;font-weight:800;letter-spacing:.5px;flex-shrink:0;">EPIC</span>`
+      ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,62,127,0.18);color:#5aaff0;font-weight:800;letter-spacing:.5px;flex-shrink:0;">EPIC</span>`
       : '';
     return `<div class="resort-item" data-idx="${i}" onmousedown="pickResort('${r.name.replace(/'/g,"\\'")}','${ddId}')">
       <span class="resort-item-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span>
@@ -13354,8 +13352,8 @@ function renderRatingHistory(playerId, container, countEl) {
   const isLight = document.body.classList.contains('light');
   const gridColor   = isLight ? 'rgba(0,0,0,0.06)'  : 'rgba(255,255,255,0.05)';
   const labelColor  = isLight ? 'rgba(0,0,0,0.40)'  : 'rgba(255,255,255,0.35)';
-  const lineColor   = isLight ? '#1677d2'            : '#6cc4ff';
-  const gradStop    = isLight ? '#1677d2'            : '#6cc4ff';
+  const lineColor   = isLight ? '#d6296b'            : '#ff3e7f';
+  const gradStop    = isLight ? '#d6296b'            : '#ff3e7f';
   let yLabels = '';
   for (let i = 0; i <= yTicks; i++) {
     const r = rLo + (rHi - rLo) * (i / yTicks);
@@ -13427,7 +13425,7 @@ function renderRatingHistory(playerId, container, countEl) {
   if (!tooltip) {
     tooltip = document.createElement('div');
     tooltip.id = 'rh-tooltip-dynamic';
-    tooltip.style.cssText = 'position:fixed;z-index:20000;pointer-events:none;background:var(--bg-elevated,#0d2040);border:1px solid rgba(108,196,255,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text-primary,#fff);box-shadow:0 8px 28px rgba(0,0,0,0.5);white-space:nowrap;opacity:0;transition:opacity .15s;';
+    tooltip.style.cssText = 'position:fixed;z-index:20000;pointer-events:none;background:var(--bg-elevated,#0d2040);border:1px solid rgba(255,62,127,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text-primary,#fff);box-shadow:0 8px 28px rgba(0,0,0,0.5);white-space:nowrap;opacity:0;transition:opacity .15s;';
     document.body.appendChild(tooltip);
   }
   let _pinnedDot = null;
@@ -13795,7 +13793,7 @@ function fireLandedBurst(clientX, clientY) {
   burst({
     particleCount: mobile ? 10 : 18,
     spread: 55, startVelocity: 22, gravity: 0.9, scalar: 0.7, ticks: 60,
-    colors: ['#3ddc97', '#e6ebf0'],
+    colors: ['#3ddc97', '#22e0c2'],
     origin: { x:0.5, y:0.5 },
   });
   setTimeout(() => canvas.remove(), 1200);
@@ -14021,7 +14019,7 @@ function fireRatingCelebration(wD) {
   if (typeof confetti !== 'function' || wD < 8) return;
   const mobile = window.matchMedia('(max-width:600px)').matches;
   const style = getComputedStyle(document.documentElement);
-  const colors = [style.getPropertyValue('--ice').trim(), style.getPropertyValue('--pop').trim(), '#ffffff'].filter(Boolean);
+  const colors = [style.getPropertyValue('--ice').trim(), style.getPropertyValue('--fire').trim(), '#ffffff'].filter(Boolean);
   const fire = (particleCount) => confetti({
     particleCount, spread: 70, startVelocity: 45, gravity: 1,
     colors, origin: { x:0.5, y:0.25 }, zIndex: 9600, useWorker: true,
@@ -14496,7 +14494,7 @@ async function adminWipeEverything() {
              ondragover="event.preventDefault();this.classList.add('pc-drag-over')"
              ondragleave="this.classList.remove('pc-drag-over')"
              ondrop="pcHandleDrop(event)"
-             style="border:2px dashed rgba(108,196,255,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(108,196,255,0.04);">
+             style="border:2px dashed rgba(255,62,127,0.35);border-radius:var(--radius);padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,62,127,0.04);">
           <input id="pc-file-input" type="file" accept="video/*" style="display:none" onchange="pcHandleFile(this.files[0])">
           <div id="pc-drop-label">
             <div style="font-size:32px;margin-bottom:8px;"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></div>
@@ -14526,7 +14524,7 @@ async function adminWipeEverything() {
 
 <!-- Tier info modal -->
 <div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
+  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
     <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Rank Tiers</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -14613,7 +14611,7 @@ async function adminWipeEverything() {
 
 <!-- Badge detail modal -->
 <div id="badge-modal-overlay" onclick="closeBadgeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10001;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
+  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(255,62,127,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
     <button onclick="closeBadgeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div id="badge-modal-icon" style="font-size:52px;line-height:1;margin-bottom:14px;"></div>
     <div id="badge-modal-label" style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;"></div>
