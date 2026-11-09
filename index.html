@@ -851,7 +851,7 @@
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(108,196,255,0.1), 0 0 14px rgba(108,196,255,0.12);
+      box-shadow:0 0 0 3px rgba(108,196,255,0.1);
     }
     .form-select option { background:#061525; }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -867,7 +867,7 @@
     }
     .pp-trigger:focus, .pp-trigger.open {
       outline:none; border-color:var(--ice);
-      box-shadow:0 0 0 3px rgba(108,196,255,0.1), 0 0 14px rgba(108,196,255,0.12);
+      box-shadow:0 0 0 3px rgba(108,196,255,0.1);
     }
     .pp-trigger .pp-caret { color:var(--text-muted); font-size:11px; flex-shrink:0; margin-left:6px; transition:transform .15s; }
     .pp-trigger.open .pp-caret { transform:rotate(180deg); }
@@ -914,11 +914,11 @@
       color:var(--tc);
       background:linear-gradient(135deg, color-mix(in srgb, var(--tc) 24%, transparent), color-mix(in srgb, var(--tc) 6%, transparent));
       border:1px solid color-mix(in srgb, var(--tc) 42%, transparent);
-      box-shadow:0 0 10px color-mix(in srgb, var(--tc) 28%, transparent), inset 0 1px 0 color-mix(in srgb, var(--tc) 16%, transparent);
+      box-shadow:inset 0 1px 0 color-mix(in srgb, var(--tc) 16%, transparent);
       transition:transform .15s ease, box-shadow .15s ease;
     }
     .tier-badge[onclick] { cursor:pointer; }
-    .tier-badge[onclick]:hover { transform:translateY(-1px); box-shadow:0 0 15px color-mix(in srgb, var(--tc) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--tc) 20%, transparent); }
+    .tier-badge[onclick]:hover { transform:translateY(-1px); box-shadow:inset 0 1px 0 color-mix(in srgb, var(--tc) 20%, transparent); }
     .tier-badge-icon {
       display:inline-flex; align-items:center; justify-content:center;
       width:16px; height:16px; border-radius:50%; flex-shrink:0;
@@ -926,7 +926,7 @@
     }
     .tier-badge-icon .icon { width:10px; height:10px; }
     .badge-accent  { background:rgba(230,235,240,.1);   color:var(--fire);   border:1px solid rgba(230,235,240,.22); }
-    .badge-muted   { background:rgba(45,90,115,.1);  color:var(--text-muted); border:1px solid rgba(45,90,115,.2); }
+    .badge-muted   { background:rgba(255,255,255,.1);  color:var(--text-muted); border:1px solid rgba(255,255,255,.2); }
     @keyframes badgeGlow {
       0%,100% { box-shadow:0 0 0 rgba(230,235,240,0); }
       50%     {  }
@@ -937,30 +937,26 @@
     .ski-letters { display:flex; gap:8px; justify-content:center; }
 
     .ski-letter {
-      width:48px; height:48px; border-radius:var(--radius);
+      width:44px; height:44px; border-radius:var(--radius-sm);
       display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-display);font-weight:700; font-size:21px;
-      border:2px solid rgba(255,255,255,0.07);
-      color:rgba(255,255,255,0.12);
-      background:rgba(255,255,255,0.02);
-      backdrop-filter:blur(8px);
-      transition:border-color .3s, color .3s, background-color .3s, box-shadow .3s, text-shadow .3s;
-      transition-timing-function: cubic-bezier(0.175,0.885,0.32,1.275);
+      font-family:var(--font-display);font-weight:800; font-size:18px;
+      border:1px solid var(--border-light);
+      color:rgba(255,255,255,0.18);
+      background:transparent;
+      transition:border-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
     }
 
     .ski-letter.earned {
       border-color:var(--danger);
-      color:var(--danger);
-      background:rgba(255,90,95,0.12);
-      box-shadow:0 0 22px rgba(255,90,95,0.45), inset 0 0 14px rgba(255,90,95,0.1);
-      text-shadow:0 0 12px var(--danger);
-      animation:letterPop .45s cubic-bezier(0.175,0.885,0.32,1.275);
+      color:#fff;
+      background:var(--danger);
+      /* A letter landing is the duel's key beat: short, slightly springy pop. */
+      animation:letterPop .28s var(--ease-spring);
     }
 
     @keyframes letterPop {
-      0%   { transform:scale(.4) rotate(-15deg); opacity:0; }
-      60%  { transform:scale(1.35) rotate(6deg); }
-      100% { transform:scale(1) rotate(0); opacity:1; }
+      from { transform:scale(.7); opacity:0; }
+      to   { transform:scale(1); opacity:1; }
     }
 
     /* ── LIVE GAME BOARD ── */
@@ -971,22 +967,21 @@
 
     .player-panel {
       background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius-lg); padding:26px 20px;
-      text-align:center; transition:border-color .3s, background-color .3s, box-shadow .3s;
-      backdrop-filter:blur(20px); position:relative; overflow:hidden;
-      box-shadow:var(--shadow-surface);
+      border-radius:var(--radius-lg); padding:22px 16px 18px;
+      text-align:center; transition:border-color var(--dur-base) var(--ease-out);
+      position:relative; overflow:hidden;
     }
 
-    .player-panel.is-setter {
-      border-color:rgba(230,235,240,.5);
-      background:rgba(255,40,0,0.04);
-      box-shadow:var(--shadow-surface), 0 0 32px rgba(230,235,240,0.15), inset 0 0 24px rgba(230,235,240,0.03);
+    /* Whose move it is reads from one ring: orange = setting (acting), ice = copying. */
+    .player-panel.is-setter { border-color:var(--pop); }
+    .player-panel.is-copier { border-color:var(--ice); }
+    .role-tag {
+      display:inline-flex; align-items:center; gap:5px; margin-top:12px;
+      font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
     }
-    .player-panel.is-copier {
-      border-color:rgba(108,196,255,.42);
-      background:rgba(0,150,200,0.04);
-      box-shadow:var(--shadow-surface), 0 0 32px rgba(108,196,255,0.12);
-    }
+    .role-tag.role-set  { color:var(--pop); }
+    .role-tag.role-copy { color:var(--ice); }
+    .role-hint { font-size:11px; color:var(--text-muted); margin-top:3px; line-height:1.35; }
 
     .pp-name {
       font-family:var(--font-display);font-weight:700;
@@ -996,15 +991,13 @@
     .pp-rating { font-size:11.5px; color:var(--text-muted); margin-bottom:14px; letter-spacing:.5px; }
 
     .vs-text {
-      font-family:var(--font-display);font-weight:700; font-size:27px;
-      text-align:center; color:rgba(255,255,255,0.12); letter-spacing:-0.02em;
+      font-family:var(--font-display);font-weight:700; font-size:13px;
+      text-align:center; color:var(--text-muted); letter-spacing:1px;
     }
 
     .trick-area {
       background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius-lg); padding:22px; margin-bottom:18px;
-      backdrop-filter:blur(20px);
-      box-shadow:var(--shadow-surface);
+      border-radius:var(--radius-lg); padding:20px; margin-bottom:18px;
     }
 
     .trick-btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
@@ -1046,7 +1039,7 @@
     /* ── MODAL ── */
     .modal-overlay {
       position:fixed; inset:0;
-      background:rgba(0,4,14,0.82);
+      background:rgba(0,0,0,0.82);
       display:flex; align-items:center; justify-content:center;
       z-index:10000; padding:20px;
       backdrop-filter:blur(8px);
@@ -1092,14 +1085,14 @@
        changes, just an animated box-shadow using the existing brand colors. */
     @keyframes tier3Glow {
       0%, 100% { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); }
-      50%      { box-shadow:0 0 48px 6px rgba(108,196,255,0.35), 0 0 30px 4px rgba(230,235,240,0.22), var(--shadow-surface); }
+      50%      { box-shadow:var(--shadow-surface); }
     }
-    #rating-anim-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(18,20,22,0.88); align-items:center; justify-content:center; backdrop-filter:blur(14px); animation:fadeIn .25s ease; }
+    #rating-anim-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(11,13,16,0.94); align-items:center; justify-content:center; animation:fadeIn .2s ease; }
     #rating-anim-overlay.visible { display:flex; }
     .ra-card { background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 32px; text-align:center; min-width:140px; animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both; }
     .ra-card.tier3-glow { box-shadow:0 0 0 rgba(108,196,255,0), var(--shadow-surface); animation:ratingCardIn var(--dur-entrance) var(--ease-spring) both, tier3Glow 1.6s var(--ease-standard) .3s 2; }
     .ra-card.loser { animation-delay:.08s; }
-    .ra-delta { font-family:var(--font-display);font-weight:700; font-size:38px; line-height:1; animation:deltaCountIn .4s .3s var(--ease-out) both; }
+    .ra-delta { font-family:var(--font-display);font-weight:800; font-size:44px; letter-spacing:-0.03em; line-height:1; animation:deltaCountIn .3s .15s var(--ease-out) both; }
     .ra-delta.win { color:var(--success); }
     .ra-delta.loss { color:var(--danger); }
 
@@ -1164,7 +1157,7 @@
     .toast-wrap { position:fixed; bottom:22px; right:22px; z-index:2000; display:flex; flex-direction:column; gap:8px; }
 
     .toast {
-      background:rgba(4,14,30,0.96); border:1px solid var(--border);
+      background:rgba(11,13,16,0.96); border:1px solid var(--border);
       border-radius:var(--radius-sm); padding:12px 16px;
       font-size:13px; font-weight:500; color:var(--text-primary);
       box-shadow:var(--shadow), var(--glow-ice);
@@ -1191,7 +1184,7 @@
     body.light .form-select,
     body.light .form-textarea {
       background:rgba(255,255,255,0.90);
-      border-color:rgba(0,120,180,0.18);
+      border-color:rgba(108,196,255,0.18);
       color:var(--text-primary);
     }
     body.light .form-input::placeholder,
@@ -1199,16 +1192,16 @@
     body.light .form-select option { background:#e8f4ff; color:#081828; }
     body.light .pp-trigger {
       background:rgba(255,255,255,0.90);
-      border-color:rgba(0,120,180,0.18);
+      border-color:rgba(108,196,255,0.18);
     }
     body.light .pp-dropdown {
       box-shadow:0 12px 32px rgba(0,0,0,0.12);
     }
     body.light .pp-search {
       background:rgba(0,0,0,0.04);
-      border-bottom-color:rgba(0,120,180,0.13);
+      border-bottom-color:rgba(108,196,255,0.13);
     }
-    body.light .pp-item:hover { background:rgba(0,120,180,0.06); }
+    body.light .pp-item:hover { background:rgba(108,196,255,0.06); }
     body.light .pp-item.selected { background:rgba(22,119,210,0.12); }
     body.light .toast {
       background:rgba(255,253,248,0.97);
@@ -1220,7 +1213,7 @@
     }
     body.light .auth-card {
       background:rgba(255,255,255,0.94);
-      border-color:rgba(0,120,180,0.20);
+      border-color:rgba(108,196,255,0.20);
       box-shadow:0 24px 64px rgba(0,0,0,0.12), var(--glow-ice);
     }
     body.light .auth-screen::before {
@@ -1231,10 +1224,10 @@
       );
     }
     body.light .nav-btn { color:var(--text-secondary); }
-    body.light .nav-btn:hover { background:rgba(0,120,180,0.07); }
-    body.light .nav-btn.active { color:var(--ice); background:rgba(0,120,180,0.10); }
-    body.light td { color:var(--text-secondary); border-bottom-color:rgba(0,120,180,0.07); }
-    body.light tr:hover td { background:rgba(0,120,180,0.04); }
+    body.light .nav-btn:hover { background:rgba(108,196,255,0.07); }
+    body.light .nav-btn.active { color:var(--ice); background:rgba(108,196,255,0.10); }
+    body.light td { color:var(--text-secondary); border-bottom-color:rgba(108,196,255,0.07); }
+    body.light tr:hover td { background:rgba(108,196,255,0.04); }
     body.light #rating-anim-overlay { background:rgba(220,235,245,0.92); }
 
     /* ── SCROLLBAR ── */
@@ -1263,7 +1256,7 @@
       pointer-events:none;
     }
     .auth-card {
-      background:rgba(3,12,28,0.92); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.92); border:1px solid rgba(108,196,255,0.2);
       border-radius:var(--radius-lg); padding:40px;
       width:100%; max-width:400px;
       max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1571,7 +1564,7 @@
       box-shadow:var(--shadow-surface-sm);
       transition:border-color .15s, box-shadow .15s;
     }
-    .tourney-card:hover { border-color:var(--ice); box-shadow:0 0 18px var(--ice-glow); }
+    .tourney-card:hover { border-color:var(--ice); box-shadow:none; }
     .tourney-card-hdr { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
     .tourney-card-name { font-size:15px;font-weight:700;flex:1; }
     .pc-drag-over { border-color:var(--ice) !important; background:rgba(108,196,255,0.10) !important; }
@@ -1966,7 +1959,7 @@
     .resort-wrap { position:relative; }
     .resort-dropdown {
       position:absolute; top:calc(100% + 5px); left:0; right:0; z-index:200;
-      background:rgba(5,16,34,0.97);
+      background:rgba(11,13,16,0.97);
       border:1px solid rgba(108,196,255,0.28);
       border-radius:var(--radius-sm);
       backdrop-filter:blur(24px);
@@ -2045,7 +2038,7 @@
         border-top-right-radius:22px;
         border-bottom-left-radius:0;
         border-bottom-right-radius:0;
-        background:rgba(3,10,24,0.97);
+        background:rgba(11,13,16,0.97);
         backdrop-filter:blur(32px);
         -webkit-backdrop-filter:blur(32px);
         box-shadow:0 -2px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
@@ -2099,7 +2092,7 @@
         padding:8px 14px;
         border:1px solid rgba(108,196,255,0.15);
         border-radius:var(--radius-lg);
-        background:rgba(3,10,24,0.97);
+        background:rgba(11,13,16,0.97);
         backdrop-filter:blur(32px);
         -webkit-backdrop-filter:blur(32px);
         box-shadow:0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
@@ -2157,17 +2150,17 @@
       /* ── Live game ── */
       .live-board { grid-template-columns:1fr 1fr; gap:8px; }
       .vs-text { display:none; }
-      .player-panel { padding:12px 8px; border-radius:14px; }
+      .player-panel { padding:14px 8px 12px; border-radius:var(--radius); }
       .pp-name { font-size:13px; }
       .pp-rating { font-size:10px; }
-      .ski-letter { width:28px; height:28px; font-size:12px; }
+      .ski-letter { width:32px; height:32px; font-size:14px; }
 
       /* ── Auth card ── */
       .auth-card {
         padding:28px 20px; margin:0; max-width:100%;
         border-radius:24px;
         border:1px solid rgba(255,255,255,0.07);
-        background:rgba(4,14,30,0.88);
+        background:rgba(11,13,16,0.88);
         backdrop-filter:blur(24px);
         -webkit-backdrop-filter:blur(24px);
       }
@@ -2248,7 +2241,7 @@
     .admin-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
     .admin-table { width:100%; border-collapse:collapse; font-size:13px; }
     .admin-table th { padding:10px 14px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
-    .admin-table td { padding:10px 14px; border-bottom:1px solid rgba(0,200,255,0.05); vertical-align:middle; }
+    .admin-table td { padding:10px 14px; border-bottom:1px solid rgba(108,196,255,0.05); vertical-align:middle; }
     .admin-table tr:last-child td { border-bottom:none; }
     .admin-table tr:hover td { background:rgba(108,196,255,0.03); }
     .admin-stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
@@ -2263,7 +2256,7 @@
       align-items:flex-end; justify-content:center;
     }
     #trick-lib-sheet {
-      background:rgba(4,14,32,0.99); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.99); border:1px solid rgba(108,196,255,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       width:100%; max-width:560px;
       box-shadow:0 -12px 60px rgba(0,0,0,0.85);
@@ -2362,7 +2355,7 @@
       align-items:flex-end; justify-content:center;
     }
     #onboard-card {
-      background:rgba(4,14,32,0.99); border:1px solid rgba(108,196,255,0.2);
+      background:rgba(11,13,16,0.99); border:1px solid rgba(108,196,255,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       border-bottom-left-radius:0; border-bottom-right-radius:0;
       padding:12px 24px 0; width:100%; max-width:520px;
@@ -3724,10 +3717,10 @@
 </div>
 
 <!-- ═══ Admin Console ═══ -->
-<div id="admin-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(1,6,14,0.97);backdrop-filter:blur(8px);overflow-y:auto;">
+<div id="admin-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(11,13,16,0.97);backdrop-filter:blur(8px);overflow-y:auto;">
   <!-- Access-denied gate (shown when the signed-in account isn't an admin) -->
   <div id="admin-gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
-    <div style="background:rgba(5,16,34,0.95);border:1px solid rgba(108,196,255,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
+    <div style="background:rgba(11,13,16,0.95);border:1px solid rgba(108,196,255,0.2);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center;">
       <div style="font-size:36px;margin-bottom:12px;">🔒</div>
       <div style="font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-0.02em;color:var(--primary);margin-bottom:6px;">ACCESS DENIED</div>
       <div id="admin-gate-msg" style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Sign in with an admin account to use the Admin Console.</div>
@@ -8685,10 +8678,10 @@ function playerPanel(player, g, role) {
       <div class="pp-name">${escHtml(player.name)}</div>
       <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} &nbsp; ${t.provisional ? tierBadgeHTML(t, `Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}`, {clickable:true}) : tierBadgeHTML(t, t.label, {clickable:true})}</div>
       <div class="ski-letters">
-        ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${i<letters?l:'·'}</div>`).join('')}
+        ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${l}</div>`).join('')}
       </div>
-      ${role==='setter' ? '<div class="badge badge-accent" style="margin-top:10px;"><svg class="icon icon-target"><use href="#i-target"/></svg> SETTER</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Goes first — names a trick and attempts it</div>' : ''}
-      ${role==='copier' ? '<div class="badge badge-primary" style="margin-top:10px;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> COPYING</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Match the trick or take a letter</div>' : ''}
+      ${role==='setter' ? '<div class="role-tag role-set">Setting</div><div class="role-hint">Names a trick and attempts it</div>' : ''}
+      ${role==='copier' ? '<div class="role-tag role-copy">Copying</div><div class="role-hint">Match it or take a letter</div>' : ''}
       ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> ${g.strikes[player.id]}/3 strikes</div>` : ''}
     </div>`;
 }
@@ -10594,7 +10587,7 @@ function clipPreviewHtml(clip, prefix) {
     <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'vimeo') return `
     <div class="clip-thumb" onclick="this.innerHTML='<iframe src=\\'${clip.embed}\\' frameborder=\\'0\\' allow=\\'autoplay;fullscreen\\' allowfullscreen style=\\'width:100%;height:100%;position:absolute;inset:0;\\'></iframe>'" style="cursor:pointer;">
-      <div style="width:100%;height:100%;background:rgba(26,183,234,0.12);display:flex;align-items:center;justify-content:center;font-size:48px;">▶</div>
+      <div style="width:100%;height:100%;background:rgba(108,196,255,0.12);display:flex;align-items:center;justify-content:center;font-size:48px;">▶</div>
     </div>
     <div class="clip-clear" onclick="clearClip('${prefix}')"><svg class="icon icon-close"><use href="#i-close"/></svg> Remove clip</div>`;
   if (clip.type === 'file') return `
@@ -12111,7 +12104,7 @@ function renderBracketHTML(t) {
   const C_MUTED  = '#3a6a84';
   const C_ICE    = '#6cc4ff';
   const C_ORANGE = '#ff7a00';
-  const C_BG     = 'rgba(3,12,28,0.55)';
+  const C_BG     = 'rgba(11,13,16,0.55)';
   const C_PLAY   = 'rgba(108,196,255,0.10)';
 
   let lines = '', boxes = '', labels = '';
@@ -12141,7 +12134,7 @@ function renderBracketHTML(t) {
     const canPlay  = isActive && !isPlayed && !isBye && p1 && p2 && iAmIn && prevDone;
 
     const borderCol  = canPlay ? C_ICE : C_LINE;
-    const bgFill     = canPlay ? C_PLAY : 'rgba(3,12,28,0.45)';
+    const bgFill     = canPlay ? C_PLAY : 'rgba(11,13,16,0.45)';
     const bw         = canPlay ? 1.5 : 1;
 
     // Match background rect — only clickable if you're in the match
@@ -13248,7 +13241,7 @@ function resortInput(el, ddId='resort-dropdown') {
     const passBadge = r.pass === 'ikon'
       ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(232,97,26,0.18);color:#f07030;font-weight:800;letter-spacing:.5px;flex-shrink:0;">IKON</span>`
       : r.pass === 'epic'
-      ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(30,130,230,0.18);color:#5aaff0;font-weight:800;letter-spacing:.5px;flex-shrink:0;">EPIC</span>`
+      ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(108,196,255,0.18);color:#5aaff0;font-weight:800;letter-spacing:.5px;flex-shrink:0;">EPIC</span>`
       : '';
     return `<div class="resort-item" data-idx="${i}" onmousedown="pickResort('${r.name.replace(/'/g,"\\'")}','${ddId}')">
       <span class="resort-item-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span>
@@ -13978,14 +13971,13 @@ function showRatingAnim(winner, loser, game) {
   const wD = game.winnerDelta, lD = game.loserDelta;
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
-      <div style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:-0.02em;color:var(--text-muted);">RATINGS UPDATED</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);">Ratings updated</div>
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div class="ra-card${wD>=15?' tier3-glow':''}">
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> ${escHtml(winner.name)}</div>
-          <div class="ra-delta win">+${wD}${wD>=15?' <svg class="icon icon-fire"><use href="#i-fire"/></svg>':''}</div>
+          <div class="ra-delta win">+<span class="ra-count" data-to="${wD}">${wD}</span></div>
           <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Now <span style="color:var(--primary);font-weight:700;">${wNew}</span></div>
         </div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--border);">VS</div>
         <div class="ra-card loser">
           <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">${escHtml(loser.name)}</div>
           <div class="ra-delta loss">${lD}</div>
@@ -13995,13 +13987,30 @@ function showRatingAnim(winner, loser, game) {
       <div style="font-size:12px;color:var(--text-muted);opacity:.6;">tap anywhere to dismiss</div>
     </div>`;
   el.classList.add('visible');
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) fireRatingCelebration(wD);
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    _countUp(el.querySelector('.ra-count'));
+    fireRatingCelebration(wD);
+  }
   const dismiss = () => {
     el.style.animation = 'ratingCardOut var(--dur-exit) var(--ease-in) forwards';
     setTimeout(() => { el.classList.remove('visible'); el.style.animation=''; el.innerHTML=''; el.removeEventListener('click', dismiss); }, 320);
   };
   el.addEventListener('click', dismiss);
   setTimeout(dismiss, 3200);
+}
+
+// Winner's delta ticks up from 0 — the number itself is the payoff, so it
+// gets the one longer animation in the app (600ms ease-out).
+function _countUp(node) {
+  if (!node) return;
+  const to = Number(node.dataset.to) || 0, start = performance.now(), dur = 600;
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / dur);
+    node.textContent = Math.round(to * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  node.textContent = '0';
+  requestAnimationFrame(step);
 }
 
 // Tiered win celebration off the same winnerDelta signal the fire-icon threshold
@@ -14012,7 +14021,7 @@ function fireRatingCelebration(wD) {
   if (typeof confetti !== 'function' || wD < 8) return;
   const mobile = window.matchMedia('(max-width:600px)').matches;
   const style = getComputedStyle(document.documentElement);
-  const colors = [style.getPropertyValue('--ice').trim(), style.getPropertyValue('--fire').trim(), style.getPropertyValue('--success').trim()].filter(Boolean);
+  const colors = [style.getPropertyValue('--ice').trim(), style.getPropertyValue('--pop').trim(), '#ffffff'].filter(Boolean);
   const fire = (particleCount) => confetti({
     particleCount, spread: 70, startVelocity: 45, gravity: 1,
     colors, origin: { x:0.5, y:0.25 }, zIndex: 9600, useWorker: true,
@@ -14517,7 +14526,7 @@ async function adminWipeEverything() {
 
 <!-- Tier info modal -->
 <div id="tier-modal-overlay" onclick="closeTierModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
+  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;">
     <button onclick="closeTierModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> Rank Tiers</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
@@ -14604,7 +14613,7 @@ async function adminWipeEverything() {
 
 <!-- Badge detail modal -->
 <div id="badge-modal-overlay" onclick="closeBadgeModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10001;align-items:center;justify-content:center;padding:20px;">
-  <div onclick="event.stopPropagation()" style="background:rgba(3,12,28,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
+  <div onclick="event.stopPropagation()" style="background:rgba(11,13,16,0.97);border:1px solid rgba(108,196,255,0.22);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.8);position:relative;text-align:center;">
     <button onclick="closeBadgeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
     <div id="badge-modal-icon" style="font-size:52px;line-height:1;margin-bottom:14px;"></div>
     <div id="badge-modal-label" style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;"></div>
