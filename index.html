@@ -107,6 +107,26 @@
 
     [style*="--font-display"], .ra-delta, .admin-stat-val { font-variant-numeric:tabular-nums; }
 
+    /* ── Motion layer hand-off ──
+       When motion.dev is active (html.has-motion) it owns these entrances, so
+       the CSS versions are switched off to avoid animating twice. Exits and
+       everything else stay on CSS. */
+    .has-motion .view.active,
+    .has-motion .tbl-wrap tbody tr, .has-motion .stats-grid > *, .has-motion .profile-grid > *,
+    .has-motion .modal-overlay:not(.closing) .modal,
+    .has-motion .toast:not(.leaving),
+    .has-motion .ski-letter.earned,
+    .has-motion .ra-card, .has-motion .ra-delta { animation:none; }
+
+    /* Sliding active-tab pill (positioned by _motionTabPill). */
+    .tab-pill {
+      position:absolute; top:8px; left:0; height:calc(100% - 16px - env(safe-area-inset-bottom));
+      border-radius:var(--radius); background:rgba(255,255,255,0.06);
+      pointer-events:none; opacity:0; z-index:0;
+    }
+    .tabbar .nav-btn { z-index:1; }
+    body.light .tab-pill { background:rgba(10,14,20,0.06); }
+
     /* ── LIGHT MODE (daytime session — same accents, sunlit concrete ground) ── */
     body.light {
       --bg-base:     #f5f6f7;
@@ -2468,6 +2488,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1/dist/confetti.browser.min.js"></script>
+  <!-- Motion (motion.dev) 14.6.0, MIT — vendored so springs work offline on the mountain
+       and inside the iOS bundle. Exposes window.Motion; the app falls back to CSS without it. -->
+  <script src="assets/vendor/motion-14.6.0.min.js"></script>
 </head>
 <body>
 <style>
@@ -6991,6 +7014,7 @@ function toast(msg, type='') {
   html += escHtml(msg.slice(last));
   el.innerHTML = html;
   w.appendChild(el);
+  _motionToastIn(el);
 
   const dismiss = () => {
     el.classList.add('leaving');
@@ -7076,7 +7100,7 @@ function enableDrawerDrag(handleEl, sheetEl, closeFn, baseTransform = '') {
   handleEl.addEventListener('pointercancel', onUp);
 }
 
-function openModal(id)  { document.getElementById(id).classList.remove('hidden', 'closing'); }
+function openModal(id)  { document.getElementById(id).classList.remove('hidden', 'closing'); _motionModalIn(id); }
 function closeModal(id) {
   const el = document.getElementById(id);
   if (id === 'tourney-detail-modal') _openTourneyId = null;
@@ -7192,7 +7216,110 @@ function nav(view, _force) {
     'confirmations':   renderConfirmations,
     'tournaments':     renderTournaments,
   })[view]?.();
+  _motionNav(view);
 }
+
+// ═══════════════════════════════════════════════════════
+//  MOTION LAYER  (motion.dev)
+// ═══════════════════════════════════════════════════════
+// Springs instead of fixed-duration curves for the moments that carry meaning:
+// where you are (tab pill, view change), what just arrived (modal, toast, list),
+// and the duel's beats (a letter landing, the rating reveal). Interruptible by
+// design — a new animate() on the same element takes over mid-flight.
+// No-ops entirely (CSS fallbacks stay) without the library or with reduced motion.
+const MO = (window.Motion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? window.Motion : null;
+if (MO) document.documentElement.classList.add('has-motion');
+// visualDuration = how long it *looks* like it takes; bounce 0 = no overshoot.
+const SPRING_UI   = { type:'spring', visualDuration:0.28, bounce:0 };
+const SPRING_SNAP = { type:'spring', visualDuration:0.32, bounce:0.12 };
+const SPRING_POP  = { type:'spring', visualDuration:0.35, bounce:0.45 };
+
+// Motion leaves an inline transform behind; clear it so a transformed ancestor
+// never becomes the containing block for position:fixed children (FABs, sheets).
+function _moClear(els) {
+  (els.length != null ? [...els] : [els]).forEach(e => { e.style.transform = ''; e.style.opacity = ''; });
+}
+
+function _motionTabPill(instant) {
+  if (!MO) return;
+  const bar = document.querySelector('.tabbar');
+  if (!bar) return;
+  let pill = bar.querySelector('.tab-pill');
+  if (!pill) { pill = document.createElement('span'); pill.className = 'tab-pill'; bar.prepend(pill); }
+  const active = bar.querySelector('.nav-btn.active');
+  if (!active) { MO.animate(pill, { opacity:0 }, { duration:0.15 }); return; }
+  const x = active.offsetLeft, width = active.offsetWidth;
+  if (instant || pill.style.opacity === '' || pill.style.opacity === '0') {
+    // Place via Motion (duration 0) so its tracked x starts here, not at 0.
+    MO.animate(pill, { x, width }, { duration:0 });
+    MO.animate(pill, { opacity:1 }, { duration:0.15 });
+  } else {
+    MO.animate(pill, { x, width }, SPRING_SNAP);
+  }
+}
+
+function _motionNav(view) {
+  if (!MO) return;
+  _motionTabPill();
+  const el = document.getElementById(`view-${view}`);
+  if (!el) return;
+  // Explore is a full-bleed scroll-snap feed — moving it would fight the snap.
+  if (view !== 'explore') {
+    MO.animate(el, { opacity:[0, 1], y:[8, 0] }, SPRING_UI).then(() => _moClear(el));
+  }
+  if (view === 'leaderboard') _motionStagger('#global-stats > .stat-card, #lb-body tr:not(#lb-no-results)');
+}
+
+// Cascade a list in once, on arrival — not on every live data refresh.
+function _motionStagger(selector, max = 12) {
+  if (!MO) return;
+  const items = [...document.querySelectorAll(selector)].filter(e => e.offsetParent !== null).slice(0, max);
+  if (!items.length) return;
+  MO.animate(items, { opacity:[0, 1], y:[6, 0] }, { ...SPRING_UI, delay:MO.stagger(0.025) })
+    .then(() => _moClear(items));
+}
+
+function _motionModalIn(id) {
+  if (!MO) return;
+  const card = document.querySelector(`#${id} .modal`);
+  if (card) MO.animate(card, { opacity:[0, 1], y:[16, 0], scale:[0.98, 1] }, SPRING_UI).then(() => _moClear(card));
+}
+
+function _motionToastIn(el) {
+  if (!MO) return;
+  MO.animate(el, { opacity:[0, 1], y:[12, 0], scale:[0.96, 1] }, SPRING_SNAP).then(() => _moClear(el));
+}
+
+// Pop only letters that are new since the last render of this game — the board
+// is rebuilt with innerHTML on every snapshot, which made CSS re-pop them all.
+let _moLetterSeen = { game:null, counts:{} };
+function _motionLetters() {
+  const g = S.live;
+  if (!g) return;
+  if (_moLetterSeen.game !== g.id) _moLetterSeen = { game:g.id, counts:{ ...(g.letters || {}) } };
+  document.querySelectorAll('#live-board .player-panel[data-pid]').forEach(panel => {
+    const pid = panel.dataset.pid;
+    const now = (g.letters || {})[pid] || 0;
+    const before = _moLetterSeen.counts[pid] ?? now;
+    if (MO && now > before) {
+      const fresh = [...panel.querySelectorAll('.ski-letter.earned')].slice(before, now);
+      MO.animate(fresh, { scale:[0.5, 1], opacity:[0, 1] }, SPRING_POP).then(() => _moClear(fresh));
+    }
+    _moLetterSeen.counts[pid] = now;
+  });
+}
+
+function _motionReveal(overlay) {
+  if (!MO) return;
+  const cards = overlay.querySelectorAll('.ra-card');
+  MO.animate(cards, { opacity:[0, 1], y:[24, 0], scale:[0.96, 1] }, { ...SPRING_SNAP, delay:MO.stagger(0.08) })
+    .then(() => _moClear(cards));
+  const win = overlay.querySelector('.ra-delta.win');
+  if (win) MO.animate(win, { scale:[0.7, 1] }, { ...SPRING_POP, delay:0.12 }).then(() => _moClear(win));
+}
+
+window.addEventListener('resize', () => _motionTabPill(true));
+window.addEventListener('load', () => _motionTabPill(true));
 
 // ═══════════════════════════════════════════════════════
 //  PLAYER SELECTS
@@ -8470,6 +8597,7 @@ function drawBoard() {
       <span style="font-size:12px;color:var(--text-muted);">— ${byId(g.handicap.higherId)?.name} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
     </div>` : ''}
   `;
+  _motionLetters();
 
   if (!g.over) {
     // Hide all phase panels first
@@ -8635,7 +8763,7 @@ function playerPanel(player, g, role) {
   const letters = g.letters[player.id] || 0;
   const isRole = role==='setter' ? 'is-setter' : role==='copier' ? 'is-copier' : '';
   return `
-    <div class="player-panel ${isRole}">
+    <div class="player-panel ${isRole}" data-pid="${player.id}">
       <div style="display:flex;justify-content:center;margin-bottom:10px;">
         ${avatarHtml(player, 'avatar-lg')}
       </div>
@@ -13952,6 +14080,7 @@ function showRatingAnim(winner, loser, game) {
   el.classList.add('visible');
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     _countUp(el.querySelector('.ra-count'));
+    _motionReveal(el);
     fireRatingCelebration(wD);
   }
   const dismiss = () => {
