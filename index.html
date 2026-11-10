@@ -1824,7 +1824,12 @@
       transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     }
     .reel-action-icon .icon { color:#fff; }
-    .reel-action-btn:active .reel-action-icon { transform:scale(0.92); }
+    .reel-action-btn:active .reel-action-icon { transform:scale(0.92); background-color:rgba(0,0,0,0.45); }
+    /* iOS paints a dark tap-highlight box over any tapped onclick element —
+       a square flash behind the round reel buttons and over the whole clip on
+       tap-to-pause. Off for everything on Explore; the circles' own press
+       state (scale + slightly darker fill) is the feedback instead. */
+    #view-explore, #view-explore * { -webkit-tap-highlight-color:transparent; }
     /* Post Clip: same translucent circle as the reel actions, pinned top-right. */
     .post-clip-fab {
       position:fixed; top:calc(70px + env(safe-area-inset-top)); right:18px; z-index:90;
