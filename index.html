@@ -740,6 +740,17 @@
     }
     .seg button.on { background:var(--bg-elevated); color:var(--text-primary); box-shadow:inset 0 0 0 1px var(--border-light); }
     body.light .seg button.on { background:#fff; }
+    /* With the motion layer, the raised chip is one element that slides between
+       segments (_motionSegPill), like the tab-bar pill; the buttons go clear. */
+    .seg { position:relative; }
+    .seg-pill {
+      position:absolute; top:2px; bottom:2px; left:0; width:0; border-radius:8px;
+      background:var(--bg-elevated); box-shadow:inset 0 0 0 1px var(--border-light);
+      pointer-events:none;
+    }
+    body.light .seg-pill { background:#fff; }
+    .seg.seg-slide button { position:relative; z-index:1; }
+    .seg.seg-slide button.on { background:transparent; box-shadow:none; }
 
     .card-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
     .card-title { font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; }
@@ -7341,8 +7352,30 @@ function _motionReveal(overlay) {
   if (win) MO.animate(win, { scale:[0.7, 1] }, { ...SPRING_POP, delay:0.12 }).then(() => _moClear(win));
 }
 
+// Segmented controls (.seg): the active chip slides to whichever button gets
+// .on, same spring as the tab-bar pill. Watching the class (not each onclick)
+// covers every toggle, including ones flipped by code; the ResizeObserver
+// re-places it without animating when a hidden view is shown or the width changes.
+function _motionSegPill(seg, instant) {
+  let pill = seg.querySelector(':scope > .seg-pill');
+  if (!pill) { pill = document.createElement('span'); pill.className = 'seg-pill'; seg.prepend(pill); }
+  const active = seg.querySelector('button.on');
+  if (!active || !active.offsetWidth) return;
+  const x = active.offsetLeft, width = active.offsetWidth;
+  if (instant || !pill._placed) { MO.animate(pill, { x, width }, { duration:0 }); pill._placed = true; }
+  else MO.animate(pill, { x, width }, SPRING_SNAP);
+}
+function _initSegPills() {
+  if (!MO) return;
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.classList.add('seg-slide');
+    new MutationObserver(() => _motionSegPill(seg)).observe(seg, { subtree:true, attributes:true, attributeFilter:['class'] });
+    new ResizeObserver(() => _motionSegPill(seg, true)).observe(seg);
+  });
+}
+
 window.addEventListener('resize', () => _motionTabPill(true));
-window.addEventListener('load', () => _motionTabPill(true));
+window.addEventListener('load', () => { _motionTabPill(true); _initSegPills(); });
 
 // ═══════════════════════════════════════════════════════
 //  PLAYER SELECTS
