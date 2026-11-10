@@ -2882,12 +2882,12 @@
         <div class="card-hdr" style="flex-wrap:wrap;gap:10px;margin-bottom:12px;">
           <div style="display:flex;gap:6px;justify-content:space-between;flex-wrap:nowrap;overflow-x:auto;width:100%;">
             <div class="seg">
-              <button id="lb-tab-alltime" class="on" onclick="switchLbTab('alltime')">All-time</button>
-              <button id="lb-tab-weekly" onclick="switchLbTab('weekly')">This week</button>
+              <button id="lb-tab-alltime" class="on" onclick="tapLbTab('alltime')">All-time</button>
+              <button id="lb-tab-weekly" onclick="tapLbTab('weekly')">This week</button>
             </div>
             <div id="lb-sport-filter" class="seg">
-              <button onclick="setLbRiderFilter('skier')"   id="lb-rt-skier" class="on">Skiers</button>
-              <button onclick="setLbRiderFilter('boarder')" id="lb-rt-boarder">Boarders</button>
+              <button onclick="tapLbRiderFilter('skier')"   id="lb-rt-skier" class="on">Skiers</button>
+              <button onclick="tapLbRiderFilter('boarder')" id="lb-rt-boarder">Boarders</button>
             </div>
           </div>
         </div>
@@ -7290,15 +7290,16 @@ function _motionStagger(selector, max = 12) {
     .then(() => _moClear(items));
 }
 
-// Rankings table swaps (Prev/Next): the current rows slip out toward the side
+// Rankings table swaps (Prev/Next, period/sport toggles): the current rows slip out toward the side
 // you're leaving, then the new set cascades in from the side you're heading
 // (dir 1 = next, -1 = prev, 0 = in place, rising like the tab-open cascade).
 // A newer swap supersedes one still mid-exit, so rapid taps only render once.
+// Rows are whichever of the all-time / weekly tables is showing at the time.
 let _lbSwapSeq = 0;
-function _motionLbSwap(bodySel, render, dir = 0) {
+function _motionLbSwap(render, dir = 0) {
   if (!MO) { render(); return; }
   const seq = ++_lbSwapSeq;
-  const rows = () => [...document.querySelectorAll(`${bodySel} tr:not(#lb-no-results)`)].filter(r => r.offsetParent !== null);
+  const rows = () => [...document.querySelectorAll('#lb-body tr:not(#lb-no-results), #lb-weekly-body tr')].filter(r => r.offsetParent !== null);
   const out = rows();
   const swapIn = () => {
     if (seq !== _lbSwapSeq) return;
@@ -7666,13 +7667,13 @@ function filterLeaderboard() {
 
 function lbGoToPage(step) {
   _lbPage += step;
-  _motionLbSwap('#lb-body', filterLeaderboard, Math.sign(step));
+  _motionLbSwap(filterLeaderboard, Math.sign(step));
   document.getElementById('lb-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function lbWeeklyGoToPage(step) {
   _lbWeeklyPage += step;
-  _motionLbSwap('#lb-weekly-body', renderWeeklyLeaderboard, Math.sign(step));
+  _motionLbSwap(renderWeeklyLeaderboard, Math.sign(step));
   document.getElementById('lb-weekly-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -7715,6 +7716,20 @@ function filterRiders(q) {
 // ═══════════════════════════════════════════════════════
 let _lbTab = 'alltime';
 let _challengeOpponentId = null;
+
+// Toggle taps re-cascade the rows; the programmatic calls (renders, the
+// sport auto-default) go straight to switchLbTab/setLbRiderFilter unanimated.
+// The chip moves on tap; the render waits for the rows' short exit.
+function tapLbTab(tab) {
+  if (document.getElementById(`lb-tab-${tab}`)?.classList.contains('on')) return; // .on = latest tap, even mid-swap
+  ['alltime','weekly'].forEach(t => document.getElementById(`lb-tab-${t}`)?.classList.toggle('on', t === tab));
+  _motionLbSwap(() => switchLbTab(tab));
+}
+function tapLbRiderFilter(type) {
+  if (document.getElementById(`lb-rt-${type}`)?.classList.contains('on')) return;
+  ['skier','boarder'].forEach(t => document.getElementById(`lb-rt-${t}`)?.classList.toggle('on', t === type));
+  _motionLbSwap(() => setLbRiderFilter(type));
+}
 
 function switchLbTab(tab) {
   _lbTab = tab;
