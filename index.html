@@ -2292,6 +2292,22 @@
 
       /* ── Modal full-width on small screens ── */
       .modal { padding:20px 16px; border-radius:var(--radius); }
+
+      /* ── Create Tournament — taller than a phone screen ──
+         90vh is measured with Safari's toolbars hidden, so with them showing the
+         centred card overflowed the visible area (top and bottom clipped) and the
+         Create button sat behind the toolbar / home indicator — scrolling hit the
+         end before it came into view. Size to the visible (dynamic) viewport
+         minus the safe areas, and keep the swipe inside the sheet. */
+      #create-tourney-modal {
+        padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      }
+      #create-tourney-modal .modal {
+        max-height:calc(100vh - 24px);
+        max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        overscroll-behavior:contain;
+        -webkit-overflow-scrolling:touch;
+      }
     }
 
     /* ── Fix background-attachment:fixed on iOS Safari (known rendering bug) ── */
