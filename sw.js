@@ -36,8 +36,12 @@ self.addEventListener('fetch', event => {
   const isShellFile = req.mode === 'navigate' || SHELL_FILES.some(f => url.pathname.endsWith(f.replace('./', '')));
   if (!isShellFile) return;
 
+  // cache:'no-cache' revalidates with the server every time (a cheap 304 when
+  // unchanged). Without it, GitHub Pages' max-age=600 let the browser serve a
+  // stale index.html for up to 10 minutes after a deploy. A navigate-mode
+  // Request can't be re-fetched with options, so navigations go by URL.
   event.respondWith(
-    fetch(req)
+    fetch(req.mode === 'navigate' ? req.url : req, { cache: 'no-cache' })
       .then(res => {
         const resClone = res.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
