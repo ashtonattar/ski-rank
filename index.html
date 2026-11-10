@@ -7315,6 +7315,29 @@ function _motionStagger(selector, max = 12) {
     .then(() => _moClear(items));
 }
 
+// Rankings table swaps (Prev/Next): the current rows slip out toward the side
+// you're leaving, then the new set cascades in from the side you're heading
+// (dir 1 = next, -1 = prev, 0 = in place, rising like the tab-open cascade).
+// A newer swap supersedes one still mid-exit, so rapid taps only render once.
+let _lbSwapSeq = 0;
+function _motionLbSwap(bodySel, render, dir = 0) {
+  if (!MO) { render(); return; }
+  const seq = ++_lbSwapSeq;
+  const rows = () => [...document.querySelectorAll(`${bodySel} tr:not(#lb-no-results)`)].filter(r => r.offsetParent !== null);
+  const out = rows();
+  const swapIn = () => {
+    if (seq !== _lbSwapSeq) return;
+    _moClear(out);
+    render();
+    const items = rows().slice(0, 12);
+    if (!items.length) return;
+    MO.animate(items, { opacity:[0, 1], x:[dir * 18, 0], y:[dir ? 0 : 6, 0] }, { ...SPRING_UI, delay:MO.stagger(0.025) })
+      .then(() => _moClear(items));
+  };
+  if (!out.length) { swapIn(); return; }
+  MO.animate(out, { opacity:0, x:-dir * 18 }, { duration:0.12, ease:'easeIn' }).then(swapIn);
+}
+
 function _motionModalIn(id) {
   if (!MO) return;
   const card = document.querySelector(`#${id} .modal`);
@@ -7646,13 +7669,13 @@ function filterLeaderboard() {
 
 function lbGoToPage(step) {
   _lbPage += step;
-  filterLeaderboard();
+  _motionLbSwap('#lb-body', filterLeaderboard, Math.sign(step));
   document.getElementById('lb-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function lbWeeklyGoToPage(step) {
   _lbWeeklyPage += step;
-  renderWeeklyLeaderboard();
+  _motionLbSwap('#lb-weekly-body', renderWeeklyLeaderboard, Math.sign(step));
   document.getElementById('lb-weekly-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
