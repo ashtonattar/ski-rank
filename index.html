@@ -700,6 +700,28 @@
     }
     #view-live-game.active > #play-hero-box { flex:1 0 auto; min-height:160px; }
     #view-live-game.active > #live-setup { margin-bottom:0 !important; flex-shrink:0; }
+    /* Skier 1 / Skier 2 stay side by side even on phones (the global mobile
+       rule stacks .form-row), saving ~85px of card height. Each dropdown is
+       widened to the full row so the rider list isn't squeezed into a column. */
+    #live-invite-form > .form-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+    #live-invite-form > .form-row .pp-dropdown { width:calc(200% + 12px); }
+    #pp-lv-p2 .pp-dropdown { left:auto; right:0; }
+    #live-invite-form > .form-row .pp-trigger > span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    /* Short screens (small phones, or any iPhone in Safari with its toolbars):
+       tighten the hero and the signed-out demo card so the Play home still fits. */
+    @media (max-height:700px) {
+      #view-live-game.active > #play-hero-box { min-height:0; }
+      .play-hero-content { padding:18px 18px 14px; }
+      .play-hero-title { font-size:28px; }
+      .play-hero-board.phb-large { gap:10px; padding-top:0; }
+      .phb-large .phb-panel { padding:10px 8px; }
+      .phb-large .phb-trick { padding:8px 12px; }
+      #guest-challenge-board > p { display:none; }
+    }
+    @media (max-height:600px) {
+      .play-hero-eyebrow { display:none; }
+      .play-hero-sub { font-size:13px; }
+    }
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
        real live-game S·K·I tracker (.ski-letter, defined further down) since
        it has no light-mode color of its own otherwise. */
