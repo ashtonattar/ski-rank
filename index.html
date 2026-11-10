@@ -9981,6 +9981,8 @@ function renderExplore() {
     }
   }).join('');
 
+  _alignPostClipFab();
+
   // Auto-play first video when view loads, respect mute state
   setupReelObserver();
   setupReelSwipe(feed, ranked.length);
@@ -10359,6 +10361,18 @@ function inviteFriends() {
 
 // ── Standalone clip posts ──────────────────────────────
 
+// Line the + up with the reel action column (like/comment/share). The column's
+// x depends on the reel card's layout, so measure it rather than hard-coding.
+function _alignPostClipFab() {
+  const fab  = document.getElementById('post-clip-fab');
+  const acts = document.querySelector('#explore-feed .reel-actions');
+  if (!fab || !acts || !acts.offsetWidth) return;
+  const b = acts.getBoundingClientRect();
+  fab.style.left  = `${Math.round(b.left + b.width / 2 - (fab.offsetWidth || 44) / 2)}px`;
+  fab.style.right = 'auto';
+}
+window.addEventListener('resize', _alignPostClipFab); // no-op unless Explore is showing
+
 let _pcFile = null; // file selected in Post Clip modal
 function openPostClip() {
   if (!currentUser) { toast('Sign in to post a clip', 'err'); return; }
@@ -10368,12 +10382,40 @@ function openPostClip() {
   document.getElementById('pc-file-input').value = '';
   document.getElementById('pc-drop-label').style.display   = 'block';
   document.getElementById('pc-drop-preview').style.display = 'none';
-  document.getElementById('post-clip-modal').style.display = 'flex';
+  const modal = document.getElementById('post-clip-modal');
+  modal.style.display = 'flex';
+  _sheetIn(modal);
 }
 
 function closePostClip() {
-  document.getElementById('post-clip-modal').style.display = 'none';
+  const modal = document.getElementById('post-clip-modal');
+  _sheetOut(modal);
   _pcFile = null;
+}
+
+// Bottom-sheet entrance/exit: backdrop fades while the sheet (first child)
+// slides up from the bottom edge on the iOS sheet curve the comments drawer
+// uses; the exit is shorter and accelerates out. WAAPI, so a close mid-open
+// just takes over from wherever the sheet is.
+const _REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function _sheetIn(overlay) {
+  if (_REDUCED_MOTION) return;
+  const sheet = overlay.firstElementChild;
+  overlay.animate([{ opacity:0 }, { opacity:1 }], { duration:220, easing:'ease-out' });
+  sheet.animate([{ transform:'translateY(100%)' }, { transform:'translateY(0)' }], { duration:380, easing:'cubic-bezier(.32,.72,0,1)' });
+}
+function _sheetOut(overlay) {
+  if (_REDUCED_MOTION || overlay.style.display === 'none') { overlay.style.display = 'none'; return; }
+  const sheet = overlay.firstElementChild;
+  const from = getComputedStyle(sheet).transform;
+  const fade  = overlay.animate([{ opacity:1 }, { opacity:0 }], { duration:220, easing:'ease-in', fill:'forwards' });
+  const slide = sheet.animate([{ transform:from === 'none' ? 'translateY(0)' : from }, { transform:'translateY(100%)' }],
+    { duration:220, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
+  // Hide first, then drop the held end-states, so nothing pops back for a frame.
+  Promise.all([fade.finished, slide.finished]).then(() => {
+    overlay.style.display = 'none';
+    fade.cancel(); slide.cancel();
+  }, () => {});
 }
 
 function pcHandleFile(file) {
