@@ -3396,9 +3396,9 @@
             <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none;">⌕</span>
           </div>
           <div class="seg">
-            <button onclick="setRidersTypeFilter('all')"     id="riders-rt-all" class="on">All</button>
-            <button onclick="setRidersTypeFilter('skier')"   id="riders-rt-skier">Skiers</button>
-            <button onclick="setRidersTypeFilter('boarder')" id="riders-rt-boarder">Boarders</button>
+            <button onclick="tapRidersTypeFilter('all')"     id="riders-rt-all" class="on">All</button>
+            <button onclick="tapRidersTypeFilter('skier')"   id="riders-rt-skier">Skiers</button>
+            <button onclick="tapRidersTypeFilter('boarder')" id="riders-rt-boarder">Boarders</button>
           </div>
         </div>
         <div id="player-list"></div>
@@ -7428,6 +7428,7 @@ function _motionNav(view) {
     MO.animate(el, { opacity:[0, 1], y:[8, 0] }, SPRING_UI).then(() => _moClear(el));
   }
   if (view === 'leaderboard') _motionStagger('#global-stats > .stat-card, #lb-body tr:not(#lb-no-results)');
+  if (view === 'players') _motionStagger('#player-list [data-rider]');
 }
 
 // Cascade a list in once, on arrival — not on every live data refresh.
@@ -7444,14 +7445,18 @@ function _motionStagger(selector, max = 12) {
 // (dir 1 = next, -1 = prev, 0 = in place, rising like the tab-open cascade).
 // A newer swap supersedes one still mid-exit, so rapid taps only render once.
 // Rows are whichever of the all-time / weekly tables is showing at the time.
-let _lbSwapSeq = 0;
+// The Riders list's sport toggle reuses the same swap on its own rows.
+const _rowSwapSeq = {};
 function _motionLbSwap(render, dir = 0) {
+  _motionRowSwap('#lb-body tr:not(#lb-no-results), #lb-weekly-body tr', render, dir);
+}
+function _motionRowSwap(selector, render, dir = 0) {
   if (!MO) { render(); return; }
-  const seq = ++_lbSwapSeq;
-  const rows = () => [...document.querySelectorAll('#lb-body tr:not(#lb-no-results), #lb-weekly-body tr')].filter(r => r.offsetParent !== null);
+  const seq = _rowSwapSeq[selector] = (_rowSwapSeq[selector] || 0) + 1;
+  const rows = () => [...document.querySelectorAll(selector)].filter(r => r.offsetParent !== null);
   const out = rows();
   const swapIn = () => {
-    if (seq !== _lbSwapSeq) return;
+    if (seq !== _rowSwapSeq[selector]) return;
     _moClear(out);
     render();
     const items = rows().slice(0, 12);
@@ -7758,6 +7763,14 @@ function setRidersTypeFilter(type) {
     if (btn) btn.classList.toggle('on', t === type);
   });
   filterRiders(document.getElementById('riders-search')?.value || '');
+}
+
+// Toggle taps re-cascade the rows (like the Rankings toggles); the chip moves
+// on tap and the filter applies once the visible rows have slipped out.
+function tapRidersTypeFilter(type) {
+  if (document.getElementById(`riders-rt-${type}`)?.classList.contains('on')) return;
+  ['all','skier','boarder'].forEach(t => document.getElementById(`riders-rt-${t}`)?.classList.toggle('on', t === type));
+  _motionRowSwap('#player-list [data-rider]', () => setRidersTypeFilter(type));
 }
 
 function filterLeaderboard() {
