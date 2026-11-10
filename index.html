@@ -420,6 +420,7 @@
       opacity:0; pointer-events:none; transition:opacity .22s;
     }
     .more-sheet-overlay.open { opacity:1; pointer-events:auto; }
+    .more-sheet-overlay { touch-action:none; } /* swipes on the dim area don't scroll the page */
     .more-sheet {
       position:fixed; left:50%; bottom:0; z-index:151;
       width:100%; max-width:480px;
@@ -1853,7 +1854,9 @@
     #comments-drawer.open { transform: translateY(0); }
     /* Backdrop fades with the drawer instead of popping (its inline display:none
        is overridden; opacity + pointer-events do the showing/hiding). */
-    #comments-drawer-backdrop { display:block !important; opacity:0; pointer-events:none; transition:opacity .3s cubic-bezier(.32,.72,0,1); }
+    #comments-drawer-backdrop { display:block !important; opacity:0; pointer-events:none; transition:opacity .3s cubic-bezier(.32,.72,0,1); touch-action:none; }
+    /* A list that hits its end mustn't hand the swipe on to the page behind. */
+    #comments-list { overscroll-behavior:contain; }
     #comments-drawer-backdrop.open { opacity:1; pointer-events:auto; }
     .comment-item {
       display: flex; gap: 10px; padding: 10px 16px;
@@ -2371,7 +2374,7 @@
     }
     .tcat-btn.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
     #trick-lib-list {
-      flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+      flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
       padding:0 12px 12px;
     }
     .trick-cat-heading {
@@ -7076,24 +7079,18 @@ function toast(msg, type='') {
   });
 }
 
-// Vaul-style drag-to-dismiss for bottom sheets: tracks the pointer 1:1 while
-// dragging the handle, then either snaps back or hands off to the sheet's own
-// exit animation depending on distance/velocity — never a scripted sequence.
+// Vaul-style drag-to-dismiss for bottom sheets: tracks the finger 1:1 while
+// dragging, then either snaps back or hands off to the sheet's own exit
+// animation depending on distance/velocity — never a scripted sequence.
+// Touch drags work from anywhere on the sheet (_sheetTouchDrag); mouse/pen
+// drags use the grabber handle.
 function enableSheetDrag(handleEl, sheetEl, closeFn) {
   if (!handleEl || !sheetEl || handleEl.dataset.dragWired) return;
   handleEl.dataset.dragWired = '1';
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let dragging = false, startY = 0, startTime = 0, dy = 0;
-  handleEl.addEventListener('pointerdown', (e) => {
-    dragging = true; startY = e.clientY; startTime = Date.now(); dy = 0;
-    sheetEl.style.transition = 'none';
-    handleEl.setPointerCapture?.(e.pointerId);
-  });
-  handleEl.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    dy = Math.max(0, e.clientY - startY);
-    if (!reduced()) sheetEl.style.transform = `translateY(${dy}px)`;
-  });
+  let dragging = false, startTime = 0, dy = 0;
+  const begin = () => { dragging = true; startTime = Date.now(); dy = 0; sheetEl.style.transition = 'none'; };
+  const move  = (d) => { dy = d; if (!reduced()) sheetEl.style.transform = `translateY(${dy}px)`; };
   const onUp = () => {
     if (!dragging) return;
     dragging = false;
@@ -7106,8 +7103,8 @@ function enableSheetDrag(handleEl, sheetEl, closeFn) {
       sheetEl.style.transform = '';
     }
   };
-  handleEl.addEventListener('pointerup', onUp);
-  handleEl.addEventListener('pointercancel', onUp);
+  _handlePointerDrag(handleEl, begin, move, onUp);
+  _sheetTouchDrag(sheetEl, begin, move, onUp);
 }
 
 // Same idea, but for sheets whose open/close is a persistent CSS-class transition
@@ -7119,17 +7116,12 @@ function enableSheetDrag(handleEl, sheetEl, closeFn) {
 function enableDrawerDrag(handleEl, sheetEl, closeFn, baseTransform = '') {
   if (!handleEl || !sheetEl || handleEl.dataset.dragWired) return;
   handleEl.dataset.dragWired = '1';
-  let dragging = false, startY = 0, startTime = 0, dy = 0;
-  handleEl.addEventListener('pointerdown', (e) => {
-    dragging = true; startY = e.clientY; startTime = Date.now(); dy = 0;
-    sheetEl.style.transition = 'none';
-    handleEl.setPointerCapture?.(e.pointerId);
-  });
-  handleEl.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    dy = Math.max(0, e.clientY - startY);
+  let dragging = false, startTime = 0, dy = 0;
+  const begin = () => { dragging = true; startTime = Date.now(); dy = 0; sheetEl.style.transition = 'none'; };
+  const move  = (d) => {
+    dy = d;
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) sheetEl.style.transform = `${baseTransform} translateY(${dy}px)`;
-  });
+  };
   const onUp = () => {
     if (!dragging) return;
     dragging = false;
@@ -7143,8 +7135,72 @@ function enableDrawerDrag(handleEl, sheetEl, closeFn, baseTransform = '') {
       sheetEl.style.transform = '';
     }
   };
-  handleEl.addEventListener('pointerup', onUp);
-  handleEl.addEventListener('pointercancel', onUp);
+  _handlePointerDrag(handleEl, begin, move, onUp);
+  _sheetTouchDrag(sheetEl, begin, move, onUp);
+}
+
+// Mouse/pen drag on the grabber. Touch is left to _sheetTouchDrag so a finger
+// on the handle isn't handled twice.
+function _handlePointerDrag(handleEl, begin, move, end) {
+  let startY = 0, active = false;
+  handleEl.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return;
+    active = true; startY = e.clientY; begin();
+    handleEl.setPointerCapture?.(e.pointerId);
+  });
+  handleEl.addEventListener('pointermove', (e) => { if (active) move(Math.max(0, e.clientY - startY)); });
+  const up = () => { if (active) { active = false; end(); } };
+  handleEl.addEventListener('pointerup', up);
+  handleEl.addEventListener('pointercancel', up);
+}
+
+// Touch drag-to-dismiss from anywhere on the sheet, not just its 5px grabber —
+// on iOS a swipe that started off the grabber rubber-banded the page behind
+// instead. A downward swipe takes the sheet once the list it started in (if
+// any) is scrolled to the top — mid-gesture, like iOS — otherwise the list
+// scrolls as normal. A move that isn't scrolling a list is swallowed so the
+// page underneath never moves.
+function _sheetTouchDrag(sheetEl, begin, move, end) {
+  if (sheetEl.dataset.touchDragWired) return;
+  sheetEl.dataset.touchDragWired = '1';
+  let startY = 0, scroller = null, dragging = false, skip = false;
+  sheetEl.addEventListener('touchstart', (e) => {
+    skip = e.touches.length !== 1;
+    dragging = false;
+    startY = e.touches[0].clientY;
+    scroller = _scrollableAncestor(e.target, sheetEl);
+  }, { passive:true });
+  sheetEl.addEventListener('touchmove', (e) => {
+    if (skip) return;
+    const y = e.touches[0].clientY;
+    if (!dragging) {
+      if (y - startY > 4 && (!scroller || scroller.scrollTop <= 0)) {
+        dragging = true; startY = y; begin(); // re-anchor so the sheet doesn't jump
+      } else {
+        if (!scroller) e.preventDefault();
+        return;
+      }
+    }
+    e.preventDefault();
+    move(Math.max(0, y - startY));
+  }, { passive:false });
+  const up = () => { if (dragging) { dragging = false; end(); } };
+  sheetEl.addEventListener('touchend', up);
+  sheetEl.addEventListener('touchcancel', up);
+  // Sheets wrapped in their own fixed overlay (trick library, onboarding): a
+  // swipe on the dim area around the sheet mustn't scroll the page either.
+  const ov = sheetEl.parentElement;
+  if (ov && ov !== document.body && getComputedStyle(ov).position === 'fixed') {
+    ov.addEventListener('touchmove', (e) => { if (e.target === ov) e.preventDefault(); }, { passive:false });
+  }
+}
+
+function _scrollableAncestor(el, sheetEl) {
+  for (; el && el !== sheetEl.parentElement; el = el.parentElement) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+  }
+  return null;
 }
 
 function openModal(id)  { document.getElementById(id).classList.remove('hidden', 'closing'); _motionModalIn(id); }
