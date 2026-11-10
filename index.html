@@ -686,6 +686,20 @@
       .play-hero-content { padding:24px 18px 18px; }
     }
     body.light .play-hero-bg { filter:brightness(.65) saturate(.9); }
+    /* Play home (hero visible, not in a game): hero + New Challenge card fill
+       the screen exactly down to the tab bar, so there's no dead black band and
+       nothing to scroll until "Location, judge & handicap" is opened. The tab
+       bar is 67px + safe area; 14px of breathing room above it. */
+    .main:has(> #view-live-game.active > #play-hero-box:not([style*="none"])) {
+      padding-bottom:calc(81px + env(safe-area-inset-bottom)) !important;
+    }
+    #view-live-game.active:has(> #play-hero-box:not([style*="none"])) {
+      display:flex; flex-direction:column;
+      min-height:calc(100vh - 145px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      min-height:calc(100dvh - 145px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    }
+    #view-live-game.active > #play-hero-box { flex:1 0 auto; min-height:160px; }
+    #view-live-game.active > #live-setup { margin-bottom:0 !important; flex-shrink:0; }
     /* Faint ice-tinted "unearned" letter color for light mode — shared by the
        real live-game S·K·I tracker (.ski-letter, defined further down) since
        it has no light-mode color of its own otherwise. */
@@ -3160,8 +3174,8 @@
               </div>
             </div>
           </div>
-          <details class="opt-settings">
-          <summary>Location, judge &amp; handicap</summary>
+          <details class="opt-settings" ontoggle="if(!this.open)lockPlayHeroHeight(false)">
+          <summary onclick="if(!this.parentElement.open)lockPlayHeroHeight(true)">Location, judge &amp; handicap</summary>
           <div class="opt-settings-body">
           <div class="form-group" style="margin-bottom:14px;">
             <label class="form-label"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Resort / Location (optional)</label>
@@ -8439,6 +8453,16 @@ function challengePlayer(opponentId) {
   _challengeOpponentId = opponentId;
   closeModal('profile-modal');
   nav('live-game');
+}
+
+// The Play hero grows to fill the screen above the tab bar (flex:1). Opening
+// "Location, judge & handicap" would otherwise shrink it back to its minimum,
+// so pin its height on the summary click (before the section opens — the
+// toggle event fires after layout, too late) and release it on close.
+function lockPlayHeroHeight(lock) {
+  const hero = document.getElementById('play-hero-box');
+  if (!hero) return;
+  hero.style.flex = lock ? `0 0 ${hero.offsetHeight}px` : '';
 }
 
 function renderLiveSetup() {
