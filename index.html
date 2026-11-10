@@ -1851,7 +1851,10 @@
        !important here would have blocked the drag from ever being visible. */
     #comments-drawer { transform: translateY(100%); }
     #comments-drawer.open { transform: translateY(0); }
-    #comments-drawer-backdrop.open { display: block !important; }
+    /* Backdrop fades with the drawer instead of popping (its inline display:none
+       is overridden; opacity + pointer-events do the showing/hiding). */
+    #comments-drawer-backdrop { display:block !important; opacity:0; pointer-events:none; transition:opacity .3s cubic-bezier(.32,.72,0,1); }
+    #comments-drawer-backdrop.open { opacity:1; pointer-events:auto; }
     .comment-item {
       display: flex; gap: 10px; padding: 10px 16px;
     }
@@ -10139,11 +10142,15 @@ function _onCommentInputFocus() {
   setTimeout(_onVPResize, 400);
 }
 
+// The drawer's resting height lives in its inline style, so restore it rather
+// than clearing it (height:'' collapsed the drawer to its content).
+const COMMENTS_DRAWER_H = 'min(70dvh,600px)';
+
 function _onCommentInputBlur() {
   const drawer = document.getElementById('comments-drawer');
   if (!drawer) return;
   drawer.style.bottom = '0';
-  drawer.style.height = '';
+  drawer.style.height = COMMENTS_DRAWER_H;
 }
 
 function openComments(itemId) {
@@ -10171,7 +10178,16 @@ function openComments(itemId) {
 
 function closeComments() {
   const drawer = document.getElementById('comments-drawer');
-  if (drawer) { drawer.classList.remove('open'); drawer.style.bottom = ''; drawer.style.height = ''; }
+  if (drawer) {
+    drawer.classList.remove('open');
+    // Keep the open size while it slides down (the reverse of opening); reset
+    // after the .3s slide unless it was reopened in the meantime.
+    setTimeout(() => {
+      if (drawer.classList.contains('open')) return;
+      drawer.style.bottom = '0';
+      drawer.style.height = COMMENTS_DRAWER_H;
+    }, 320);
+  }
   document.getElementById('comments-drawer-backdrop').classList.remove('open');
   if (window.visualViewport) {
     window.visualViewport.removeEventListener('resize', _onVPResize);
