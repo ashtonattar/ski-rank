@@ -421,6 +421,8 @@
     }
     .more-sheet-overlay.open { opacity:1; pointer-events:auto; }
     .more-sheet-overlay { touch-action:none; } /* swipes on the dim area don't scroll the page */
+    /* _lockPage: the reel feed scrolls on its own, so freeze it too. */
+    html.page-locked #explore-feed { overflow:hidden; touch-action:none; }
     .more-sheet {
       position:fixed; left:50%; bottom:0; z-index:151;
       width:100%; max-width:480px;
@@ -6149,11 +6151,13 @@ function openTrickLib(target) {
   const trickLibOverlay = document.getElementById('trick-lib-overlay');
   trickLibOverlay.classList.remove('closing');
   trickLibOverlay.style.display = 'flex';
+  _lockPage('tricklib');
   enableSheetDrag(document.getElementById('trick-lib-drag'), document.getElementById('trick-lib-sheet'), closeTrickLib);
 }
 
 function closeTrickLib() {
   const overlay = document.getElementById('trick-lib-overlay');
+  _unlockPage('tricklib');
   const finish = () => { overlay.style.display = 'none'; overlay.classList.remove('closing'); };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
   overlay.classList.add('closing');
@@ -6533,6 +6537,7 @@ function showOnboarding() {
   const overlay = document.getElementById('onboard-overlay');
   overlay.classList.remove('closing');
   overlay.style.display = 'flex';
+  _lockPage('onboarding');
   enableSheetDrag(document.getElementById('onboard-drag-handle'), document.getElementById('onboard-card'), closeOnboarding);
 }
 
@@ -6567,6 +6572,7 @@ function onboardNext() {
 
 function closeOnboarding() {
   const overlay = document.getElementById('onboard-overlay');
+  _unlockPage('onboarding');
   const finish = () => { overlay.style.display = 'none'; overlay.classList.remove('closing'); };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     finish();
@@ -7079,6 +7085,30 @@ function toast(msg, type='') {
   });
 }
 
+// Freeze the page behind an open pill sheet (comments, More, trick library,
+// onboarding). iOS ignores overflow:hidden on body for touch scrolling, so the
+// body is pinned with position:fixed at its current offset and put back exactly
+// on unlock; the Explore feed (its own scroller) is frozen via .page-locked.
+// Named locks so stacked sheets don't unlock each other.
+const _pageLocks = new Set();
+let _pageLockY = 0;
+function _lockPage(name) {
+  if (!_pageLocks.size) {
+    _pageLockY = window.scrollY;
+    Object.assign(document.body.style, { position:'fixed', top:`-${_pageLockY}px`, left:'0', right:'0', width:'100%' });
+    document.documentElement.classList.add('page-locked');
+  }
+  _pageLocks.add(name);
+}
+function _unlockPage(name) {
+  if (!_pageLocks.delete(name) || _pageLocks.size) return;
+  Object.assign(document.body.style, { position:'', top:'', left:'', right:'', width:'' });
+  document.documentElement.classList.remove('page-locked');
+  window.scrollTo(0, _pageLockY);
+}
+// The page's real scroll offset — window.scrollY reads 0 while it's locked.
+function _pageScrollY() { return _pageLocks.size ? _pageLockY : window.scrollY; }
+
 // Vaul-style drag-to-dismiss for bottom sheets: tracks the finger 1:1 while
 // dragging, then either snaps back or hands off to the sheet's own exit
 // animation depending on distance/velocity — never a scripted sequence.
@@ -7174,7 +7204,12 @@ function _sheetTouchDrag(sheetEl, begin, move, end) {
     if (skip) return;
     const y = e.touches[0].clientY;
     if (!dragging) {
-      if (y - startY > 4 && (!scroller || scroller.scrollTop <= 0)) {
+      const down = y - startY;
+      if (down > 0 && (!scroller || scroller.scrollTop <= 0)) {
+        // Claim it on the first move: once iOS commits a gesture to scrolling,
+        // later preventDefault()s are ignored.
+        e.preventDefault();
+        if (down <= 4) return;
         dragging = true; startY = y; begin(); // re-anchor so the sheet doesn't jump
       } else {
         if (!scroller) e.preventDefault();
@@ -7239,11 +7274,13 @@ const _viewScroll = {};
 function openMoreSheet() {
   document.getElementById('more-sheet')?.classList.add('open');
   document.getElementById('more-sheet-overlay')?.classList.add('open');
+  _lockPage('more');
   enableDrawerDrag(document.getElementById('more-sheet-drag'), document.getElementById('more-sheet'), closeMoreSheet, 'translateX(-50%)');
 }
 function closeMoreSheet() {
   document.getElementById('more-sheet')?.classList.remove('open');
   document.getElementById('more-sheet-overlay')?.classList.remove('open');
+  _unlockPage('more');
 }
 
 function nav(view, _force) {
@@ -7287,7 +7324,7 @@ function nav(view, _force) {
     return;
   }
   // Save scroll position of the current view before switching
-  if (_activeSection) _viewScroll[_activeSection] = window.scrollY || 0;
+  if (_activeSection) _viewScroll[_activeSection] = _pageScrollY() || 0;
   _activeSection = view;
   const acctBtn = document.getElementById('topbar-account');
   if (acctBtn) acctBtn.style.display = currentUser ? 'flex' : 'none';
@@ -10228,6 +10265,7 @@ function _onCommentInputBlur() {
 function openComments(itemId) {
   if (!currentUser) { toast('Sign in to view comments', 'err'); return; }
   _commentsItemId = itemId;
+  _lockPage('comments');
   renderCommentsList(itemId);
   const drawer = document.getElementById('comments-drawer');
   drawer.classList.add('open');
@@ -10261,6 +10299,7 @@ function closeComments() {
     }, 320);
   }
   document.getElementById('comments-drawer-backdrop').classList.remove('open');
+  _unlockPage('comments');
   if (window.visualViewport) {
     window.visualViewport.removeEventListener('resize', _onVPResize);
     window.visualViewport.removeEventListener('scroll', _onVPResize);
