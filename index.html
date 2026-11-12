@@ -14317,6 +14317,9 @@ async function _resolveFirebaseSession(fbUser, attempt = 0) {
     }
     console.warn('[init] player lookup failed after retries, staying signed in', e);
     _reportError(e, 'init', { step: 'player lookup' });
+    // Already launched from the cached session — nothing to fall back to.
+    const appEl = document.getElementById('app');
+    if (currentUser && appEl && appEl.style.display !== 'none') return;
     const session = getSession();
     if (session) { currentUser = session; launchApp(); }
     else { launchPreview(); toast('Connection trouble — check your signal and reload.', 'err'); }
@@ -14361,6 +14364,16 @@ async function init() {
       // Tag Sentry reports with the Firebase uid only (no name/email).
       if (window.Sentry) Sentry.setUser(fbUser ? { id: fbUser.uid } : null);
       if (fbUser) {
+        // Returning rider whose cached session belongs to this same account:
+        // launch now instead of holding the boot screen on the player lookup
+        // (a cold Firestore connection on mobile takes seconds). The lookup
+        // below still runs and refreshes or corrects the session.
+        const cached = getSession();
+        if (!currentUser && cached && cached.id &&
+            (cached.id === fbUser.uid || (fbUser.email && cached.email === fbUser.email))) {
+          currentUser = cached;
+          launchApp();
+        }
         await _resolveFirebaseSession(fbUser);
         return;
       }
