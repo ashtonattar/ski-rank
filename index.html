@@ -1018,6 +1018,28 @@
     }
 
     /* ── LIVE GAME BOARD ── */
+    /* ── P5 practice duel (local-only) ── */
+    #practice-entry { border-top:1px solid var(--border); margin-top:16px; padding-top:14px; text-align:center; }
+    #practice-entry .btn { width:100%; justify-content:center; min-height:44px; }
+    .practice-entry-hint { font-size:12px; color:var(--text-muted); margin-top:6px; }
+    #practice-overlay {
+      position:fixed; inset:0; z-index:1500; background:var(--bg-base);
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding:max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    }
+    #practice-overlay .px-inner { max-width:560px; margin:0 auto; }
+    .px-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .px-close { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      background:var(--bg-elevated); border:1px solid var(--border); border-radius:50%; color:var(--text-primary); cursor:pointer; }
+    .px-title { font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-0.02em; flex:1; }
+    .px-bot-avatar { width:64px; height:64px; border-radius:50%; background:var(--bg-elevated);
+      border:1px dashed var(--border-light); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--text-secondary); }
+    .px-bot-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .px-phase { text-align:center; }
+    .px-phase h3 { font-size:15px; font-weight:700; margin-bottom:10px; }
+    .px-phase p { font-size:13.5px; color:var(--text-secondary); margin-bottom:12px; }
+    .px-phase .btn { min-height:44px; }
+    .px-over-title { font-family:var(--font-display); font-weight:800; font-size:28px; letter-spacing:-0.03em; margin-bottom:6px; }
     .live-board {
       display:grid; grid-template-columns:1fr 60px 1fr;
       gap:16px; align-items:center; margin-bottom:20px;
@@ -3350,6 +3372,12 @@
           <div style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-0.02em;margin-bottom:6px;">Waiting for opponent…</div>
           <div id="live-invite-waiting-text" style="font-size:13px;color:var(--text-muted);margin-bottom:18px;"></div>
           <button class="btn btn-ghost btn-sm" onclick="cancelLiveInvite()">Cancel Invite</button>
+        </div>
+
+        <!-- P5 practice duel entry (local-only, see PRACTICE DUEL section) -->
+        <div id="practice-entry">
+          <button type="button" class="btn btn-outline" onclick="openPractice()"><svg class="icon icon-dice"><use href="#i-dice"/></svg> Practice vs. Demo Rider</button>
+          <div class="practice-entry-hint">No one around? Run a practice duel. Doesn't count.</div>
         </div>
       </div>
 
@@ -7094,16 +7122,325 @@ function _demoWatch() {
   // Play tab — heroBox itself (the marketing headline) carries no board to
   // animate, so visibility reduces to guest + on-tab, no separate hero check.
   const playViewActive = !!(playView && playView.classList.contains('active'));
-  if (guest && playViewActive && !reduceMotion) _demoStart();
+  if (guest && playViewActive && !reduceMotion && !_practice) _demoStart();
   else _demoStop();
 
 }
+// P5: declared here (not in the PRACTICE DUEL section below) so _demoWatch's
+// first call can read it without a TDZ error.
+let _practice = null;
 _demoWatchTimer = setInterval(_demoWatch, 800);
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', _demoWatch);
 } else {
   _demoWatch();
 }
+
+// ═══ PRACTICE DUEL (P5): local-only, never persisted ═══
+// Solo S·K·I duel against a bot ("Demo Rider"). Nothing here counts: all
+// state lives in _practice (declared above, OUTSIDE S), so it never reaches
+// save()/localStorage/Firestore, and none of the S.live-bound live-game
+// helpers (addLog/drawBoard/playerPanel/_motionLetters) are used. Rendered in
+// a fixed overlay so renderLiveSetup() repaints can't touch it. Every bot beat
+// runs through _practiceAfter(), which drops callbacks from a stale game (gen).
+const PRACTICE_BOT_ODDS   = { easy:0.85, medium:0.65, hard:0.45, expert:0.25 };
+const PRACTICE_BOT_WEIGHT = { easy:50, medium:35, hard:15, expert:0 };
+const PRACTICE_BOT_PHASES = ['bot-setting', 'bot-copy', 'bot-revenge'];
+let _practiceGen = 0;
+const _PX_I = {
+  check:  '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>',
+  x:      '<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>',
+  target: '<svg class="icon icon-target"><use href="#i-target"/></svg>',
+  fire:   '<svg class="icon icon-fire"><use href="#i-fire"/></svg>',
+  wind:   '<svg class="icon icon-wind"><use href="#i-wind"/></svg>',
+  hour:   '<svg class="icon icon-hourglass"><use href="#i-hourglass"/></svg>',
+  skis:   '<svg class="icon icon-skis"><use href="#i-skis"/></svg>',
+  dice:   '<svg class="icon icon-dice"><use href="#i-dice"/></svg>',
+  trophy: '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>',
+};
+
+function openPractice() {
+  if (S.live && !S.live.over && currentUser &&
+      (currentUser.id === S.live.p1 || currentUser.id === S.live.p2 || currentUser.id === S.live.judgeId)) {
+    toast('Finish your live game first.', 'err'); return;
+  }
+  const pendingOut = currentUser && (S.liveInvites || []).find(i => i.fromId === currentUser.id && i.status === 'pending');
+  const judgeOpen  = currentUser && (S.liveInvites || []).find(i => i.role === 'judge' && i.toId === currentUser.id && i.status === 'accepted');
+  if (pendingOut || judgeOpen) { toast('You have a live invite open. Cancel it to practice.', 'err'); return; }
+  _practiceStart(currentUser?.riderType === 'boarder' ? 'snowboard' : 'ski');
+  const ov = document.getElementById('practice-overlay');
+  ov.style.display = 'block';
+  ov.scrollTop = 0;
+  _lockPage('practice');
+}
+
+function _practiceStart(sport) {
+  if (_practice) _practice.timers.forEach(clearTimeout);
+  _practice = {
+    gen: ++_practiceGen, sport,
+    letters: { me:0, bot:0 }, shown: { me:0, bot:0 },
+    setter: null, trick: null, trickDiff: 'easy',
+    phase: 'pick-setter', log: [], rounds: 0, winner: null, timers: [],
+  };
+  _practiceLog(_PX_I.skis, 'Practice duel started. Nothing here counts.');
+  _practiceRender();
+}
+
+function practiceRestart() {
+  if (!_practice) return;
+  _practiceStart(_practice.sport);
+}
+
+function practiceExit(opts) {
+  const reason = opts && opts.reason;
+  if (!_practice) return;
+  _practice.timers.forEach(clearTimeout);
+  _practice = null;
+  _practiceGen++;
+  const ov = document.getElementById('practice-overlay');
+  if (ov) ov.style.display = 'none';
+  const inner = document.getElementById('px-inner');
+  if (inner) inner.innerHTML = '';
+  _unlockPage('practice');
+  if (typeof _trickLibTarget !== 'undefined' && _trickLibTarget === 'practice' &&
+      document.getElementById('trick-lib-overlay')?.style.display === 'flex') closeTrickLib();
+  if (reason === 'real-game') toast('Your live game is on. Practice closed.');
+  document.querySelector('#practice-entry .btn')?.focus?.();
+}
+
+function _practiceAfter(ms, fn) {
+  if (!_practice) return;
+  const gen = _practice.gen;
+  const id = setTimeout(() => {
+    if (!_practice || _practice.gen !== gen) return;
+    fn();
+  }, ms);
+  _practice.timers.push(id);
+}
+
+function _practiceLog(icon, msg) {
+  if (_practice) _practice.log.push({ icon, msg });
+}
+
+// Moves to a phase, renders, and schedules Demo Rider's beat if it's their move.
+function _practiceGo(phase) {
+  const p = _practice;
+  if (!p) return;
+  p.phase = phase;
+  _practiceRender();
+  if (PRACTICE_BOT_PHASES.includes(phase)) {
+    _practiceAfter(1200 + Math.random() * 800, () => _practiceBotResolve(phase));
+  }
+}
+
+// Gives `who` the next letter. Returns true if that ended the game.
+function _practiceLetter(who) {
+  const p = _practice;
+  p.letters[who]++;
+  if (p.letters[who] >= LETTERS.length) {
+    p.winner = who === 'me' ? 'bot' : 'me';
+    _practiceLog(_PX_I.trophy, p.winner === 'me' ? 'You win the practice duel.' : 'Demo Rider wins the practice duel.');
+    _practiceGo('over');
+    return true;
+  }
+  return false;
+}
+
+function _practicePickBotTrick() {
+  const pool = TRICK_LIBRARY.filter(t => (t.sport === _practice.sport || t.sport === 'both') && PRACTICE_BOT_WEIGHT[t.diff] > 0);
+  const total = pool.reduce((n, t) => n + PRACTICE_BOT_WEIGHT[t.diff], 0);
+  let r = Math.random() * total;
+  for (const t of pool) { r -= PRACTICE_BOT_WEIGHT[t.diff]; if (r <= 0) return t; }
+  return pool[pool.length - 1];
+}
+
+function _practiceBotLands(diff) {
+  return Math.random() < (PRACTICE_BOT_ODDS[diff] ?? PRACTICE_BOT_ODDS.medium);
+}
+
+function _practiceBotResolve(phase) {
+  const p = _practice;
+  if (!p || p.phase !== phase) return;
+  if (phase === 'bot-setting') {
+    const t = _practicePickBotTrick();
+    p.trick = t.name; p.trickDiff = t.diff; p.rounds++;
+    if (_practiceBotLands(t.diff)) {
+      _practiceLog(_PX_I.check, `Demo Rider landed ${t.name}. Your turn to copy it.`);
+      _practiceGo('me-copy');
+    } else {
+      _practiceLog(_PX_I.wind, `Demo Rider bailed ${t.name}. Revenge time.`);
+      _practiceGo('me-revenge');
+    }
+  } else if (phase === 'bot-copy') {
+    if (_practiceBotLands(p.trickDiff)) {
+      _practiceLog(_PX_I.check, `Demo Rider copied ${p.trick}. You keep setting.`);
+      p.trick = null; _practiceGo('me-setting');
+    } else {
+      _practiceLog(_PX_I.x, `Demo Rider missed ${p.trick}. They get "${LETTERS[p.letters.bot]}".`);
+      if (!_practiceLetter('bot')) { p.trick = null; _practiceGo('me-setting'); }
+    }
+  } else if (phase === 'bot-revenge') {
+    if (_practiceBotLands(p.trickDiff)) {
+      _practiceLog(_PX_I.fire, `Demo Rider landed the revenge. You get "${LETTERS[p.letters.me]}".`);
+      if (!_practiceLetter('me')) { p.setter = 'bot'; p.trick = null; _practiceGo('bot-setting'); }
+    } else {
+      _practiceLog(_PX_I.wind, `Demo Rider missed the revenge too. Demo Rider sets next.`);
+      p.setter = 'bot'; p.trick = null; _practiceGo('bot-setting');
+    }
+  }
+}
+
+// ── User taps (each checks its expected phase, so double taps are no-ops) ──
+function practicePickSetter(who) {
+  const p = _practice;
+  if (!p || p.phase !== 'pick-setter' || (who !== 'me' && who !== 'bot')) return;
+  p.setter = who;
+  _practiceLog(_PX_I.dice, who === 'me' ? 'You set first.' : 'Demo Rider sets first.');
+  _practiceGo(who === 'me' ? 'me-setting' : 'bot-setting');
+}
+
+function practiceSubmitTrick() {
+  const p = _practice;
+  if (!p || p.phase !== 'me-setting') return;
+  const el = document.getElementById('px-trick-input');
+  const trick = (el && el.value.trim()) || 'Unnamed trick';
+  p.trick = trick; p.trickDiff = _trickDifficulty(trick); p.rounds++;
+  _practiceLog(_PX_I.target, `You're attempting: ${trick}`);
+  _practiceGo('me-set-attempt');
+}
+
+function practiceMySet(landed) {
+  const p = _practice;
+  if (!p || p.phase !== 'me-set-attempt') return;
+  if (landed) {
+    _practiceLog(_PX_I.check, `You landed ${p.trick}. Demo Rider must copy.`);
+    _practiceGo('bot-copy');
+  } else {
+    _practiceLog(_PX_I.wind, `You bailed. Demo Rider gets a revenge attempt.`);
+    _practiceGo('bot-revenge');
+  }
+}
+
+function practiceMyCopy(landed) {
+  const p = _practice;
+  if (!p || p.phase !== 'me-copy') return;
+  if (landed) {
+    _practiceLog(_PX_I.check, `You copied ${p.trick}. Demo Rider keeps setting.`);
+    p.trick = null; _practiceGo('bot-setting');
+  } else {
+    _practiceLog(_PX_I.x, `You missed. You get "${LETTERS[p.letters.me]}".`);
+    if (!_practiceLetter('me')) { p.trick = null; _practiceGo('bot-setting'); }
+  }
+}
+
+function practiceMyRevenge(landed) {
+  const p = _practice;
+  if (!p || p.phase !== 'me-revenge') return;
+  if (landed) {
+    _practiceLog(_PX_I.fire, `You landed the revenge. Demo Rider gets "${LETTERS[p.letters.bot]}".`);
+    if (!_practiceLetter('bot')) { p.setter = 'me'; p.trick = null; _practiceGo('me-setting'); }
+  } else {
+    _practiceLog(_PX_I.wind, `You missed the revenge too. You set next.`);
+    p.setter = 'me'; p.trick = null; _practiceGo('me-setting');
+  }
+}
+
+// ── Rendering (the only code that touches practice DOM) ──
+function _practicePanel(who) {
+  const p = _practice;
+  const letters = p.letters[who];
+  const role = !p.setter || p.phase === 'pick-setter' ? '' : (p.setter === who ? 'setter' : 'copier');
+  const cls = role === 'setter' ? 'is-setter' : role === 'copier' ? 'is-copier' : '';
+  const avatar = who === 'bot'
+    ? `<div class="px-bot-avatar" aria-hidden="true">${_PX_I.dice}</div>`
+    : (currentUser ? avatarHtml(currentUser, 'avatar-lg')
+                   : `<div class="avatar avatar-lg" style="background:var(--bg-elevated);color:var(--text-secondary);"><svg class="icon icon-user"><use href="#i-user"/></svg></div>`);
+  const name = who === 'bot' ? 'Demo Rider' : (currentUser ? escHtml(currentUser.name) : 'You');
+  return `
+    <div class="player-panel ${cls}" data-px="${who}">
+      <div style="display:flex;justify-content:center;margin-bottom:10px;">${avatar}</div>
+      <div class="pp-name">${name}</div>
+      ${who === 'bot' ? '<div class="px-bot-label">Bot</div>' : ''}
+      <div class="ski-letters">
+        ${LETTERS.map((l, i) => `<div class="ski-letter ${i < letters ? 'earned' : ''}">${l}</div>`).join('')}
+      </div>
+      ${role === 'setter' ? '<div class="role-tag role-set">Setting</div><div class="role-hint">Names a trick and attempts it</div>' : ''}
+      ${role === 'copier' ? '<div class="role-tag role-copy">Copying</div><div class="role-hint">Match it or take a letter</div>' : ''}
+    </div>`;
+}
+
+function _practicePhaseHtml() {
+  const p = _practice;
+  const trick = `<strong style="color:var(--primary);">${escHtml(p.trick || '')}</strong>`;
+  const btns = (fn) => `<div class="trick-btns">
+      <button class="btn btn-landed" onclick="${fn}(true)">${_PX_I.check} Landed</button>
+      <button class="btn btn-missed" onclick="${fn}(false)">${_PX_I.x} Missed</button>
+    </div>`;
+  const wait = (msg) => `<p style="margin:6px 0;">${_PX_I.hour} ${msg}</p>`;
+  switch (p.phase) {
+    case 'pick-setter': return `
+      <h3>Who sets first?</h3>
+      <div class="trick-btns">
+        <button class="btn btn-primary" onclick="practicePickSetter('me')">I'll set first</button>
+        <button class="btn btn-outline" onclick="practicePickSetter('bot')">Demo Rider sets first</button>
+      </div>`;
+    case 'me-setting': return `
+      <h3>Name your trick and go attempt it</h3>
+      <div class="form-group" style="margin-bottom:10px;">
+        <input type="text" class="form-input" id="px-trick-input" placeholder="Type a trick…" autocomplete="off"
+          onkeydown="if(event.key==='Enter')practiceSubmitTrick()">
+      </div>
+      <div class="trick-btns" style="grid-template-columns:1fr;">
+        <button class="btn btn-primary" style="width:100%;" onclick="practiceSubmitTrick()">${_PX_I.target} Set trick</button>
+      </div>`;
+    case 'me-set-attempt': return `<h3>Did you land it?</h3><p>Trick: ${trick}</p>${btns('practiceMySet')}`;
+    case 'me-copy':        return `<h3>Demo Rider landed it. Your turn to copy.</h3><p>Go land: ${trick}</p>${btns('practiceMyCopy')}`;
+    case 'me-revenge':     return `<h3>${_PX_I.fire} Demo Rider bailed. Revenge time.</h3><p>Land ${trick} and they take the letter.</p>${btns('practiceMyRevenge')}`;
+    case 'bot-setting':    return wait('Demo Rider is dropping in…');
+    case 'bot-copy':       return wait(`Demo Rider is dropping in to copy ${trick}…`);
+    case 'bot-revenge':    return wait(`Demo Rider is dropping in for revenge on ${trick}…`);
+    case 'over': return `
+      <div class="px-over-title">${p.winner === 'me' ? 'You win' : 'Demo Rider wins'}</div>
+      <p>${p.rounds} trick${p.rounds === 1 ? '' : 's'} · Practice, nothing counted.</p>
+      <div class="trick-btns" style="grid-template-columns:1fr;">
+        <button class="btn btn-primary" onclick="practiceRestart()">Run it back</button>
+      </div>`;
+  }
+  return '';
+}
+
+function _practiceRender() {
+  const p = _practice;
+  const inner = document.getElementById('px-inner');
+  if (!p || !inner) return;
+  inner.innerHTML = `
+    <div class="px-head">
+      <button type="button" class="px-close" onclick="practiceExit()" aria-label="Close practice"><svg class="icon"><use href="#i-close"/></svg></button>
+      <div class="px-title">Practice duel</div>
+      <span class="badge badge-muted">PRACTICE · UNRATED</span>
+    </div>
+    <div class="live-board">
+      ${_practicePanel('me')}
+      <div class="vs-text">VS</div>
+      ${_practicePanel('bot')}
+    </div>
+    <div class="trick-area px-phase" aria-live="polite">${_practicePhaseHtml()}</div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-hdr"><span class="card-title">Round log</span></div>
+      <div class="game-log">${[...p.log].reverse()
+        .map(e => `<div class="log-row"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`).join('')}</div>
+    </div>`;
+  // Pop only letters earned since the last render (MO is null under reduced motion).
+  ['me', 'bot'].forEach(who => {
+    const now = p.letters[who], before = p.shown[who];
+    if (MO && now > before) {
+      const fresh = [...inner.querySelectorAll(`.player-panel[data-px="${who}"] .ski-letter.earned`)].slice(before, now);
+      MO.animate(fresh, { scale:[0.5, 1], opacity:[0, 1] }, SPRING_POP).then(() => _moClear(fresh));
+    }
+    p.shown[who] = now;
+  });
+}
+// ═══ END PRACTICE DUEL (P5) ═══
 
 function dateFmt(ts) {
   return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -8795,6 +9132,7 @@ function renderLiveSetup() {
   document.getElementById('play-hero-box').style.display    = inGame ? 'none' : '';
 
   if (inGame && !(S.live.over && _gameOverDismissed)) {
+    if (_practice) practiceExit({ reason:'real-game' });
     document.getElementById('live-setup').style.display='none';
     document.getElementById('live-active').style.display='block';
     restoreLog();
@@ -14931,6 +15269,11 @@ async function adminWipeEverything() {
 <div id="rating-anim-overlay" onclick=""></div>
 
 <!-- ─── POST CLIP MODAL ─── -->
+<!-- P5 practice duel overlay: rendered only by _practiceRender(), never persisted -->
+<div id="practice-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Practice duel">
+  <div class="px-inner" id="px-inner"></div>
+</div>
+
 <div id="post-clip-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closePostClip()">
   <div style="background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-width:520px;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(0,0,0,0.55);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
