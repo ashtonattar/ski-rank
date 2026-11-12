@@ -1375,47 +1375,32 @@
       animation:bootSpin .8s linear infinite;
     }
     @keyframes bootSpin { to { transform:rotate(360deg); } }
-    .boot-ski-scene { position:relative; width:136px; height:60px; }
+    /* Kicker cork 7: the skier drops in, hits the kicker, spins a cork 720 with a mute grab and stomps the
+       landing with a snow spray. Driven by Motion (inline script under the markup);
+       .boot-css is the static fallback without the library or with reduced motion. */
+    .boot-ski-scene { position:relative; width:160px; height:64px; }
     .boot-ski-track { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
     .boot-ground { stroke:var(--text-muted); stroke-width:1; stroke-dasharray:2 3; opacity:.3; }
-    .boot-ramp { fill:var(--text-muted); opacity:.18; }
-    .boot-rail-leg { stroke:var(--text-muted); stroke-width:2; stroke-linecap:round; opacity:.35; }
-    .boot-rail-bar { stroke:var(--text-muted); stroke-width:3; stroke-linecap:round; opacity:.45; }
-    .boot-rail-glow {
-      fill:none; stroke:var(--ice, #ff3e7f); stroke-width:3; stroke-linecap:round;
-      stroke-dasharray:44; stroke-dashoffset:44; opacity:0;
-      
-      animation:bootRailGlow 3.2s cubic-bezier(.4,0,.2,1) infinite;
+    .boot-feature { fill:var(--text-muted); opacity:.18; }
+    .boot-line { fill:none; stroke:none; }
+    .boot-trail {
+      fill:none; stroke:var(--ice, #ff3e7f); stroke-width:2; stroke-linecap:round;
+      opacity:0;
     }
     .boot-skier {
-      position:absolute; top:0; left:0; font-size:22px; color:var(--ice, #ff3e7f);
-      
-      animation:bootSkierMove 3.2s cubic-bezier(.4,0,.2,1) infinite;
+      position:absolute; top:0; left:0; width:30px; height:30px; margin:-15px 0 0 -15px; opacity:0;
     }
-    @keyframes bootRailGlow {
-      0%   { stroke-dashoffset:44; opacity:0; }
-      38%  { stroke-dashoffset:44; opacity:0; }
-      41%  { opacity:.9; }
-      68%  { stroke-dashoffset:0; opacity:.9; }
-      78%  { opacity:0; stroke-dashoffset:0; }
-      100% { stroke-dashoffset:44; opacity:0; }
+    /* Origin at the boots so the crouch/absorb squashes toward the skis. */
+    .boot-skier svg { display:block; width:30px; height:30px; overflow:visible; transform-origin:50% 84%; }
+    .boot-snow {
+      position:absolute; top:40px; left:108px; width:3px; height:3px; margin:-1.5px 0 0 -1.5px;
+      border-radius:50%; background:var(--text-primary); opacity:0;
     }
-    /* Approach → ramp → airborne → land+grind the rail → pop off → land → reset,
-       waypoints are the skier's center point (icon is 22px, so each translate
-       is the scene coordinate minus 11px to keep the icon centered on it). */
-    @keyframes bootSkierMove {
-      0%   { transform:translate(-9px,41px)  rotate(-5deg);  opacity:0; animation-timing-function:ease-in; }
-      6%   { opacity:1; }
-      18%  { transform:translate(7px,33px)   rotate(-18deg); animation-timing-function:ease-out; }
-      32%  { transform:translate(23px,13px)  rotate(8deg);   animation-timing-function:ease-in; }
-      40%  { transform:translate(37px,19px)  rotate(-10deg); animation-timing-function:linear; }
-      55%  { transform:translate(58px,19px)  rotate(0deg); }
-      68%  { transform:translate(79px,19px)  rotate(10deg);  animation-timing-function:ease-out; }
-      80%  { transform:translate(95px,5px)   rotate(-20deg); animation-timing-function:ease-in; }
-      92%  { transform:translate(111px,31px) rotate(-5deg);  opacity:1; }
-      97%  { opacity:0; }
-      100% { transform:translate(-9px,41px)  rotate(-5deg);  opacity:0; }
-    }
+    .boot-wordmark span { display:inline-block; }
+    /* Fallback: skier parked at the drop-in, trail pulsing so it never reads as frozen. */
+    .boot-css .boot-skier { opacity:1; transform:translate(18px,42px); }
+    .boot-css .boot-trail { animation:bootTrailPulse 1.6s ease-in-out infinite; }
+    @keyframes bootTrailPulse { 0%,100% { opacity:.15; } 50% { opacity:.6; } }
     .boot-loading-msg {
       font-size:12px; color:var(--text-muted); letter-spacing:.3px;
       opacity:0; transition:opacity .4s ease;
@@ -2512,7 +2497,7 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
-      .boot-spinner, .boot-rail-glow, .boot-skier, [style*="animation:spin"], [style*="animation: spin"] {
+      .boot-spinner, .boot-trail, [style*="animation:spin"], [style*="animation: spin"] {
         animation-duration: revert !important;
         animation-iteration-count: infinite !important;
       }
@@ -2631,24 +2616,107 @@
      JS has determined whether the visitor has a saved session. -->
 <div id="boot-loading">
   <div class="auth-logo">
-    <div style="display:flex;justify-content:center;margin-bottom:10px;">
+    <div class="boot-logo" style="display:flex;justify-content:center;margin-bottom:10px;">
       <img src="assets/logo.svg" width="56" height="56" alt="">
     </div>
-    <div class="logo-big" style="font-size:32px;">SLOPE BATTLES</div>
+    <div class="logo-big boot-wordmark" style="font-size:32px;" aria-label="Slope Battles">SLOPE BATTLES</div>
   </div>
   <div class="boot-ski-scene">
-    <svg class="boot-ski-track" viewBox="0 0 136 60" preserveAspectRatio="none">
-      <line class="boot-ground" x1="0" y1="52" x2="136" y2="52"/>
-      <polygon class="boot-ramp" points="8,52 30,52 30,36"/>
-      <line class="boot-rail-leg" x1="48" y1="52" x2="48" y2="30"/>
-      <line class="boot-rail-leg" x1="90" y1="52" x2="90" y2="30"/>
-      <line class="boot-rail-bar" x1="46" y1="30" x2="92" y2="30"/>
-      <path class="boot-rail-glow" d="M48 30 L90 30"/>
+    <svg class="boot-ski-track" viewBox="0 0 160 64" preserveAspectRatio="none">
+      <line class="boot-ground" x1="0" y1="52" x2="160" y2="52"/>
+      <path class="boot-feature" d="M18 52 Q36 52 44 38 L44 52 Z"/>
+      <path class="boot-feature" d="M88 52 L88 36 Q92 33 98 35 L128 52 Z"/>
+      <path class="boot-trail" d="M44 37 Q70 -5 108 40"/>
+      <path class="boot-line" d="M-14 42 H176"/>
     </svg>
-    <svg class="icon boot-skier"><use href="#i-skier"/></svg>
+    <div class="boot-skier">
+      <svg viewBox="0 0 32 32" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g class="boot-sk-open">
+          <path d="M2.5 25.5 Q3 27.5 5 27.5 H27 Q29 27.5 29.5 25.5" stroke="var(--text-primary)" stroke-width="2"/>
+          <path d="M13 17 L18 20.5 L15.5 25.5" stroke="#1aa88f" stroke-width="3.6"/>
+        </g>
+        <!-- Mute grab: knees tucked, skis pulled up, front hand on the ski ahead of the boot. -->
+        <g class="boot-sk-tuck" opacity="0">
+          <path d="M2.5 20 Q3 22 5 22 H27 Q29 22 29.5 20" stroke="var(--text-primary)" stroke-width="2"/>
+          <path d="M13 17 L19.5 15.5 L16.5 20" stroke="#1aa88f" stroke-width="3.6"/>
+        </g>
+        <path d="M13 17 L16.5 10.5" stroke="var(--ice, #ff3e7f)" stroke-width="5.5"/>
+        <path class="boot-sk-open" d="M17 11.5 L21.5 13.5 L23.5 12" stroke="var(--ice, #ff3e7f)" stroke-width="2.2"/>
+        <path class="boot-sk-tuck" opacity="0" d="M17 11.5 L21.5 15 L21 21" stroke="var(--ice, #ff3e7f)" stroke-width="2.2"/>
+        <circle cx="18.6" cy="6.6" r="3.4" fill="var(--text-primary)"/>
+        <rect x="19.2" y="5.6" width="3.6" height="2" rx="1" fill="#1aa88f"/>
+      </svg>
+    </div>
+    <span class="boot-snow"></span><span class="boot-snow"></span><span class="boot-snow"></span><span class="boot-snow"></span><span class="boot-snow"></span>
   </div>
   <div class="boot-loading-msg" id="boot-loading-msg">Still loading…</div>
 </div>
+<script>
+// Boot animation, started the moment the markup parses (Motion is loaded
+// synchronously in <head>). One-shot entrance: logo pops in on a spring, the
+// wordmark letters cascade up, then the scene fades in. The scene loop is a
+// single timeline: every element shares the duration and repeats, so the
+// cork 7, trail and landing spray stay locked to where the skier is on the path.
+(function() {
+  const boot = document.getElementById('boot-loading');
+  const M = window.Motion;
+  if (!M || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { boot.classList.add('boot-css'); return; }
+
+  const word = boot.querySelector('.boot-wordmark');
+  word.innerHTML = [...word.textContent].map(c => `<span aria-hidden="true">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+  const logo = boot.querySelector('.boot-logo img');
+  const scene = boot.querySelector('.boot-ski-scene');
+  const anims = [
+    M.animate(logo, { scale:[0.4, 1], rotate:[-24, 0], opacity:[0, 1] }, { type:'spring', visualDuration:0.45, bounce:0.45 }),
+    M.animate([...word.children], { y:[14, 0], opacity:[0, 1], filter:['blur(4px)', 'blur(0px)'] },
+      { type:'spring', visualDuration:0.35, bounce:0.2, delay:M.stagger(0.025, { startDelay:0.1 }) }),
+    M.animate(scene, { opacity:[0, 1], y:[6, 0] }, { duration:0.3, delay:0.3, ease:[.22, 1, .36, 1] }),
+  ];
+
+  // The skier's center point: drop-in → kicker → air → landing slope → runout.
+  // Segment boundaries are measured so the spin and spray land on the right beat.
+  const segs = ['M-14 42 H18', ' Q36 42 44 28', ' Q70 -14 108 31', ' L128 42', ' H176'];
+  const line = boot.querySelector('.boot-line');
+  const marks = segs.map((_, i) => { line.setAttribute('d', segs.slice(0, i + 1).join('')); return line.getTotalLength(); });
+  const total = marks[marks.length - 1];
+  const [tKick, tLip, tLand, tSlope] = marks.map(l => l / total);
+  const xs = [], ys = [];
+  for (let i = 0; i <= 60; i++) { const pt = line.getPointAtLength(total * i / 60); xs.push(pt.x); ys.push(pt.y); }
+
+  const loop = { duration:2.6, repeat:Infinity, delay:0.45 };
+  const tMid = (tLip + tLand) / 2;
+  const skier = boot.querySelector('.boot-skier');
+  anims.push(
+    M.animate(skier, { x:xs, y:ys }, { ...loop, ease:'linear' }),
+    M.animate(skier, { opacity:[0, 1, 1, 0] }, { ...loop, times:[0, 0.06, 0.94, 1] }),
+    // Cork 7: two full spins (rotateY) around an axis that corks off-vertical
+    // mid-air (rotate), opening back up to stomp pitched down the landing.
+    M.animate(skier.firstElementChild, { rotate:[0, 0, -25, -65, 30, 30, 0, 0] },
+      { ...loop, times:[0, tKick, tLip, tMid, tLand, tSlope, tSlope + 0.06, 1], ease:['linear', 'easeOut', 'easeOut', 'easeIn', 'linear', 'easeOut', 'linear'] }),
+    M.animate(skier.firstElementChild, { rotateY:[0, 0, 720, 720], transformPerspective:[200, 200, 200, 200] },
+      { ...loop, times:[0, tLip, tLand, 1], ease:['linear', 'easeInOut', 'linear'] }),
+    // Tuck into the mute grab just after the lip, hold it through the spin, let go to land.
+    M.animate(skier.querySelectorAll('.boot-sk-open'), { opacity:[1, 1, 0, 0, 1, 1] },
+      { ...loop, times:[0, tLip + 0.04, tLip + 0.06, tLand - 0.08, tLand - 0.06, 1], ease:'linear' }),
+    M.animate(skier.querySelectorAll('.boot-sk-tuck'), { opacity:[0, 0, 1, 1, 0, 0] },
+      { ...loop, times:[0, tLip + 0.04, tLip + 0.06, tLand - 0.08, tLand - 0.06, 1], ease:'linear' }),
+    // Load up on the kicker and pop off the lip; absorb the landing.
+    M.animate(skier.firstElementChild, { scaleY:[1, 1, 0.82, 1.06, 1, 1, 0.8, 1, 1] },
+      { ...loop, times:[0, tKick, tLip - 0.01, tLip + 0.03, tLip + 0.08, tLand - 0.01, tLand + 0.03, tLand + 0.1, 1] }),
+    M.animate(boot.querySelector('.boot-trail'), { pathLength:[0, 0, 1, 1] }, { ...loop, times:[0, tLip, tLand, 1], ease:'linear' }),
+    M.animate(boot.querySelector('.boot-trail'), { opacity:[0, 0, 0.7, 0.7, 0, 0] },
+      { ...loop, times:[0, tLip, tLip + 0.02, tLand + 0.1, tLand + 0.25, 1], ease:'linear' })
+  );
+  const spray = [[-12, -9], [-5, -14], [3, -11], [10, -7], [-16, -3]];
+  boot.querySelectorAll('.boot-snow').forEach((el, i) => {
+    const [dx, dy] = spray[i];
+    // Held at zero until touchdown, then a short burst back up the slope.
+    anims.push(M.animate(el, { x:[0, 0, dx, dx], y:[0, 0, dy, dy + 4], opacity:[0, 0.9, 0, 0], scale:[1.2, 1.2, 0.4, 0.4] },
+      { ...loop, times:[0, tLand, tLand + 0.16, 1], ease:[t => (t < 1 ? 0 : 1), 'easeOut', 'linear'] }));
+  });
+  window._bootAnims = anims;
+})();
+</script>
 
 <!-- ═══ Auth Screen ═══ -->
 <div id="auth-screen" class="auth-screen" style="display:none;">
@@ -5788,7 +5856,10 @@ function hideBootLoading() {
   const boot = document.getElementById('boot-loading');
   if (!boot || boot.style.display === 'none') return;
   boot.classList.add('animating-out');
-  setTimeout(() => { boot.style.display = 'none'; boot.classList.remove('animating-out'); }, 300);
+  setTimeout(() => {
+    boot.style.display = 'none'; boot.classList.remove('animating-out');
+    (window._bootAnims || []).forEach(a => a.stop());
+  }, 300);
 }
 
 function showAuthScreen(hint='') {
