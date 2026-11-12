@@ -2503,39 +2503,6 @@
       }
     }
   </style>
-  <!-- Sentry error reporting — loaded first so it catches errors from everything below.
-       Skipped on localhost so dev noise stays out of the dashboard. If an ad blocker
-       stops the bundle, window.Sentry is undefined and the app runs normally. -->
-  <script src="https://browser.sentry-cdn.com/8.55.0/bundle.min.js" crossorigin="anonymous"></script>
-  <script>
-    (function () {
-      var host = location.hostname;
-      if (!window.Sentry || host === 'localhost' || host === '127.0.0.1') return;
-      try {
-        Sentry.init({
-          dsn: 'https://ee9b12402ec537653ef915548bda6938@o4512229675368448.ingest.us.sentry.io/4512229683822592',
-          environment: 'production',
-          sendDefaultPii: false,
-          ignoreErrors: [
-            'ResizeObserver loop limit exceeded',
-            'ResizeObserver loop completed with undelivered notifications',
-            'Non-Error promise rejection captured',
-          ],
-          denyUrls: [/^chrome-extension:\/\//, /^moz-extension:\/\//, /^safari-(web-)?extension:\/\//],
-        });
-      } catch (e) { console.warn('Sentry init failed:', e); }
-    })();
-  </script>
-  <!-- Firebase compat SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1/dist/confetti.browser.min.js"></script>
-  <!-- Motion (motion.dev) 14.6.0, MIT — vendored so springs work offline on the mountain
-       and inside the iOS bundle. Exposes window.Motion; the app falls back to CSS without it. -->
-  <script src="assets/vendor/motion-14.6.0.min.js"></script>
 </head>
 <body>
 <style>
@@ -2651,9 +2618,12 @@
   </div>
   <div class="boot-loading-msg" id="boot-loading-msg">Still loading…</div>
 </div>
+<!-- Motion (motion.dev) 14.6.0, MIT — vendored so springs work offline on the mountain
+     and inside the iOS bundle. Exposes window.Motion; the app falls back to CSS without it. -->
+<script src="assets/vendor/motion-14.6.0.min.js"></script>
 <script>
 // Boot animation, started the moment the markup parses (Motion is loaded
-// synchronously in <head>). One-shot entrance: logo pops in on a spring, the
+// synchronously just above). One-shot entrance: logo pops in on a spring, the
 // wordmark letters cascade up, then the scene fades in. The scene loop is a
 // single timeline: every element shares the duration and repeats, so the
 // cork 7, trail and landing spray stay locked to where the skier is on the path.
@@ -2717,6 +2687,40 @@
   window._bootAnims = anims;
 })();
 </script>
+<!-- Third-party SDKs load here, AFTER the boot screen markup, not in <head>: parser-
+     blocking scripts in <head> hold back the first paint until every one downloads, which
+     left a blank screen for seconds before the loader appeared. Everything that uses them
+     (the main app script below) still runs after they load. -->
+<!-- Sentry error reporting — loaded first so it catches errors from everything below.
+     Skipped on localhost so dev noise stays out of the dashboard. If an ad blocker
+     stops the bundle, window.Sentry is undefined and the app runs normally. -->
+<script src="https://browser.sentry-cdn.com/8.55.0/bundle.min.js" crossorigin="anonymous"></script>
+<script>
+  (function () {
+    var host = location.hostname;
+    if (!window.Sentry || host === 'localhost' || host === '127.0.0.1') return;
+    try {
+      Sentry.init({
+        dsn: 'https://ee9b12402ec537653ef915548bda6938@o4512229675368448.ingest.us.sentry.io/4512229683822592',
+        environment: 'production',
+        sendDefaultPii: false,
+        ignoreErrors: [
+          'ResizeObserver loop limit exceeded',
+          'ResizeObserver loop completed with undelivered notifications',
+          'Non-Error promise rejection captured',
+        ],
+        denyUrls: [/^chrome-extension:\/\//, /^moz-extension:\/\//, /^safari-(web-)?extension:\/\//],
+      });
+    } catch (e) { console.warn('Sentry init failed:', e); }
+  })();
+</script>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1/dist/confetti.browser.min.js"></script>
 
 <!-- ═══ Auth Screen ═══ -->
 <div id="auth-screen" class="auth-screen" style="display:none;">
