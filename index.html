@@ -5368,6 +5368,7 @@ async function doSignup() {
 
   if (!name)            return showErr('Please enter your full name.');
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
+  if (containsBlockedContent(name)) return showErr('Please choose a name without inappropriate language.');
   if (!email)           return showErr('Email is required.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
   if (!dob)              return showErr('Date of birth is required.');
@@ -5600,6 +5601,7 @@ async function completeSocialSignup() {
   if (!fbUser)          return showErr('Your sign-in expired. Cancel and try again.');
   if (!name)            return showErr('Please enter your full name.');
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
+  if (containsBlockedContent(name)) return showErr('Please choose a name without inappropriate language.');
   if (!dob)             return showErr('Date of birth is required.');
   const age = _ageFromDob(dob);
   // Same COPPA gate as doSignup() — see PRIVACY_POLICY.md.
@@ -7467,6 +7469,30 @@ function avatarHtml(player, sizeClass='avatar-sm') {
 // Clickable player name — opens their profile modal
 function pLink(id, name, style='') {
   return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="showProfile('${id}')">${escHtml(name||'')}</span>`;
+}
+
+// ── Content filter (beta scope) ─────────────────────────────────────────
+// Client-side, blocks (does not silently edit) user-written text containing
+// strong profanity / slurs. Whole-word match after normalising common
+// leetspeak and repeated letters, so "class" / "assume" don't trip it.
+// First line of defense only — extend CF_BLOCKED as needed.
+const CF_BLOCKED = ['fuck','fucker','fucking','motherfucker','shit','bullshit','bitch','cunt','asshole','dick','dickhead','pussy','whore','slut','bastard','nigger','nigga','faggot','fag','retard','retarded','kys','kill yourself','rape','rapist','nazi'];
+const _CF_LEET = {'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','@':'a','$':'s','!':'i'};
+function containsBlockedContent(text) {
+  if (!text) return false;
+  const norm = String(text).toLowerCase()
+    .replace(/[013457@$!]/g, c => _CF_LEET[c])
+    .replace(/[^a-z\s]/g, '')
+    .replace(/\s+/g, ' ');
+  const squeeze = t => t.replace(/(.)\1+/g, '$1');
+  const a = ' ' + norm + ' ', b = ' ' + squeeze(norm) + ' ';
+  return CF_BLOCKED.some(w => a.includes(' ' + w + ' ') || b.includes(' ' + squeeze(w) + ' '));
+}
+// Returns true (and toasts) if text is blocked; call sites bail out when true.
+function rejectIfBlocked(text) {
+  if (!containsBlockedContent(text)) return false;
+  toast("Please keep it clean — that contains language that isn't allowed.", 'err');
+  return true;
 }
 
 // Toast messages are hardcoded literals that may embed a trusted icon-sprite <svg>
@@ -10813,6 +10839,7 @@ function postComment() {
   const input = document.getElementById('comment-input');
   const text = input?.value.trim();
   if (!text) return;
+  if (rejectIfBlocked(text)) return;
   if (!S.comments) S.comments = {};
   if (!S.comments[_commentsItemId]) S.comments[_commentsItemId] = [];
   const comment = {
@@ -11036,6 +11063,7 @@ async function submitPostClip() {
   const caption = document.getElementById('pc-caption').value.trim();
   const resort  = document.getElementById('pc-resort').value.trim();
   if (!currentUser) { toast('Sign in to post', 'err'); return; }
+  if (rejectIfBlocked(caption)) return;
 
   const btn = document.querySelector('#post-clip-modal .btn-primary');
   btn.disabled = true;
@@ -11277,6 +11305,7 @@ function sendMessage() {
   const input = document.getElementById('chat-input');
   const text  = input.value.trim();
   if (!text) return;
+  if (rejectIfBlocked(text)) return;
 
   if (!Array.isArray(S.messages)) S.messages = [];
   const msg = {
@@ -14470,7 +14499,9 @@ function saveProfileData() {
   const p = S.players.find(x => x.id === currentUser.id);
   if (!p) return;
 
-  p.bio        = document.getElementById('prof-bio').value.trim();
+  const _newBio = document.getElementById('prof-bio').value.trim();
+  if (rejectIfBlocked(_newBio)) return;
+  p.bio        = _newBio;
   p.homeResort = document.getElementById('prof-resort').value.trim();
   p.location   = p.homeResort; // keep location in sync (shown in leaderboard)
   p.instagram  = document.getElementById('prof-instagram').value.trim().replace(/^@/, '');
