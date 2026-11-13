@@ -1039,6 +1039,9 @@
     .px-phase h3 { font-size:15px; font-weight:700; margin-bottom:10px; }
     .px-phase p { font-size:13.5px; color:var(--text-secondary); margin-bottom:12px; }
     .px-phase .btn { min-height:44px; }
+    .px-level-seg { margin-bottom:6px; }
+    .px-level-seg button { min-height:44px; min-width:76px; font-size:13px; }
+    .px-phase .px-level-blurb { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
     .px-over-title { font-family:var(--font-display); font-weight:800; font-size:28px; letter-spacing:-0.03em; margin-bottom:6px; }
     .live-board {
       display:grid; grid-template-columns:1fr 60px 1fr;
@@ -6240,6 +6243,7 @@ let _b = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxi
            railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
 
 function _trickSport() {
+  if (_practice && _trickLibTarget === 'practice') return _practice.sport; // P5 practice duel
   return (currentUser?.riderType === 'boarder') ? 'snowboard' : 'ski';
 }
 function _filteredLibrary() {
@@ -6588,6 +6592,13 @@ function builderSelectTrick() {
 }
 
 function selectTrick(name) {
+  if (_trickLibTarget === 'practice') {
+    // P5 practice duel: fill the local input only (no S, no save).
+    const el = document.getElementById('px-trick-input');
+    if (el) el.value = name;
+    closeTrickLib();
+    return;
+  }
   if (_trickLibTarget === 'live') {
     document.getElementById('trick-input').value = name;
   } else {
@@ -7143,10 +7154,29 @@ if (document.readyState === 'loading') {
 // helpers (addLog/drawBoard/playerPanel/_motionLetters) are used. Rendered in
 // a fixed overlay so renderLiveSetup() repaints can't touch it. Every bot beat
 // runs through _practiceAfter(), which drops callbacks from a stale game (gen).
-const PRACTICE_BOT_ODDS   = { easy:0.85, medium:0.65, hard:0.45, expert:0.25 };
-const PRACTICE_BOT_WEIGHT = { easy:50, medium:35, hard:15, expert:0 };
+// Demo Rider levels: the ONLY tuning knobs. Keyed by trick difficulty
+// (_trickDifficulty / TRICK_LIBRARY .diff). copy = odds Demo Rider lands YOUR
+// trick (copy or revenge); own = odds it lands its own set; weight = pick
+// weight PER library trick of that difficulty when it sets (so bucket share
+// also depends on how many tricks each bucket has; expert is small, hence 60).
+// Medium = the original P5 numbers.
+const PRACTICE_LEVELS = {
+  easy:   { label:'Easy',   blurb:'Sets simple stuff, misses a lot.',
+            copy:  { easy:0.65, medium:0.45, hard:0.25, expert:0.10 },
+            own:   { easy:0.75, medium:0.55, hard:0.35, expert:0.15 },
+            weight:{ easy:75,   medium:25,   hard:0,    expert:0    } },
+  medium: { label:'Medium', blurb:'A fair duel.',
+            copy:  { easy:0.85, medium:0.65, hard:0.45, expert:0.25 },
+            own:   { easy:0.85, medium:0.65, hard:0.45, expert:0.25 },
+            weight:{ easy:50,   medium:35,   hard:15,   expert:0    } },
+  hard:   { label:'Hard',   blurb:'Sets big spins and grabs, rarely bails.',
+            copy:  { easy:0.95, medium:0.85, hard:0.70, expert:0.50 },
+            own:   { easy:0.95, medium:0.90, hard:0.80, expert:0.65 },
+            weight:{ easy:0,    medium:25,   hard:50,   expert:60   } },
+};
 const PRACTICE_BOT_PHASES = ['bot-setting', 'bot-copy', 'bot-revenge'];
 let _practiceGen = 0;
+let _practiceLevel = 'medium'; // last level picked, in memory only (never saved)
 const _PX_I = {
   check:  '<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>',
   x:      '<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>',
@@ -7177,7 +7207,7 @@ function openPractice() {
 function _practiceStart(sport) {
   if (_practice) _practice.timers.forEach(clearTimeout);
   _practice = {
-    gen: ++_practiceGen, sport,
+    gen: ++_practiceGen, sport, level: _practiceLevel,
     letters: { me:0, bot:0 }, shown: { me:0, bot:0 },
     setter: null, trick: null, trickDiff: 'easy',
     phase: 'pick-setter', log: [], rounds: 0, winner: null, timers: [],
@@ -7246,16 +7276,25 @@ function _practiceLetter(who) {
   return false;
 }
 
+function _practiceLvl() {
+  return PRACTICE_LEVELS[_practice && _practice.level] || PRACTICE_LEVELS.medium;
+}
+
 function _practicePickBotTrick() {
-  const pool = TRICK_LIBRARY.filter(t => (t.sport === _practice.sport || t.sport === 'both') && PRACTICE_BOT_WEIGHT[t.diff] > 0);
-  const total = pool.reduce((n, t) => n + PRACTICE_BOT_WEIGHT[t.diff], 0);
+  const w = _practiceLvl().weight;
+  const sportPool = TRICK_LIBRARY.filter(t => t.sport === _practice.sport || t.sport === 'both');
+  const pool = sportPool.filter(t => (w[t.diff] || 0) > 0);
+  if (!pool.length) return sportPool[Math.floor(Math.random() * sportPool.length)];
+  const total = pool.reduce((n, t) => n + w[t.diff], 0);
   let r = Math.random() * total;
-  for (const t of pool) { r -= PRACTICE_BOT_WEIGHT[t.diff]; if (r <= 0) return t; }
+  for (const t of pool) { r -= w[t.diff]; if (r <= 0) return t; }
   return pool[pool.length - 1];
 }
 
-function _practiceBotLands(diff) {
-  return Math.random() < (PRACTICE_BOT_ODDS[diff] ?? PRACTICE_BOT_ODDS.medium);
+// kind: 'own' = Demo Rider's own set, 'copy' = copying/revenging your trick.
+function _practiceBotLands(diff, kind) {
+  const odds = _practiceLvl()[kind] || PRACTICE_LEVELS.medium.copy;
+  return Math.random() < (odds[diff] ?? odds.medium);
 }
 
 function _practiceBotResolve(phase) {
@@ -7264,7 +7303,7 @@ function _practiceBotResolve(phase) {
   if (phase === 'bot-setting') {
     const t = _practicePickBotTrick();
     p.trick = t.name; p.trickDiff = t.diff; p.rounds++;
-    if (_practiceBotLands(t.diff)) {
+    if (_practiceBotLands(t.diff, 'own')) {
       _practiceLog(_PX_I.check, `Demo Rider landed ${t.name}. Your turn to copy it.`);
       _practiceGo('me-copy');
     } else {
@@ -7272,7 +7311,7 @@ function _practiceBotResolve(phase) {
       _practiceGo('me-revenge');
     }
   } else if (phase === 'bot-copy') {
-    if (_practiceBotLands(p.trickDiff)) {
+    if (_practiceBotLands(p.trickDiff, 'copy')) {
       _practiceLog(_PX_I.check, `Demo Rider copied ${p.trick}. You keep setting.`);
       p.trick = null; _practiceGo('me-setting');
     } else {
@@ -7280,7 +7319,7 @@ function _practiceBotResolve(phase) {
       if (!_practiceLetter('bot')) { p.trick = null; _practiceGo('me-setting'); }
     }
   } else if (phase === 'bot-revenge') {
-    if (_practiceBotLands(p.trickDiff)) {
+    if (_practiceBotLands(p.trickDiff, 'copy')) {
       _practiceLog(_PX_I.fire, `Demo Rider landed the revenge. You get "${LETTERS[p.letters.me]}".`);
       if (!_practiceLetter('me')) { p.setter = 'bot'; p.trick = null; _practiceGo('bot-setting'); }
     } else {
@@ -7291,10 +7330,19 @@ function _practiceBotResolve(phase) {
 }
 
 // ── User taps (each checks its expected phase, so double taps are no-ops) ──
+// Level is only changeable before the first trick (the pick-setter screen).
+function practiceSetLevel(level) {
+  const p = _practice;
+  if (!p || p.phase !== 'pick-setter' || !PRACTICE_LEVELS[level] || p.level === level) return;
+  p.level = _practiceLevel = level;
+  _practiceRender();
+}
+
 function practicePickSetter(who) {
   const p = _practice;
   if (!p || p.phase !== 'pick-setter' || (who !== 'me' && who !== 'bot')) return;
   p.setter = who;
+  _practiceLog(_PX_I.skis, `Demo Rider is on ${_practiceLvl().label}.`);
   _practiceLog(_PX_I.dice, who === 'me' ? 'You set first.' : 'Demo Rider sets first.');
   _practiceGo(who === 'me' ? 'me-setting' : 'bot-setting');
 }
@@ -7304,6 +7352,7 @@ function practiceSubmitTrick() {
   if (!p || p.phase !== 'me-setting') return;
   const el = document.getElementById('px-trick-input');
   const trick = (el && el.value.trim()) || 'Unnamed trick';
+  if (el) el.value = '';
   p.trick = trick; p.trickDiff = _trickDifficulty(trick); p.rounds++;
   _practiceLog(_PX_I.target, `You're attempting: ${trick}`);
   _practiceGo('me-set-attempt');
@@ -7360,7 +7409,7 @@ function _practicePanel(who) {
     <div class="player-panel ${cls}" data-px="${who}">
       <div style="display:flex;justify-content:center;margin-bottom:10px;">${avatar}</div>
       <div class="pp-name">${name}</div>
-      ${who === 'bot' ? '<div class="px-bot-label">Bot</div>' : ''}
+      ${who === 'bot' ? `<div class="px-bot-label">Bot · ${_practiceLvl().label}</div>` : ''}
       <div class="ski-letters">
         ${LETTERS.map((l, i) => `<div class="ski-letter ${i < letters ? 'earned' : ''}">${l}</div>`).join('')}
       </div>
@@ -7379,6 +7428,12 @@ function _practicePhaseHtml() {
   const wait = (msg) => `<p style="margin:6px 0;">${_PX_I.hour} ${msg}</p>`;
   switch (p.phase) {
     case 'pick-setter': return `
+      <h3>Demo Rider level</h3>
+      <div class="seg px-level-seg" role="group" aria-label="Demo Rider level">
+        ${Object.entries(PRACTICE_LEVELS).map(([k, l]) =>
+          `<button type="button" class="${k === p.level ? 'on' : ''}" aria-pressed="${k === p.level}" onclick="practiceSetLevel('${k}')">${l.label}</button>`).join('')}
+      </div>
+      <p class="px-level-blurb">${escHtml(_practiceLvl().blurb)}</p>
       <h3>Who sets first?</h3>
       <div class="trick-btns">
         <button class="btn btn-primary" onclick="practicePickSetter('me')">I'll set first</button>
@@ -7387,8 +7442,11 @@ function _practicePhaseHtml() {
     case 'me-setting': return `
       <h3>Name your trick and go attempt it</h3>
       <div class="form-group" style="margin-bottom:10px;">
-        <input type="text" class="form-input" id="px-trick-input" placeholder="Type a trick…" autocomplete="off"
-          onkeydown="if(event.key==='Enter')practiceSubmitTrick()">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" class="form-input" id="px-trick-input" placeholder="Type or pick a trick…" autocomplete="off" style="flex:1;"
+            onkeydown="if(event.key==='Enter')practiceSubmitTrick()">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openTrickLib('practice')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library" aria-label="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
+        </div>
       </div>
       <div class="trick-btns" style="grid-template-columns:1fr;">
         <button class="btn btn-primary" style="width:100%;" onclick="practiceSubmitTrick()">${_PX_I.target} Set trick</button>
@@ -7401,10 +7459,11 @@ function _practicePhaseHtml() {
     case 'bot-revenge':    return wait(`Demo Rider is dropping in for revenge on ${trick}…`);
     case 'over': return `
       <div class="px-over-title">${p.winner === 'me' ? 'You win' : 'Demo Rider wins'}</div>
-      <p>${p.rounds} trick${p.rounds === 1 ? '' : 's'} · Practice, nothing counted.</p>
+      <p>${p.rounds} trick${p.rounds === 1 ? '' : 's'} vs. Demo Rider on ${_practiceLvl().label} · Practice, nothing counted.</p>
       <div class="trick-btns" style="grid-template-columns:1fr;">
         <button class="btn btn-primary" onclick="practiceRestart()">Run it back</button>
-      </div>`;
+      </div>
+      <p class="px-level-blurb" style="margin-top:8px;">Same level. You can change it before the first trick.</p>`;
   }
   return '';
 }
