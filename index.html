@@ -7608,8 +7608,10 @@ function avatarHtml(player, sizeClass='avatar-sm') {
 }
 
 // Clickable player name — opens their profile modal
+// A tappable rider name. Stops the tap so a clickable row/card around it (game
+// rows, history entries) doesn't open too.
 function pLink(id, name, style='') {
-  return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="showProfile('${id}')">${escHtml(name||'')}</span>`;
+  return `<span style="cursor:pointer;text-decoration:none;${style}" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'" onclick="event.stopPropagation();showProfile('${id}')">${escHtml(name||'')}</span>`;
 }
 
 // Toast messages are hardcoded literals that may embed a trusted icon-sprite <svg>
@@ -7802,7 +7804,11 @@ function _scrollableAncestor(el, sheetEl) {
   return null;
 }
 
-function openModal(id)  { document.getElementById(id).classList.remove('hidden', 'closing'); _motionModalIn(id); }
+// Overlays share a z-index, so DOM order decides which is on top. Rider names are
+// tappable inside modals (tournament detail → profile → game detail…), so the
+// newest one moves to the end of <body> to land above whatever opened it.
+function _raiseOverlay(el) { if (el && el !== document.body.lastElementChild) document.body.appendChild(el); }
+function openModal(id)  { const el = document.getElementById(id); _raiseOverlay(el); el.classList.remove('hidden', 'closing'); _motionModalIn(id); }
 function closeModal(id) {
   const el = document.getElementById(id);
   if (id === 'tourney-detail-modal') _openTourneyId = null;
@@ -9260,10 +9266,10 @@ function refreshHandicapPreview() {
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="font-size:15px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
-      <span><strong>${escHtml(highP?.name||'')}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
+      <span><strong>${highP ? pLink(highP.id, highP.name) : ''}</strong> starts with <strong style="color:#ffd700;">${startLetters}</strong></span>
       <span style="color:var(--text-muted);font-size:12px;">(${Math.round(diff/100).toFixed(1)} pt gap · ${hcap === 1 ? '1 letter' : '2 letters'} head start)</span>
     </div>
-    <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">${escHtml(lowP?.name||'')} starts clean — even the odds</div>`;
+    <div style="margin-top:6px;font-size:12px;color:var(--text-muted);">${lowP ? pLink(lowP.id, lowP.name) : ''} starts clean — even the odds</div>`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -9423,13 +9429,13 @@ function drawBoard() {
     ${judgePlayer ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       ${avatarHtml(judgePlayer, 'avatar-sm')}
-      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${escHtml(judgePlayer.name)}</strong> is the neutral judge</span>
+      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${pLink(judgePlayer.id, judgePlayer.name)}</strong> is the neutral judge</span>
     </div>` : ''}
     ${g.handicap ? `
     <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
       <span style="font-size:13px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
       <span style="font-size:12px;color:#ffd700;font-weight:600;">Handicap Mode</span>
-      <span style="font-size:12px;color:var(--text-muted);">— ${byId(g.handicap.higherId)?.name} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
+      <span style="font-size:12px;color:var(--text-muted);">— ${pLink(g.handicap.higherId, byId(g.handicap.higherId)?.name)} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
     </div>` : ''}
   `;
   _motionLetters();
@@ -9602,7 +9608,7 @@ function playerPanel(player, g, role) {
       <div style="display:flex;justify-content:center;margin-bottom:10px;">
         ${avatarHtml(player, 'avatar-lg')}
       </div>
-      <div class="pp-name">${escHtml(player.name)}</div>
+      <div class="pp-name">${pLink(player.id, player.name)}</div>
       <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} &nbsp; ${t.provisional ? tierBadgeHTML(t, `Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}`, {clickable:true}) : tierBadgeHTML(t, t.label, {clickable:true})}</div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${l}</div>`).join('')}
@@ -10080,8 +10086,8 @@ function showGameOver(winnerId, loserId, game) {
     <div class="game-over-banner" style="position:relative;">
       <button onclick="dismissLiveGameOver()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:4px;"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
       <h2><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> GAME OVER!</h2>
-      <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${escHtml(winner.name)} wins!</p>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${escHtml(loser.name)} abandoned the game` : `${escHtml(loser.name)} spells S·K·I`}</p>
+      <p style="font-size:20px;font-weight:800;margin-bottom:4px;">${pLink(winner.id, winner.name)} wins!</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${pLink(loser.id, loser.name)} abandoned the game` : `${pLink(loser.id, loser.name)} spells S·K·I`}</p>
       ${ratingLine}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="shareGameResult('${escHtml(winner.name.replace(/'/g,"\\'"))}','${escHtml(loser.name.replace(/'/g,"\\'"))}')">
@@ -11400,7 +11406,7 @@ function openChat(friendId, scrollToBottom=true) {
   document.getElementById('chat-header').innerHTML = `
     ${avatarHtml(friend, 'avatar-sm')}
     <div style="flex:1;">
-      <div style="font-weight:700;font-size:14px;">${escHtml(friend.name)}</div>
+      <div style="font-weight:700;font-size:14px;">${pLink(friend.id, friend.name)}</div>
       <div style="font-size:11px;color:var(--text-muted);">${friend.homeResort ? '<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ' + escHtml(friend.homeResort) : 'Skier'}</div>
     </div>`;
 
@@ -11897,7 +11903,7 @@ function renderProfileGames(games, id) {
         return `
           <div onclick="showGameDetail('${game.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;transition:background .15s;" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
             <span class="badge ${isWin?'badge-success':'badge-danger'}">${isWin?'W':'L'}</span>
-            <span style="flex:1;font-size:13.5px;font-weight:500;">vs <span style="color:var(--text-primary);">${escHtml(opp.name)}</span></span>
+            <span style="flex:1;font-size:13.5px;font-weight:500;">vs ${pLink(opp.id, opp.name, 'color:var(--text-primary);')}</span>
             ${game.tricks?.length ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-skis"><use href="#i-skis"/></svg></span>` : ''}
             ${game.clipUrl ? `<span style="font-size:11px;color:var(--text-muted);"><svg class="icon icon-clapper"><use href="#i-clapper"/></svg></span>` : ''}
             <span class="${delta>=0?'rc-pos':'rc-neg'}" style="font-size:12.5px;">${delta>=0?'+':''}${delta}</span>
@@ -12347,7 +12353,7 @@ function renderChallenges() {
               </div>
               <div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:2px;"><svg class="icon icon-calendar"><use href="#i-calendar"/></svg> ${dateStr}${timeStr}</div>
               ${c.resort     ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(c.resort)}</div>`  : ''}
-              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Judge: <strong style="color:var(--text-secondary);">${escHtml(c.judgeName)}</strong></div>` : ''}
+              ${c.judgeName  ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;"><svg class="icon icon-scale"><use href="#i-scale"/></svg> Judge: <strong style="color:var(--text-secondary);">${pLink(c.judgeId, c.judgeName)}</strong></div>` : ''}
               ${c.message    ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;font-style:italic;">"${escHtml(c.message)}"</div>` : ''}
             </div>
           </div>
@@ -12881,7 +12887,7 @@ function renderTournaments() {
             <div>
               <div style="font-size:13px;font-weight:700;"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg> <strong>${escHtml(t.name)}</strong></div>
               <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">
-                Created by ${escHtml(t.creatorName)}
+                Created by ${pLink(t.creatorId, t.creatorName)}
                 · ${t.format === 'single-elim' ? 'Single Elimination' : 'Round Robin'}
                 ${t.dateVal ? ' · ' + dateFmt(t.dateVal+'T12:00') : ''}
               </div>
@@ -12957,7 +12963,7 @@ function openTourneyDetail(tourneyId) {
   if (status === 'complete' && t.winnerName) {
     html += `<div style="text-align:center;padding:18px;background:rgba(255,196,0,.08);border:1px solid rgba(255,196,0,.3);border-radius:var(--radius);margin-bottom:20px;">
       <div style="font-size:28px;margin-bottom:4px;"><svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg></div>
-      <div style="font-size:18px;font-weight:800;">${escHtml(t.winnerName)}</div>
+      <div style="font-size:18px;font-weight:800;">${pLink(t.winnerId, t.winnerName)}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Tournament Champion</div>
     </div>`;
   }
@@ -12968,7 +12974,7 @@ function openTourneyDetail(tourneyId) {
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
       ${(t.participants||[]).map(p => `
         <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:99px;padding:4px 10px 4px 4px;font-size:12px;font-weight:500;">
-          ${avatarHtml(byId(p.id)||p,'avatar-sm')} ${escHtml(p.name)}
+          ${avatarHtml(byId(p.id)||p,'avatar-sm')} ${pLink(p.id, p.name)}
         </div>`).join('')}
     </div>
   </div>`;
@@ -13326,7 +13332,7 @@ function renderRRHTML(t) {
   standings.forEach((p, i) => {
     html += `<tr>
       <td style="color:var(--text-muted);font-weight:700;">${i+1}</td>
-      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ':''}${escHtml(p.name)}</td>
+      <td style="font-weight:${i===0?'700':'500'};color:${i===0?'var(--warning)':'inherit'};">${i===0&&t.status==='complete'?'<svg class="icon icon-medal icon-gold"><use href="#i-medal"/></svg> ':''}${pLink(p.id, p.name)}</td>
       <td style="color:var(--success);font-weight:600;">${wins[p.id]||0}</td>
       <td style="color:var(--text-muted);">${played[p.id]||0}</td>
     </tr>`;
@@ -14835,6 +14841,7 @@ function fireMissedShatter(clientX, clientY) {
 
 function showTierModal() {
   const m = document.getElementById('tier-modal-overlay');
+  _raiseOverlay(m);
   m.style.display = 'flex';
 }
 function closeTierModal() {
