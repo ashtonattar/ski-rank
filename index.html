@@ -7362,7 +7362,19 @@ function practiceSetLevel(level) {
   const p = _practice;
   if (!p || p.phase !== 'pick-setter' || !PRACTICE_LEVELS[level] || p.level === level) return;
   p.level = _practiceLevel = level;
-  _practiceRender();
+  // Update in place rather than _practiceRender(), so the level chip slides
+  // instead of the whole toggle being rebuilt under the finger
+  const inner = document.getElementById('px-inner');
+  inner?.querySelectorAll('.px-level-seg button').forEach(b => {
+    const on = b.dataset.level === level;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on);
+  });
+  const lvl = _practiceLvl();
+  const blurb = inner?.querySelector('.px-phase .px-level-blurb');
+  if (blurb) blurb.textContent = lvl.blurb;
+  const botLabel = inner?.querySelector('.px-bot-label');
+  if (botLabel) botLabel.textContent = `Bot · ${lvl.label}`;
 }
 
 function practicePickSetter(who) {
@@ -7458,7 +7470,7 @@ function _practicePhaseHtml() {
       <h3>Demo Rider level</h3>
       <div class="seg px-level-seg" role="group" aria-label="Demo Rider level">
         ${Object.entries(PRACTICE_LEVELS).map(([k, l]) =>
-          `<button type="button" class="${k === p.level ? 'on' : ''}" aria-pressed="${k === p.level}" onclick="practiceSetLevel('${k}')">${l.label}</button>`).join('')}
+          `<button type="button" class="${k === p.level ? 'on' : ''}" aria-pressed="${k === p.level}" data-level="${k}" onclick="practiceSetLevel('${k}')">${l.label}</button>`).join('')}
       </div>
       <p class="px-level-blurb">${escHtml(_practiceLvl().blurb)}</p>
       <h3>Who sets first?</h3>
@@ -7516,6 +7528,7 @@ function _practiceRender() {
       <div class="game-log">${[...p.log].reverse()
         .map(e => `<div class="log-row"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`).join('')}</div>
     </div>`;
+  inner.querySelectorAll('.seg').forEach(_initSegPill);
   // Pop only letters earned since the last render (MO is null under reduced motion).
   ['me', 'bot'].forEach(who => {
     const now = p.letters[who], before = p.shown[who];
@@ -8059,13 +8072,15 @@ function _motionFriendPill(instant) {
   }
 }
 
+// Toggles rendered later (the practice duel's level picker) call _initSegPill themselves.
+function _initSegPill(seg) {
+  if (!MO || seg.classList.contains('seg-slide')) return;
+  seg.classList.add('seg-slide');
+  new MutationObserver(() => _motionSegPill(seg)).observe(seg, { subtree:true, attributes:true, attributeFilter:['class'] });
+  new ResizeObserver(() => _motionSegPill(seg, true)).observe(seg);
+}
 function _initSegPills() {
-  if (!MO) return;
-  document.querySelectorAll('.seg, .builder-mode-tabs').forEach(seg => {
-    seg.classList.add('seg-slide');
-    new MutationObserver(() => _motionSegPill(seg)).observe(seg, { subtree:true, attributes:true, attributeFilter:['class'] });
-    new ResizeObserver(() => _motionSegPill(seg, true)).observe(seg);
-  });
+  document.querySelectorAll('.seg, .builder-mode-tabs').forEach(_initSegPill);
 }
 
 window.addEventListener('resize', () => { _motionTabPill(true); _motionFriendPill(true); });
