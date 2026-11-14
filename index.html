@@ -2370,11 +2370,19 @@
     /* ── Trick Library Modal ── */
     #trick-lib-overlay {
       display:none; position:fixed; inset:0; z-index:10200;
-      background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
-      -webkit-backdrop-filter:blur(6px);
       align-items:flex-end; justify-content:center;
     }
+    /* The dim + blur live on their own layer, not on the sheet's parent: every
+       builder tap re-renders the sheet, and iOS re-ran the parent's backdrop
+       blur on each one, flashing the sharp screen behind for a frame. */
+    #trick-lib-overlay::before {
+      content:''; position:absolute; inset:0;
+      background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      transform:translateZ(0);
+    }
     #trick-lib-sheet {
+      position:relative; transform:translateZ(0);
       background:rgba(11,13,16,0.99); border:1px solid rgba(255,62,127,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       width:100%; max-width:560px;
