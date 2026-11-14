@@ -1114,6 +1114,38 @@
     }
     .avatar-sm { width:30px; height:30px; font-size:11px; }
     .avatar-md { width:44px; height:44px; font-size:15px; }
+
+    /* ── Riders list: one tappable row per rider — name/tier, home mountain,
+       rating on the right, one icon friend action. Full stats live on the profile. ── */
+    .rider-row {
+      display:flex; align-items:center; gap:12px; padding:11px 4px;
+      border-bottom:1px solid var(--border); cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      transition:background-color var(--dur-fast) var(--ease-out);
+    }
+    .rider-row:active { background:rgba(255,255,255,0.03); }
+    .rider-main { flex:1; min-width:0; }
+    .rider-name { font-weight:700; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rider-tier { font-weight:700; }
+    .rider-tier .icon { color:currentColor; }
+    .rider-dot { margin:0 6px; opacity:.6; }
+    .rider-sub { font-size:12px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rider-rating { text-align:right; flex-shrink:0; }
+    .rider-rating-num { font-size:17px; font-weight:800; color:var(--primary); font-variant-numeric:tabular-nums; line-height:1.1; }
+    .rider-rating-num.unrated { font-size:12px; font-weight:600; color:var(--text-muted); }
+    .rider-rating-lbl { font-size:9.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
+    .rider-act {
+      width:36px; height:36px; flex-shrink:0; border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center;
+      background:transparent; border:1px solid var(--border-light); color:var(--text-secondary);
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+      transition:transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+    }
+    .rider-act:active { transform:scale(0.92); }
+    .rider-act .icon { color:currentColor; width:16px; height:16px; }
+    .rider-act.add { color:var(--ice); border-color:rgba(255,62,127,0.45); }
+    .rider-act.accept { background:var(--pop); color:var(--pop-ink); border-color:transparent; }
+    .rider-act-spacer { width:36px; flex-shrink:0; }
     .avatar-lg { width:64px; height:64px; font-size:22px; }
 
     /* ── RATING CHANGE ── */
@@ -3516,8 +3548,8 @@
           <span class="card-title">All Skiers</span>
           <span class="badge badge-primary" id="player-count">0</span>
         </div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
-          <div style="position:relative;flex:1;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+          <div style="position:relative;flex:1 1 220px;">
             <input type="text" id="riders-search" class="form-input"
               placeholder="Search riders…"
               style="padding-left:32px;height:36px;font-size:13px;width:100%;box-sizing:border-box;"
@@ -10228,29 +10260,24 @@ function renderPlayers() {
 
   list.innerHTML = pl.map(p => {
     const t=tier(p.rating, p.gamesPlayed);
-    const wpct = p.gamesPlayed ? Math.round(p.wins/p.gamesPlayed*100) : 0;
     const searchText = [p.name, p.location, p.homeResort].filter(Boolean).join(' ');
+    const place = p.homeResort
+      ? `<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}`
+      : p.location ? `<svg class="icon icon-pin"><use href="#i-pin"/></svg> ${escHtml(p.location)}` : '';
+    const tierTag = `<span class="rider-tier" style="color:${t.color};">${t.icon} ${t.provisional ? 'Provisional' : t.label}</span>`;
+    const sub = [tierTag, place || (p.gamesPlayed ? '' : 'No games yet')].filter(Boolean).join('<span class="rider-dot">·</span>');
     return `
-      <div data-rider="${searchText.replace(/"/g,'&quot;')}" data-ridertype="${p.riderType||'skier'}" style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);">
+      <div class="rider-row" data-rider="${searchText.replace(/"/g,'&quot;')}" data-ridertype="${p.riderType||'skier'}" onclick="showProfile('${p.id}')">
         ${avatarHtml(p, 'avatar-md')}
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="font-weight:700;font-size:14.5px;cursor:pointer;" onclick="showProfile('${p.id}')">${escHtml(p.name)}</span>
-            ${t.provisional
-              ? `${tierBadgeHTML(t, `Provisional · ${p.gamesPlayed}/${RATED_THRESHOLD}`)}`
-              : `${tierBadgeHTML(t, t.label, {clickable:true})}`}
-          </div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
-            Rating: <strong style="color:${p.rating == null ? 'var(--text-muted)' : 'var(--primary)'};">${ratingDisplay(p.rating, p.gamesPlayed)}</strong>
-            ${p.gamesPlayed ? `&nbsp;·&nbsp;${p.wins}W ${p.losses}L&nbsp;·&nbsp;${p.gamesPlayed} games&nbsp;·&nbsp;Win% ${wpct}%` : `&nbsp;·&nbsp;<em style="color:var(--text-muted);">No games yet</em>`}
-            ${p.homeResort ? `&nbsp;·&nbsp;<svg class="icon icon-mountain"><use href="#i-mountain"/></svg> ${escHtml(p.homeResort)}` : (p.location ? `&nbsp;·&nbsp;<svg class="icon icon-pin"><use href="#i-pin"/></svg>${escHtml(p.location)}` : '')}
-          </div>
+        <div class="rider-main">
+          <div class="rider-name">${escHtml(p.name)}</div>
+          <div class="rider-sub">${sub}</div>
         </div>
-        <div style="display:flex;gap:7px;align-items:center;">
-          ${p.id !== currentUser?.id ? friendBtn(p.id) : ''}
-          ${p.id !== currentUser?.id ? followBtn(p.id) : ''}
-          <button class="btn btn-outline btn-sm" onclick="showProfile('${p.id}')">Profile</button>
+        <div class="rider-rating">
+          <div class="rider-rating-num${p.rating == null ? ' unrated' : ''}">${ratingDisplay(p.rating, p.gamesPlayed)}</div>
+          ${p.rating == null ? '' : '<div class="rider-rating-lbl">Rating</div>'}
         </div>
+        ${currentUser ? riderActBtn(p.id) : ''}
       </div>`;
   }).join('');
 
@@ -10329,6 +10356,21 @@ function friendBtn(otherId, modal=false) {
   if (status === 'pending_received')
     return `<button class="btn btn-primary btn-sm" onclick="acceptFriendRequest('${otherId}')">Accept</button><button class="btn btn-ghost btn-sm" onclick="declineFriendRequest('${otherId}')" style="color:var(--text-muted);">Decline</button>`;
   return `<button class="btn btn-outline btn-sm" onclick="sendFriendRequest('${otherId}')">+ Add</button>`;
+}
+
+// Riders list: one icon-only friend action per row (the row itself opens the
+// profile, so each action stops the tap). Friends and you get a spacer instead,
+// so the ratings column stays aligned.
+function riderActBtn(otherId) {
+  if (otherId === currentUser?.id) return '<span class="rider-act-spacer"></span>';
+  const act = (cls, fn, icon, label) =>
+    `<button type="button" class="rider-act ${cls}" onclick="event.stopPropagation();${fn}('${otherId}')" aria-label="${label}" title="${label}"><svg class="icon"><use href="#i-${icon}"/></svg></button>`;
+  switch (getFriendStatus(otherId)) {
+    case 'friends':          return '<span class="rider-act-spacer"></span>';
+    case 'pending_sent':     return act('', 'cancelFriendRequest', 'hourglass', 'Requested, tap to cancel');
+    case 'pending_received': return act('accept', 'acceptFriendRequest', 'check', 'Accept friend request');
+    default:                 return act('add', 'sendFriendRequest', 'user-plus', 'Add friend');
+  }
 }
 
 // Refreshes the friend button inside the profile modal if it's open for this player
