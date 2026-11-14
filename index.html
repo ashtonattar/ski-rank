@@ -1473,6 +1473,7 @@
       width:100%; justify-content:center; margin-top:4px;
       padding:12px; font-size:14px; letter-spacing:1px; border-radius:var(--radius);
     }
+    .auth-btn .icon { width:1.3em; height:1.3em; vertical-align:-0.25em; }
     .auth-btn:disabled {
       opacity:0.6; cursor:not-allowed; transform:none !important;
       pointer-events:none;
@@ -2433,6 +2434,15 @@
       transition:all .15s;
     }
     .builder-mode-tab.active { background:rgba(255,62,127,0.12); border-color:rgba(255,62,127,0.45); color:var(--ice); }
+    /* With the motion layer the pink chip slides between modes (_motionSegPill). */
+    .builder-mode-tabs { position:relative; }
+    .builder-mode-tabs .seg-pill,
+    body.light .builder-mode-tabs .seg-pill {
+      top:0; bottom:0; border-radius:10px;
+      background:rgba(255,62,127,0.12); box-shadow:inset 0 0 0 1px rgba(255,62,127,0.45);
+    }
+    .builder-mode-tabs.seg-slide .builder-mode-tab { position:relative; z-index:1; }
+    .builder-mode-tabs.seg-slide .builder-mode-tab.active { background:transparent; border-color:transparent; }
     .builder-section { margin-bottom:14px; }
     .builder-section-label {
       font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
@@ -2544,6 +2554,7 @@
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
 <defs>
 <symbol id="i-mountain" viewBox="0 0 24 24"><path d="M3 20L9 7l4 6 3-4 5 11z"/><circle cx="18" cy="5" r="1.3" class="icon-fill"/></symbol>
+<symbol id="i-rail" viewBox="0 0 24 24"><path d="M2 8.5h20"/><path d="M6 8.5V19M18 8.5V19"/><path d="M3.5 19h5M15.5 19h5"/></symbol>
 <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2" class="icon-fill"/></symbol>
 <symbol id="i-skis" viewBox="0 0 24 24"><path d="M8 22V6c0-2 1.5-3 3-2M16 22V6c0-2-1.5-3-3-2"/><line x1="6" y1="22" x2="10" y2="22"/><line x1="14" y1="22" x2="18" y2="22"/></symbol>
 <symbol id="i-poles-crossed" viewBox="0 0 24 24"><path d="M5 4L19 20"/><path d="M19 4L5 20"/><circle cx="15.5" cy="16" r="2.4" class="icon-fill"/><circle cx="8.5" cy="16" r="2.4" class="icon-fill"/><path d="M3.8 5.1L6.2 2.9"/><path d="M17.8 2.9L20.2 5.1"/></symbol>
@@ -2553,7 +2564,7 @@
 <symbol id="i-skier" viewBox="0 0 24 24"><circle cx="14" cy="4" r="1.8" class="icon-fill"/><path d="M12 7l-3 5 4 2-1 8M12 7l4 2 2 5M6 12l9-2M7 22.5h10"/></symbol>
 <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M9 3h6M5 8l-3 6a3 3 0 006 0zM19 8l-3 6a3 3 0 006 0zM5 8h14"/></symbol>
 <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 01-10 0V4z"/><path d="M5 4H3v2a4 4 0 004 4M19 4h2v2a4 4 0 01-4 4"/><path d="M8 21h8M12 17v4"/></symbol>
-<symbol id="i-fire" viewBox="0 0 24 24"><path d="M12 2c2 4-2 5-2 8a2 2 0 004 0c0-1-1-2-1-3 2 1 3 3 3 5a4 4 0 01-8 0c0-4 3-6 4-10z"/></symbol>
+<symbol id="i-fire" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 002.5 2.5z"/></symbol>
 <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
 <symbol id="i-medal" viewBox="0 0 24 24"><circle cx="12" cy="14" r="6"/><path d="M9.5 12.5l1.2 2.4L13.5 15l-1.7 1.7.3 2.4-2.1-1.2-2.1 1.2.3-2.4L6.5 15l2.8-.1z" class="icon-fill"/><path d="M9 3l3 5 3-5"/></symbol>
@@ -6313,11 +6324,16 @@ function renderTrickList() {
 
 // ── Ski builder mode ────────────────────────────────────
 function setBuilderMode(mode) {
+  const order = ['jump','rail','unique'];
+  const dir = Math.sign(order.indexOf(mode) - order.indexOf(_builderMode));
   _builderMode = mode;
   _b = { takeoff:null, axis:null, spin:null, grab:null, direction:null, offAxis:null,
          railTakeoff:null, spinOn:null, onRail:null, spinOff:null, unique:null };
   renderBuilderModeTabs();
   renderBuilder();
+  // The new mode's options slide in from the side the chip is heading
+  const pane = MO && dir && document.querySelector('#trick-lib-list > div');
+  if (pane) MO.animate(pane, { opacity:[0, 1], x:[dir * 18, 0] }, SPRING_UI).then(() => _moClear(pane));
 }
 
 function renderBuilderModeTabs() {
@@ -7980,14 +7996,15 @@ function _motionReveal(overlay) {
   if (win) MO.animate(win, { scale:[0.7, 1] }, { ...SPRING_POP, delay:0.12 }).then(() => _moClear(win));
 }
 
-// Segmented controls (.seg): the active chip slides to whichever button gets
-// .on, same spring as the tab-bar pill. Watching the class (not each onclick)
+// Segmented controls (.seg, and the trick builder's Jumps/Rails/Unique tabs): the
+// active chip slides to whichever button gets .on (.active on the builder tabs),
+// same spring as the tab-bar pill. Watching the class (not each onclick)
 // covers every toggle, including ones flipped by code; the ResizeObserver
 // re-places it without animating when a hidden view is shown or the width changes.
 function _motionSegPill(seg, instant) {
   let pill = seg.querySelector(':scope > .seg-pill');
   if (!pill) { pill = document.createElement('span'); pill.className = 'seg-pill'; seg.prepend(pill); }
-  const active = seg.querySelector('button.on');
+  const active = seg.querySelector('button.on, button.active');
   if (!active || !active.offsetWidth) return;
   const x = active.offsetLeft, width = active.offsetWidth;
   if (instant || !pill._placed) { MO.animate(pill, { x, width }, { duration:0 }); pill._placed = true; }
@@ -8013,7 +8030,7 @@ function _motionMorePill(instant) {
 
 function _initSegPills() {
   if (!MO) return;
-  document.querySelectorAll('.seg').forEach(seg => {
+  document.querySelectorAll('.seg, .builder-mode-tabs').forEach(seg => {
     seg.classList.add('seg-slide');
     new MutationObserver(() => _motionSegPill(seg)).observe(seg, { subtree:true, attributes:true, attributeFilter:['class'] });
     new ResizeObserver(() => _motionSegPill(seg, true)).observe(seg);
@@ -15429,7 +15446,7 @@ async function adminWipeEverything() {
       <div id="trick-lib-builder-tabs" style="display:none;">
         <div class="builder-mode-tabs">
           <button class="builder-mode-tab active" onclick="setBuilderMode('jump')"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Jumps</button>
-          <button class="builder-mode-tab" onclick="setBuilderMode('rail')">🛤 Rails</button>
+          <button class="builder-mode-tab" onclick="setBuilderMode('rail')"><svg class="icon icon-rail"><use href="#i-rail"/></svg> Rails</button>
           <button class="builder-mode-tab" onclick="setBuilderMode('unique')"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Unique</button>
         </div>
       </div>
