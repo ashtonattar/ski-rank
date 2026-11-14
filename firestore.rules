@@ -335,8 +335,22 @@ service cloud.firestore {
       // player id, which isn't their auth uid for legacy accounts (step 6a).
       allow create: if callerIsPlayer(request.resource.data.fromId) &&
         request.resource.data.toId is string && request.resource.data.toId != '';
-      allow update: if false; // messages are immutable once sent
-      allow delete: if isAdmin(); // bulk-delete carve-out for the admin wipe tool
+      // UI refinement 21 (iMessage-style likes): the text stays immutable; the
+      // only editable field is likedBy, and each participant may only add or
+      // remove their OWN player id from it.
+      allow update: if
+        (callerIsPlayer(resource.data.fromId) && onlyOwnLike(resource.data.fromId)) ||
+        (callerIsPlayer(resource.data.toId)   && onlyOwnLike(resource.data.toId));
+      // The sender can unsend (delete for both); admin keeps the wipe-tool carve-out.
+      allow delete: if isAdmin() || callerIsPlayer(resource.data.fromId);
+
+      function onlyOwnLike(pid) {
+        let before = resource.data.get('likedBy', []).toSet();
+        let after  = request.resource.data.get('likedBy', []);
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']) &&
+          after is list && after.size() <= 2 &&
+          after.toSet().difference(before).union(before.difference(after.toSet())).hasOnly([pid]);
+      }
     }
 
     match /friendRequests/{requestId} {

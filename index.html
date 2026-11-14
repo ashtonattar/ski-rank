@@ -2051,6 +2051,58 @@
       color:var(--text-muted);
       margin-top:2px;
     }
+    /* ── iMessage-style likes / replies / unsend (UI refinement 21) ── */
+    .msg-row { display:flex; flex-direction:column; }
+    .msg-row.mine { align-items:flex-end; }
+    .msg-row.theirs { align-items:flex-start; }
+    .msg-row .msg-bubble {
+      position:relative; cursor:pointer;
+      -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+      -webkit-tap-highlight-color:transparent; touch-action:manipulation; /* no double-tap zoom */
+      transition:transform var(--dur-fast) var(--ease-out);
+    }
+    .msg-row .msg-bubble.pressed { transform:scale(0.97); }
+    .msg-row.liked .msg-bubble { margin-top:10px; }
+    .msg-like {
+      position:absolute; top:-11px; width:22px; height:22px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--bg-elevated); border:2px solid var(--bg-card); color:var(--ice);
+    }
+    .msg-row.mine .msg-like { left:-10px; }
+    .msg-row.theirs .msg-like { right:-10px; }
+    .msg-like .icon { width:11px; height:11px; color:currentColor; fill:currentColor; stroke:none; }
+    .msg-like .msg-like-n { position:absolute; right:-9px; bottom:-6px; font-size:9.5px; font-weight:800; color:var(--text-secondary); }
+    .msg-quote {
+      max-width:70%; font-size:11.5px; color:var(--text-muted); line-height:1.35;
+      padding:5px 10px; margin-bottom:-6px; padding-bottom:10px;
+      border-radius:14px; background:rgba(255,255,255,0.04);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .msg-quote strong { color:var(--text-secondary); font-weight:700; }
+    #msg-actions-catch { position:fixed; inset:0; z-index:10400; }
+    #msg-actions {
+      position:fixed; z-index:10401; display:flex; gap:2px; padding:4px;
+      background:var(--bg-elevated); border:1px solid var(--border-light); border-radius:999px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    }
+    #msg-actions button {
+      display:flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px;
+      background:none; border:none; color:var(--text-primary); font:inherit; font-size:13px; font-weight:600;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+    }
+    #msg-actions button:active { background:rgba(255,255,255,0.06); }
+    #msg-actions .icon { color:currentColor; width:15px; height:15px; }
+    #msg-actions .on { color:var(--ice); }
+    #msg-actions .on .icon { fill:currentColor; }
+    #msg-actions .danger { color:var(--danger); }
+    #chat-reply-bar {
+      display:none; align-items:center; gap:10px; margin-top:10px; padding:8px 10px 8px 12px;
+      border-left:3px solid var(--ice); border-radius:8px; background:rgba(255,62,127,0.06);
+      font-size:12px; color:var(--text-muted); flex-shrink:0;
+    }
+    #chat-reply-bar .reply-text { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #chat-reply-bar strong { color:var(--ice); }
+    #chat-reply-bar button { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; display:flex; }
     @media(max-width:700px) {
       .friends-layout { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
     }
@@ -2600,6 +2652,8 @@
 <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
 <defs>
 <symbol id="i-mountain" viewBox="0 0 24 24"><path d="M3 20L9 7l4 6 3-4 5 11z"/><circle cx="18" cy="5" r="1.3" class="icon-fill"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-9.6-9.3C.9 7.6 3.4 4 7 4c2.1 0 3.6 1.1 5 3 1.4-1.9 2.9-3 5-3 3.6 0 6.1 3.6 4.6 7.2-2.1 4.7-9.6 9.3-9.6 9.3z"/></symbol>
+<symbol id="i-reply" viewBox="0 0 24 24"><path d="M9 17l-5-5 5-5"/><path d="M4 12h11a5 5 0 015 5v2"/></symbol>
 <symbol id="i-rail" viewBox="0 0 24 24"><path d="M2 8.5h20"/><path d="M6 8.5V19M18 8.5V19"/><path d="M3.5 19h5M15.5 19h5"/></symbol>
 <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2" class="icon-fill"/></symbol>
 <symbol id="i-skis" viewBox="0 0 24 24"><path d="M8 22V6c0-2 1.5-3 3-2M16 22V6c0-2-1.5-3-3-2"/><line x1="6" y1="22" x2="10" y2="22"/><line x1="14" y1="22" x2="18" y2="22"/></symbol>
@@ -3618,6 +3672,12 @@
             </div>
             <!-- Messages -->
             <div id="chat-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;"></div>
+            <!-- Replying-to strip (startMsgReply) -->
+            <div id="chat-reply-bar">
+              <svg class="icon icon-reply"><use href="#i-reply"/></svg>
+              <div class="reply-text" id="chat-reply-text"></div>
+              <button type="button" onclick="cancelMsgReply()" aria-label="Cancel reply"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+            </div>
             <!-- Input -->
             <div style="display:flex;gap:8px;margin-top:14px;flex-shrink:0;">
               <input id="chat-input" class="form-input" placeholder="Message…" style="flex:1;"
@@ -11384,6 +11444,7 @@ function renderFriendsView() {
 function openChat(friendId, scrollToBottom=true) {
   // openChat also re-runs on every snapshot for the open chat; only a real switch animates
   const switched = !!friendId && friendId !== _activeChatId;
+  if (friendId !== _activeChatId) { cancelMsgReply(); closeMsgActions(); }
   _activeChatId = friendId;
 
   const emptyState = document.getElementById('chat-empty-state');
@@ -11417,14 +11478,20 @@ function openChat(friendId, scrollToBottom=true) {
     msgsEl.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:12.5px;padding:20px 0;">Say hi to ${escHtml(friend.name)}! 👋</div>`;
   } else {
     msgsEl.innerHTML = msgs.map(m => {
-      const mine = m.fromId === currentUser?.id;
+      const mine  = m.fromId === currentUser?.id;
+      const likes = (m.likedBy || []).length;
+      const quote = m.replyTo
+        ? `<div class="msg-quote"><strong>${m.replyTo.fromId === currentUser?.id ? 'You' : escHtml(byId(m.replyTo.fromId)?.name.split(' ')[0] || '')}</strong> ${escHtml(m.replyTo.text || '')}</div>`
+        : '';
       return `
-        <div style="display:flex;flex-direction:column;align-items:${mine ? 'flex-end' : 'flex-start'};">
-          <div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">${escHtml(m.text)}</div>
+        <div class="msg-row ${mine ? 'mine' : 'theirs'}${likes ? ' liked' : ''}" data-mid="${m.id}">
+          ${quote}
+          <div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">${escHtml(m.text)}${likes ? `<span class="msg-like"><svg class="icon"><use href="#i-heart"/></svg>${likes > 1 ? `<span class="msg-like-n">${likes}</span>` : ''}</span>` : ''}</div>
           <div class="msg-time" style="text-align:${mine ? 'right' : 'left'};">${timeFmt(m.date)}</div>
         </div>`;
     }).join('');
   }
+  _wireMsgGestures(msgsEl);
 
   if (scrollToBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
 
@@ -11479,12 +11546,135 @@ function sendMessage() {
     text,
     date:     Date.now()
   };
+  if (_replyTo && _replyTo.chatId === _activeChatId) msg.replyTo = { id:_replyTo.id, fromId:_replyTo.fromId, text:_replyTo.text };
+  cancelMsgReply();
   S.messages.push(msg);
   input.value = '';
   // Step 8: messages/{id} is the only copy (no state/global arrayUnion).
   _mirrorWrite('message', () => db.collection('messages').doc(msg.id).set(msg));
   openChat(_activeChatId);
   renderFriendsView();
+}
+
+// ── Message actions (UI refinement 21): long-press / right-click a bubble for
+// Like · Reply · Delete (your own only), double-tap to like. The chat list is
+// re-rendered on every snapshot, so the menu and reply strip live outside it,
+// and the gestures are wired once on the container by delegation.
+let _replyTo = null; // { chatId, id, fromId, text }
+let _msgActionsFor = null;
+
+function _wireMsgGestures(el) {
+  if (el.dataset.gestures) return;
+  el.dataset.gestures = '1';
+  let pressTimer = null, pressed = null, startX = 0, startY = 0, lastTap = { id:null, at:0 }, longFired = false;
+  const bubbleOf = e => e.target.closest('.msg-bubble');
+  const idOf = b => b?.closest('.msg-row')?.dataset.mid;
+  const clear = () => { clearTimeout(pressTimer); pressTimer = null; pressed?.classList.remove('pressed'); pressed = null; };
+  el.addEventListener('touchstart', e => {
+    const b = bubbleOf(e); if (!b || e.touches.length !== 1) return;
+    longFired = false; pressed = b; b.classList.add('pressed');
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    pressTimer = setTimeout(() => { longFired = true; const id = idOf(b); clear(); openMsgActions(id, b); }, 420);
+  }, { passive:true });
+  el.addEventListener('touchmove', e => {
+    if (!pressTimer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > 8 || Math.abs(t.clientY - startY) > 8) clear();
+  }, { passive:true });
+  el.addEventListener('touchend', clear);
+  el.addEventListener('touchcancel', clear);
+  el.addEventListener('contextmenu', e => {
+    const b = bubbleOf(e); if (!b) return;
+    e.preventDefault();
+    if (!longFired) openMsgActions(idOf(b), b);
+  });
+  el.addEventListener('click', e => {
+    const b = bubbleOf(e); if (!b || longFired) { longFired = false; return; }
+    const id = idOf(b), now = Date.now();
+    if (lastTap.id === id && now - lastTap.at < 320) { lastTap = { id:null, at:0 }; toggleMsgLike(id, true); }
+    else lastTap = { id, at:now };
+  });
+}
+
+function openMsgActions(id, bubble) {
+  const m = (S.messages || []).find(x => x.id === id);
+  if (!m || !currentUser) return;
+  closeMsgActions();
+  _msgActionsFor = id;
+  const mine  = m.fromId === currentUser.id;
+  const liked = (m.likedBy || []).includes(currentUser.id);
+  const catcher = document.createElement('div');
+  catcher.id = 'msg-actions-catch';
+  catcher.onclick = closeMsgActions;
+  const bar = document.createElement('div');
+  bar.id = 'msg-actions';
+  bar.innerHTML = `
+    <button type="button" class="${liked ? 'on' : ''}" onclick="toggleMsgLike('${id}');closeMsgActions()"><svg class="icon"><use href="#i-heart"/></svg>${liked ? 'Liked' : 'Like'}</button>
+    <button type="button" onclick="startMsgReply('${id}');closeMsgActions()"><svg class="icon"><use href="#i-reply"/></svg>Reply</button>
+    ${mine ? `<button type="button" class="danger" onclick="closeMsgActions();deleteMsg('${id}')"><svg class="icon"><use href="#i-trash"/></svg>Delete</button>` : ''}`;
+  document.body.append(catcher, bar);
+  // Above the bubble (below it if there's no room), aligned to its side
+  const r = bubble.getBoundingClientRect(), w = bar.offsetWidth, h = bar.offsetHeight;
+  const top = r.top - h - 8 > 60 ? r.top - h - 8 : r.bottom + 8;
+  const left = mine ? r.right - w : r.left;
+  bar.style.top  = `${top}px`;
+  bar.style.left = `${Math.max(8, Math.min(left, window.innerWidth - w - 8))}px`;
+  if (MO) MO.animate(bar, { opacity:[0, 1], scale:[0.9, 1] }, SPRING_SNAP).then(() => _moClear(bar));
+  navigator.vibrate?.(8);
+}
+
+function closeMsgActions() {
+  _msgActionsFor = null;
+  document.getElementById('msg-actions-catch')?.remove();
+  document.getElementById('msg-actions')?.remove();
+}
+
+// Double-tap only ever adds a like (like iMessage's tapback); the menu toggles.
+function toggleMsgLike(id, likeOnly = false) {
+  const m = (S.messages || []).find(x => x.id === id);
+  if (!m || !currentUser) return;
+  const me = currentUser.id;
+  const liked = (m.likedBy || []).includes(me);
+  if (liked && likeOnly) return;
+  m.likedBy = liked ? (m.likedBy || []).filter(x => x !== me) : [...(m.likedBy || []), me];
+  const FV = firebase.firestore.FieldValue;
+  _mirrorWrite('message-like', () => db.collection('messages').doc(id).update({ likedBy: liked ? FV.arrayRemove(me) : FV.arrayUnion(me) }));
+  if (_activeChatId) openChat(_activeChatId, false);
+  if (!liked && MO) {
+    const heart = document.querySelector(`#chat-messages .msg-row[data-mid="${id}"] .msg-like`);
+    if (heart) MO.animate(heart, { scale:[0.3, 1] }, SPRING_POP).then(() => _moClear(heart));
+  }
+}
+
+function startMsgReply(id) {
+  const m = (S.messages || []).find(x => x.id === id);
+  if (!m || !_activeChatId) return;
+  _replyTo = { chatId:_activeChatId, id:m.id, fromId:m.fromId, text:m.text.slice(0, 80) };
+  const who = m.fromId === currentUser?.id ? 'yourself' : (byId(m.fromId)?.name.split(' ')[0] || '');
+  document.getElementById('chat-reply-text').innerHTML = `Replying to <strong>${escHtml(who)}</strong>: ${escHtml(_replyTo.text)}`;
+  const bar = document.getElementById('chat-reply-bar');
+  bar.style.display = 'flex';
+  if (MO) MO.animate(bar, { opacity:[0, 1], y:[6, 0] }, SPRING_UI).then(() => _moClear(bar));
+  document.getElementById('chat-input')?.focus();
+}
+
+function cancelMsgReply() {
+  _replyTo = null;
+  const bar = document.getElementById('chat-reply-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+function deleteMsg(id) {
+  const m = (S.messages || []).find(x => x.id === id);
+  if (!m || m.fromId !== currentUser?.id) return;
+  confirm_('Delete message?', 'It will be removed for both of you.', () => {
+    S.messages = S.messages.filter(x => x.id !== id);
+    ['from', 'to'].forEach(side => _colSocial.messages[side]?.delete(id));
+    if (_replyTo?.id === id) cancelMsgReply();
+    _mirrorWrite('message-delete', () => db.collection('messages').doc(id).delete());
+    if (_activeChatId) openChat(_activeChatId, false);
+    renderFriendsView();
+  });
 }
 
 function escHtml(str) {
