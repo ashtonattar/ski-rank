@@ -1030,6 +1030,10 @@
       padding:max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     }
     #practice-overlay .px-inner { max-width:560px; margin:0 auto; }
+    /* While the trick library is open over the duel, everything under the sheet
+       is hidden: on each builder tap iOS repainted the duel's cards on top of
+       the sheet for a few frames. Only the header shows above the sheet anyway. */
+    #practice-overlay.under-sheet .px-inner > :not(.px-head) { visibility:hidden; }
     .px-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
     .px-close { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
       background:var(--bg-elevated); border:1px solid var(--border); border-radius:50%; color:var(--text-primary); cursor:pointer; }
@@ -2368,12 +2372,10 @@
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
 
     /* ── Trick Library Modal ── */
-    /* Plain dim, no backdrop blur: every builder tap re-renders the sheet, and
-       iOS dropped the blur for a frame on each one (even on its own layer),
-       flashing the sharp screen behind. A darker solid dim reads the same. */
     #trick-lib-overlay {
       display:none; position:fixed; inset:0; z-index:10200;
-      background:rgba(0,0,0,0.8);
+      background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
       align-items:flex-end; justify-content:center;
     }
     #trick-lib-sheet {
@@ -6277,6 +6279,8 @@ function _filteredLibrary() {
 
 function openTrickLib(target) {
   _trickLibTarget = target;
+  // Over the practice duel, hide the duel under the sheet (see .under-sheet)
+  document.getElementById('practice-overlay')?.classList.toggle('under-sheet', target === 'practice');
   const sport = _trickSport();
   document.querySelector('.trick-lib-sport-label').innerHTML = sport === 'snowboard' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboard Tricks' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks';
   // Both sports use the component builder
@@ -6298,6 +6302,7 @@ function openTrickLib(target) {
 function closeTrickLib() {
   const overlay = document.getElementById('trick-lib-overlay');
   _unlockPage('tricklib');
+  document.getElementById('practice-overlay')?.classList.remove('under-sheet');
   const finish = () => { overlay.style.display = 'none'; overlay.classList.remove('closing'); };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
   overlay.classList.add('closing');
