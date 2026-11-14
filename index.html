@@ -1972,6 +1972,15 @@
     }
     .friend-row:hover  { background:rgba(255,255,255,0.05); }
     .friend-row.active { background:var(--bg-elevated); box-shadow:inset 0 0 0 1px var(--border-light); }
+    /* With the motion layer, the active row's fill is one pill that slides
+       between conversations (_motionFriendPill), like the More-sheet pill. */
+    .friend-pill {
+      position:absolute; left:0; top:0; width:0; height:0; border-radius:var(--radius-sm);
+      background:var(--bg-elevated); box-shadow:inset 0 0 0 1px var(--border-light);
+      pointer-events:none; opacity:0;
+    }
+    .friends-sidebar.pill-slide .friend-row { z-index:1; }
+    .friends-sidebar.pill-slide .friend-row.active { background:transparent; box-shadow:none; }
     .friend-unread {
       min-width:18px; height:18px;
       background:var(--pop); color:var(--pop-ink);
@@ -8028,6 +8037,28 @@ function _motionMorePill(instant) {
   }
 }
 
+// Friends list: same sliding fill as the More sheet. The pill lives on the
+// sidebar, not in #friends-list-items, so the list's innerHTML re-renders keep it.
+function _motionFriendPill(instant) {
+  if (!MO) return;
+  const panel = document.getElementById('friends-list-panel');
+  if (!panel) return;
+  panel.classList.add('pill-slide');
+  let pill = panel.querySelector(':scope > .friend-pill');
+  if (!pill) { pill = document.createElement('span'); pill.className = 'friend-pill'; panel.prepend(pill); }
+  const active = panel.querySelector('.friend-row.active');
+  if (!active || !active.offsetHeight) { MO.animate(pill, { opacity:0 }, { duration:0.15 }); return; }
+  pill.style.left = active.offsetLeft + 'px';
+  pill.style.width = active.offsetWidth + 'px';
+  const y = active.offsetTop, height = active.offsetHeight;
+  if (instant || getComputedStyle(pill).opacity === '0') {
+    MO.animate(pill, { y, height }, { duration:0 });
+    MO.animate(pill, { opacity:1 }, { duration:0.15 });
+  } else {
+    MO.animate(pill, { y, height }, SPRING_SNAP);
+  }
+}
+
 function _initSegPills() {
   if (!MO) return;
   document.querySelectorAll('.seg, .builder-mode-tabs').forEach(seg => {
@@ -8037,7 +8068,7 @@ function _initSegPills() {
   });
 }
 
-window.addEventListener('resize', () => _motionTabPill(true));
+window.addEventListener('resize', () => { _motionTabPill(true); _motionFriendPill(true); });
 window.addEventListener('load', () => { _motionTabPill(true); _initSegPills(); });
 
 // ═══════════════════════════════════════════════════════
@@ -11276,6 +11307,8 @@ function renderFriendsView() {
 }
 
 function openChat(friendId, scrollToBottom=true) {
+  // openChat also re-runs on every snapshot for the open chat; only a real switch animates
+  const switched = !!friendId && friendId !== _activeChatId;
   _activeChatId = friendId;
 
   const emptyState = document.getElementById('chat-empty-state');
@@ -11284,6 +11317,7 @@ function openChat(friendId, scrollToBottom=true) {
   if (!friendId) {
     emptyState.style.display = 'flex';
     activeChat.style.display = 'none';
+    _motionFriendPill();
     return;
   }
 
@@ -11351,6 +11385,8 @@ function openChat(friendId, scrollToBottom=true) {
   document.querySelectorAll('.friend-row').forEach(r => {
     if (r.onclick?.toString().includes(`'${friendId}'`)) r.classList.add('active');
   });
+  _motionFriendPill();
+  if (MO && switched) MO.animate(activeChat, { opacity:[0, 1], y:[8, 0] }, SPRING_UI).then(() => _moClear(activeChat));
 }
 
 function sendMessage() {
