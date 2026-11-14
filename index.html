@@ -373,6 +373,8 @@
     }
     .topbar-account:active { transform:scale(0.96); }
     .topbar-account-name {
+      /* Explicit, or iOS paints button text its system blue */
+      color:var(--ice);
       font-size:12.5px; font-weight:700; line-height:normal; max-width:100px;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
@@ -8408,7 +8410,10 @@ function switchLbTab(tab) {
   if (searchFilters) searchFilters.style.display = isWeekly ? 'none' : 'flex';
   if (actFilter && isWeekly) actFilter.style.display = 'none';
 
+  // The sport toggle only re-renders the table that was showing, so re-apply it
+  // to whichever one is coming into view (Weekly → Boarders → All-time stays on Boarders)
   if (isWeekly) renderWeeklyLeaderboard();
+  else filterLeaderboard();
 }
 
 function renderWeeklyLeaderboard() {
