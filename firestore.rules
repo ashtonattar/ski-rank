@@ -37,6 +37,13 @@ service cloud.firestore {
           get(/databases/$(database)/documents/players/$(pid)).data.get('firebaseUid', null) == request.auth.uid));
     }
 
+    // True if player `ownerId` has blocked player `otherId` (blocks/ below).
+    // Rules can get() a doc the caller couldn't read, so the list stays private.
+    function blockedBy(ownerId, otherId) {
+      return exists(/databases/$(database)/documents/blocks/$(ownerId)) &&
+        otherId in get(/databases/$(database)/documents/blocks/$(ownerId)).data.get('blocked', []);
+    }
+
     // ── state/global ──────────────────────────────────────────────────────
     // Almost everything lives in this one document (players, games, chat,
     // reports, tournaments, etc.), written via targeted arrayUnion updates
@@ -334,7 +341,8 @@ service cloud.firestore {
       // callerIsPlayer(), not auth.uid == fromId: fromId is the sender's
       // player id, which isn't their auth uid for legacy accounts (step 6a).
       allow create: if callerIsPlayer(request.resource.data.fromId) &&
-        request.resource.data.toId is string && request.resource.data.toId != '';
+        request.resource.data.toId is string && request.resource.data.toId != '' &&
+        !blockedBy(request.resource.data.toId, request.resource.data.fromId);
       // UI refinement 21 (iMessage-style likes): the text stays immutable; the
       // only editable field is likedBy, and each participant may only add or
       // remove their OWN player id from it.
@@ -366,7 +374,9 @@ service cloud.firestore {
          callerIsPlayer(resource.data.fromId) ||
          callerIsPlayer(resource.data.toId));
       allow create: if callerIsPlayer(request.resource.data.fromId) &&
-        request.resource.data.status == 'pending';
+        request.resource.data.status == 'pending' &&
+        request.resource.data.toId is string && request.resource.data.toId != '' &&
+        !blockedBy(request.resource.data.toId, request.resource.data.fromId);
       // Only the recipient may accept/decline, only while still pending, and
       // only the status field may change (mirrors acceptFriendRequest()/
       // declineFriendRequest(), index.html:8997/9017).
@@ -382,6 +392,21 @@ service cloud.firestore {
         (resource.data.status == 'pending' && callerIsPlayer(resource.data.fromId)) ||
         (resource.data.status != 'pending' &&
           (callerIsPlayer(resource.data.fromId) || callerIsPlayer(resource.data.toId)));
+    }
+
+    // ── blocks/{playerId} ─────────────────────────────────────────────────
+    // App Store guideline 1.2 block-user. { blocked: [playerIds], updatedAt },
+    // keyed by the blocker's player id. Only the owner (or admin) reads or
+    // writes it; the blocked rider is never told. messages/ and
+    // friendRequests/ creates check it through blockedBy() above.
+    match /blocks/{playerId} {
+      allow read: if isAdmin() || callerIsPlayer(playerId);
+      allow create, update: if callerIsPlayer(playerId) &&
+        request.resource.data.keys().hasOnly(['blocked', 'updatedAt']) &&
+        request.resource.data.blocked is list &&
+        request.resource.data.blocked.size() <= 500 &&
+        !(playerId in request.resource.data.blocked);
+      allow delete: if isAdmin() || callerIsPlayer(playerId);
     }
 
     // ── pendingResults/{pendingId} ────────────────────────────────────────

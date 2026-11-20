@@ -3888,6 +3888,11 @@
         <button class="btn btn-outline" style="width:100%;" onclick="logout()"><svg class="icon icon-logout"><use href="#i-logout"/></svg> Log Out</button>
       </div>
 
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-hdr"><span class="card-title">Blocked riders</span></div>
+        <div id="prof-blocked-list"></div>
+      </div>
+
       <div class="card" style="border-color:rgba(239,68,68,0.25);">
         <div class="card-hdr">
           <span class="card-title" style="color:var(--danger);">Danger Zone</span>
@@ -4177,6 +4182,9 @@
         <label class="form-label">Details <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
         <textarea class="form-textarea" id="report-details" maxlength="500" placeholder="What happened?" rows="4"></textarea>
       </div>
+      <label id="report-block-row" style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer;">
+        <input type="checkbox" id="report-block"> Also block this rider
+      </label>
       <button class="btn btn-danger btn-lg" style="width:100%;justify-content:center;margin-top:4px;" onclick="submitReport()"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Submit Report</button>
     </div>
   </div>
@@ -4290,10 +4298,13 @@ function _callFn(name, data, { quietCodes = [] } = {}) {
 // Fire-and-forget variant for the call sites that don't need the result.
 function _callFnQuiet(name, data) { _callFn(name, data).catch(() => {}); }
 
-function _mirrorWrite(label, promiseFn) {
+function _mirrorWrite(label, promiseFn, { quietCodes = [] } = {}) {
   if (!db || !_fbAuth?.currentUser) return;
   try {
-    promiseFn().catch(e => { console.warn(`[dual-write] ${label} failed:`, e.code || e.message); _reportError(e, 'dual-write', { label }); });
+    promiseFn().catch(e => {
+      console.warn(`[dual-write] ${label} failed:`, e.code || e.message);
+      if (!quietCodes.includes(e.code)) _reportError(e, 'dual-write', { label });
+    });
   } catch (e) { console.warn(`[dual-write] ${label} failed:`, e.message); _reportError(e, 'dual-write', { label }); }
 }
 
@@ -4473,7 +4484,11 @@ function _applyColReads() {
     const { from, to } = _colSocial[k];
     if (!from || !to) return;
     const merged = new Map([...from, ...to]);
-    S[k] = [...merged.values()].sort((a, b) => (a.date || 0) - (b.date || 0));
+    // A blocked rider's messages and requests stay in the listener maps (so
+    // unblocking brings them back) but never reach S.
+    S[k] = [...merged.values()]
+      .filter(r => !isBlocked(r.fromId) && !isBlocked(r.toId))
+      .sort((a, b) => (a.date || 0) - (b.date || 0));
   });
 }
 
@@ -4517,6 +4532,10 @@ function _startColReads() {
 
   const me = currentUser?.id;
   if (!me || !_fbAuth?.currentUser) return; // rules need a signed-in participant
+  if (_myBlockedFor !== me) { _myBlocked = new Set(); _myBlockedFor = me; }
+  _colUnsubs.push(db.collection('blocks').doc(me).onSnapshot(
+    snap => _onMyBlocks(snap.data()?.blocked),
+    onErr('blocks', () => {})));
   ['messages', 'friendRequests'].forEach(k => {
     [['from', 'fromId'], ['to', 'toId']].forEach(([side, field]) => {
       _colUnsubs.push(db.collection(k).where(field, '==', me).onSnapshot(snap => {
@@ -5494,6 +5513,7 @@ async function doSignup() {
 
   if (!name)            return showErr('Please enter your full name.');
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
+  if (hasBlockedLanguage(name)) return showErr("That name has language that isn't allowed. Pick a different one.");
   if (!email)           return showErr('Email is required.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
   if (!dob)              return showErr('Date of birth is required.');
@@ -5726,6 +5746,7 @@ async function completeSocialSignup() {
   if (!fbUser)          return showErr('Your sign-in expired. Cancel and try again.');
   if (!name)            return showErr('Please enter your full name.');
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
+  if (hasBlockedLanguage(name)) return showErr("That name has language that isn't allowed. Pick a different one.");
   if (!dob)             return showErr('Date of birth is required.');
   const age = _ageFromDob(dob);
   // Same COPPA gate as doSignup() — see PRIVACY_POLICY.md.
@@ -5958,6 +5979,8 @@ function deleteAccount() {
     'Delete account?',
     `This will permanently remove your profile, stats, and account for "${currentUser.name}". Your game results will remain in the history. This cannot be undone.`,
     () => {
+      // The private block list goes with the account (best effort, while still signed in).
+      if (db && _fbAuth?.currentUser) db.collection('blocks').doc(currentUser.id).delete().catch(() => {});
       // Remove from players list
       S.players = S.players.filter(p => p.id !== currentUser.id);
       // Remove pending games involving this user
@@ -9684,10 +9707,11 @@ function setterSubmitTrick() {
   const g = S.live;
   if (!g || g.phase !== 'setting') return;
   const trick = (document.getElementById('trick-input').value.trim()) || 'Unnamed trick';
+  if (rejectBlockedLanguage(trick, 'That trick name')) return;
   document.getElementById('trick-input').value = '';
   g.trick = trick;
   g.phase = 'judging-setter';
-  addLog('<svg class="icon icon-target"><use href="#i-target"/></svg>', `${byId(g.setterId).name} is attempting: ${trick} — waiting for verdict…`);
+  addLog('<svg class="icon icon-target"><use href="#i-target"/></svg>', `${byId(g.setterId).name} is attempting: ${escHtml(trick)} — waiting for verdict…`);
   save(); drawBoard();
 }
 
@@ -10319,7 +10343,7 @@ function restoreLog() {
 //  PLAYERS
 // ═══════════════════════════════════════════════════════
 function renderPlayers() {
-  const pl = sorted();
+  const pl = sorted().filter(p => !isBlocked(p.id));
   document.getElementById('player-count').textContent = pl.length;
   const list  = document.getElementById('player-list');
   const empty = document.getElementById('player-empty');
@@ -10455,6 +10479,7 @@ function sendFriendRequest(toId) {
   if (!currentUser) return;
   const toPlayer = byId(toId);
   if (!toPlayer) return;
+  if (isBlocked(toId)) { toast('Unblock this rider first.', 'err'); return; }
   if (!Array.isArray(S.friendRequests)) S.friendRequests = [];
   // Prevent duplicate
   const existing = S.friendRequests.find(r =>
@@ -10473,7 +10498,10 @@ function sendFriendRequest(toId) {
   };
   S.friendRequests.push(request);
   // Step 8: friendRequests/{id} is the only copy (no state/global arrayUnion).
-  _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request));
+  // permission-denied here is expected when the other rider has blocked us
+  // (they aren't told, and neither is the sender), so it isn't a bug report.
+  _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request),
+    { quietCodes: ['permission-denied'] });
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -10721,7 +10749,7 @@ function renderExplore() {
             <span style="font-size:11px;color:rgba(255,255,255,0.4);align-self:center;">${dateFmt(item.date)}</span>
             ${canDelete ? `<span class="reel-chip" onclick="deleteClip('${item.id}')" style="cursor:pointer;color:var(--danger);border-color:var(--danger);"><svg class="icon icon-close"><use href="#i-close"/></svg> Delete</span>` : ''}
           </div>
-          ${item.caption ? `<div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:600;">${item.caption}</div>` : ''}
+          ${item.caption ? `<div style="font-size:13px;color:rgba(255,255,255,0.85);margin-top:8px;font-weight:600;">${escHtml(maskBlockedLanguage(item.caption))}</div>` : ''}
         </div>`;
       const likedC = iLiked(item.id);
       const actionsHtml = `
@@ -10938,11 +10966,11 @@ function toggleReelPlay(vid) {
 let _commentsItemId = null;
 
 function getComments(itemId) {
-  return ((S.comments || {})[itemId] || []).sort((a, b) => a.date - b.date);
+  return ((S.comments || {})[itemId] || []).filter(c => !isBlocked(c.userId)).sort((a, b) => a.date - b.date);
 }
 
 function getCommentCount(itemId) {
-  return ((S.comments || {})[itemId] || []).length;
+  return getComments(itemId).length;
 }
 
 function _onVPResize() {
@@ -11041,7 +11069,7 @@ function renderCommentsList(itemId) {
         ${avatarHtml(author || {id: c.userId, name: c.userName}, 'avatar-sm')}
         <div class="comment-bubble">
           <div class="comment-author" onclick="showProfile('${c.userId}')">${escHtml(c.userName)}</div>
-          <div class="comment-text">${escHtml(c.text)}</div>
+          <div class="comment-text">${escHtml(maskBlockedLanguage(c.text))}</div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="comment-time">${timeFmt(c.date)}</div>
             <span class="comment-like-btn${iLikedComment(c.id) ? ' liked' : ''}" onclick="toggleCommentLike('${c.id}',this)">
@@ -11060,6 +11088,7 @@ function postComment() {
   const input = document.getElementById('comment-input');
   const text = input?.value.trim();
   if (!text) return;
+  if (rejectBlockedLanguage(text, 'Your comment')) return;
   if (!S.comments) S.comments = {};
   if (!S.comments[_commentsItemId]) S.comments[_commentsItemId] = [];
   const comment = {
@@ -11283,6 +11312,7 @@ async function submitPostClip() {
   const caption = document.getElementById('pc-caption').value.trim();
   const resort  = document.getElementById('pc-resort').value.trim();
   if (!currentUser) { toast('Sign in to post', 'err'); return; }
+  if (rejectBlockedLanguage(`${caption} ${resort}`, 'Your caption')) return;
 
   const btn = document.querySelector('#post-clip-modal .btn-primary');
   btn.disabled = true;
@@ -11395,10 +11425,11 @@ function deleteClip(clipId) {
 // Merge game clips + standalone clips into one ranked feed
 function buildExploreFeed() {
   const gameClips = S.games
-    .filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:') && byId(g.winnerId) && byId(g.loserId))
+    .filter(g => g.clipUrl && !g.clipUrl.startsWith('blob:') && byId(g.winnerId) && byId(g.loserId) &&
+                 !isBlocked(g.winnerId) && !isBlocked(g.loserId))
     .map(g => ({ ...g, _type: 'game' }));
   const standaloneClips = (S.clips || [])
-    .filter(c => c.clipUrl && !c.clipUrl.startsWith('blob:') && byId(c.posterId))
+    .filter(c => c.clipUrl && !c.clipUrl.startsWith('blob:') && byId(c.posterId) && !isBlocked(c.posterId))
     .map(c => ({ ...c, _type: 'clip' }));
   const all = [...gameClips, ...standaloneClips];
   return [...all].sort((a, b) => clipScore(b) - clipScore(a));
@@ -11406,7 +11437,7 @@ function buildExploreFeed() {
 
 function renderFriendsView() {
   const me = S.players.find(p => p.id === currentUser?.id);
-  const friends = (me?.friends || []).map(id => byId(id)).filter(Boolean);
+  const friends = (me?.friends || []).filter(id => !isBlocked(id)).map(id => byId(id)).filter(Boolean);
 
   const listEl  = document.getElementById('friends-list-items');
   const emptyEl = document.getElementById('friends-list-empty');
@@ -11481,12 +11512,12 @@ function openChat(friendId, scrollToBottom=true) {
       const mine  = m.fromId === currentUser?.id;
       const likes = (m.likedBy || []).length;
       const quote = m.replyTo
-        ? `<div class="msg-quote"><strong>${m.replyTo.fromId === currentUser?.id ? 'You' : escHtml(byId(m.replyTo.fromId)?.name.split(' ')[0] || '')}</strong> ${escHtml(m.replyTo.text || '')}</div>`
+        ? `<div class="msg-quote"><strong>${m.replyTo.fromId === currentUser?.id ? 'You' : escHtml(byId(m.replyTo.fromId)?.name.split(' ')[0] || '')}</strong> ${escHtml(maskBlockedLanguage(m.replyTo.text || ''))}</div>`
         : '';
       return `
         <div class="msg-row ${mine ? 'mine' : 'theirs'}${likes ? ' liked' : ''}" data-mid="${m.id}">
           ${quote}
-          <div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">${escHtml(m.text)}${likes ? `<span class="msg-like"><svg class="icon"><use href="#i-heart"/></svg>${likes > 1 ? `<span class="msg-like-n">${likes}</span>` : ''}</span>` : ''}</div>
+          <div class="msg-bubble ${mine ? 'msg-mine' : 'msg-theirs'}">${escHtml(maskBlockedLanguage(m.text))}${likes ? `<span class="msg-like"><svg class="icon"><use href="#i-heart"/></svg>${likes > 1 ? `<span class="msg-like-n">${likes}</span>` : ''}</span>` : ''}</div>
           <div class="msg-time" style="text-align:${mine ? 'right' : 'left'};">${timeFmt(m.date)}</div>
         </div>`;
     }).join('');
@@ -11536,6 +11567,8 @@ function sendMessage() {
   const input = document.getElementById('chat-input');
   const text  = input.value.trim();
   if (!text) return;
+  if (isBlocked(_activeChatId)) { toast('Unblock this rider to message them.', 'err'); return; }
+  if (rejectBlockedLanguage(text, 'Your message')) return;
 
   if (!Array.isArray(S.messages)) S.messages = [];
   const msg = {
@@ -12310,7 +12343,7 @@ function showProfile(id) {
           <div onclick="openProfileClip('${c.id}')" style="position:relative;aspect-ratio:9/16;background:var(--bg-elevated);border-radius:10px;overflow:hidden;cursor:pointer;">
             <video ${clipVideoSrcAttrs(c.clipUrl, '#t=0.5')} style="width:100%;height:100%;object-fit:cover;pointer-events:none;" preload="metadata" muted playsinline></video>
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.55) 0%,transparent 60%);"></div>
-            ${c.caption ? `<div style="position:absolute;bottom:5px;left:6px;right:6px;font-size:9.5px;color:rgba(255,255,255,0.85);font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.caption}</div>` : ''}
+            ${c.caption ? `<div style="position:absolute;bottom:5px;left:6px;right:6px;font-size:9.5px;color:rgba(255,255,255,0.85);font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(maskBlockedLanguage(c.caption))}</div>` : ''}
             <div style="position:absolute;top:6px;right:6px;font-size:13px;opacity:0.7;">▶</div>
           </div>`).join('')}
       </div>`;
@@ -12319,7 +12352,12 @@ function showProfile(id) {
     ${id !== currentUser?.id ? `
     <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('profile-modal');nav('log-game');setTimeout(()=>setPickerValue('pp-lg-p2','${id}'),150);">Log a past game vs ${escHtml(p.name.split(' ')[0])}</button>
-      <button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" onclick="openReportModal('${id}')"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Report</button>
+        ${isBlocked(id)
+          ? `<button class="btn btn-ghost btn-sm" onclick="unblockPlayer('${id}')">Unblock</button>`
+          : `<button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="blockPlayer('${id}')">Block</button>`}
+      </div>
     </div>` : ''}`;
 
   openModal('profile-modal');
@@ -12368,6 +12406,7 @@ function sendChallenge() {
   const msgVal     = document.getElementById('challenge-message').value.trim();
   const judgeId    = document.getElementById('challenge-judge').value || null;
   const toPlayer   = byId(_challengeTargetId);
+  if (rejectBlockedLanguage(`${resortVal} ${msgVal}`, 'Your challenge')) return;
 
   // Judge can't be one of the two players
   if (judgeId && (judgeId === _challengeTargetId || judgeId === currentUser.id)) {
@@ -12407,6 +12446,162 @@ function sendChallenge() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  CONTENT FILTER (App Store guideline 1.2)
+// ═══════════════════════════════════════════════════════
+// Refuses slurs, sexual terms and the strongest profanity in anything other
+// riders see (chat, comments, captions, names, bios, challenge notes,
+// tournament names, called tricks), and masks them in older content. Text is
+// folded first (case, accents, leetspeak) and every letter may repeat, so
+// "FuUuCk" and "sh1t" match while whole-word boundaries keep "Scunthorpe",
+// "assist" and "Niger" clean. Client-side only: it stops the casual case, and
+// Report + Block cover the rest.
+const _FILTER_STEMS = [ // match as a word start: fucking, shitty, sluts…
+  'fuck', 'motherfuck', 'shit', 'bitch', 'cunt', 'whore', 'slut', 'nigger', 'nigga', 'fagg',
+  'porn', 'dildo', 'blowjob', 'handjob', 'jizz', 'asshole', 'dickhead', 'retard'
+];
+const _FILTER_WORDS = [ // match whole words only (plus a plural s)
+  'fag', 'dyke', 'tranny', 'spic', 'chink', 'kike', 'wetback', 'cum', 'cock',
+  'pussy', 'tits', 'rape', 'raped', 'rapist', 'kys', 'nudes', 'twat', 'wanker'
+];
+const _letters = w => [...w].map(c => c + '+').join('');
+const _FILTER_RE = new RegExp(
+  `\\b(?:(?:${_FILTER_STEMS.map(_letters).join('|')})[a-z]*|(?:${_FILTER_WORDS.map(_letters).join('|')})(?:e?s)?)\\b`, 'g');
+const _LEET = { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '@':'a', '$':'s' };
+// One folded char per input character (emoji etc. become a space), so match
+// offsets map straight back onto [...text].
+function _foldForFilter(s) {
+  return [...String(s || '')].map(c => {
+    const l = c.toLowerCase();
+    if (_LEET[l]) return _LEET[l];
+    const plain = l.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return plain.length === 1 ? plain : ' ';
+  }).join('');
+}
+function hasBlockedLanguage(text) {
+  _FILTER_RE.lastIndex = 0;
+  return _FILTER_RE.test(_foldForFilter(text));
+}
+// For text posted before the filter existed: masks the match, keeps the rest.
+function maskBlockedLanguage(text) {
+  const chars = [...String(text || '')];
+  _foldForFilter(text).replace(_FILTER_RE, (m, off) => {
+    for (let i = off; i < off + m.length; i++) chars[i] = '•';
+    return m;
+  });
+  return chars.join('');
+}
+// Returns true (and tells the rider) when the text can't be posted.
+function rejectBlockedLanguage(text, what = 'That') {
+  if (!hasBlockedLanguage(text)) return false;
+  toast(`${what} has language that isn't allowed on Slope Battles. Keep it clean.`, 'err');
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════
+//  BLOCK PLAYER (App Store guideline 1.2)
+// ═══════════════════════════════════════════════════════
+// blocks/{playerId} = { blocked: [playerIds] }, readable only by its owner.
+// The rules refuse a message or friend request to someone who has blocked
+// the sender; everything else from a blocked rider (clips, comments, chats,
+// requests, challenges, live invites) is hidden on the blocker's side
+// through isBlocked(). The blocked rider isn't told.
+let _myBlocked    = new Set();
+let _myBlockedFor = null; // player id the set belongs to
+
+function isBlocked(pid) {
+  return !!pid && !!currentUser && currentUser.id === _myBlockedFor && _myBlocked.has(pid);
+}
+
+function _onMyBlocks(list) {
+  _myBlocked = new Set(list || []);
+  _myBlockedFor = currentUser?.id || null;
+  _scheduleColRefresh();
+  _refreshBlockViews();
+}
+
+function _refreshBlockViews() {
+  if (_activeSection === 'explore') renderExplore();
+  if (_activeSection === 'profile') renderMyProfile();
+  if (_activeSection === 'players') renderPlayers();
+  if (_activeChatId && isBlocked(_activeChatId)) openChat(null);
+}
+
+function blockPlayer(id, { skipConfirm = false } = {}) {
+  if (!currentUser || id === currentUser.id) return;
+  if (!db || !_fbAuth?.currentUser) { toast('Sign in to block riders.', 'err'); return; }
+  const p = byId(id);
+  const name = p?.name || 'This rider';
+  const doBlock = () => {
+    const me = byId(currentUser.id);
+    _myBlocked.add(id); _myBlockedFor = currentUser.id;
+    db.collection('blocks').doc(currentUser.id)
+      .set({ blocked: firebase.firestore.FieldValue.arrayUnion(id), updatedAt: Date.now() }, { merge: true })
+      .catch(e => {
+        _myBlocked.delete(id);
+        _reportError(e, 'block');
+        toast(`Couldn't block ${name}. Try again.`, 'err');
+        _refreshBlockViews();
+      });
+    // Cut the ties that already exist: friendship and pending requests.
+    if ((me?.friends || []).includes(id)) {
+      me.friends = me.friends.filter(x => x !== id);
+      if (p) p.friends = (p.friends || []).filter(x => x !== currentUser.id);
+      _callFnOrToast('removeFriend', { otherId: id }, "Couldn't remove the friendship.");
+    }
+    (S.friendRequests || []).filter(r => r.status === 'pending').forEach(r => {
+      if (r.fromId === currentUser.id && r.toId === id) {
+        S.friendRequests = S.friendRequests.filter(x => x.id !== r.id);
+        _mirrorWrite('friend request cancel (block)', () => db.collection('friendRequests').doc(r.id).delete());
+      } else if (r.fromId === id && r.toId === currentUser.id) {
+        r.status = 'declined';
+        _mirrorWrite('friend request decline (block)', () => db.collection('friendRequests').doc(r.id).update({ status: 'declined' }));
+      }
+    });
+    closeModal('profile-modal');
+    _scheduleColRefresh();
+    _refreshBlockViews();
+    checkNotifications();
+    toast(`${name} blocked.`, 'ok');
+  };
+  if (skipConfirm) return doBlock();
+  confirm_(`Block ${name}?`,
+    `They won't be able to message you or send you friend requests, and you won't see their clips, comments, challenges or invites. They won't be told. You can unblock them from Settings.`,
+    doBlock);
+}
+
+function unblockPlayer(id) {
+  if (!currentUser || !db || !_fbAuth?.currentUser) return;
+  const name = byId(id)?.name || 'Rider';
+  _myBlocked.delete(id);
+  db.collection('blocks').doc(currentUser.id)
+    .set({ blocked: firebase.firestore.FieldValue.arrayRemove(id), updatedAt: Date.now() }, { merge: true })
+    .catch(e => {
+      _myBlocked.add(id);
+      _reportError(e, 'unblock');
+      toast(`Couldn't unblock ${name}. Try again.`, 'err');
+      _refreshBlockViews();
+    });
+  _scheduleColRefresh();
+  _refreshBlockViews();
+  if (document.getElementById('profile-modal')?.classList.contains('open')) showProfile(id);
+  toast(`${name} unblocked.`, 'ok');
+}
+
+function blockedListHtml() {
+  const ids = [..._myBlocked];
+  if (!ids.length) return `<div style="font-size:12.5px;color:var(--text-muted);">You haven't blocked anyone.</div>`;
+  return ids.map(id => {
+    const p = byId(id) || { id, name: 'Unknown rider' };
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        ${avatarHtml(p, 'avatar-sm')}
+        <div style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(p.name)}</div>
+        <button class="btn btn-ghost btn-sm" onclick="unblockPlayer('${id}')">Unblock</button>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
 //  REPORT PLAYER
 // ═══════════════════════════════════════════════════════
 let _reportTargetId = null;
@@ -12420,6 +12615,8 @@ function openReportModal(toId) {
     `Reporting <strong style="color:var(--danger);">${escHtml(p?.name || 'Unknown')}</strong>`;
   document.getElementById('report-reason').value  = 'Harassment';
   document.getElementById('report-details').value = '';
+  document.getElementById('report-block').checked = false;
+  document.getElementById('report-block-row').style.display = isBlocked(toId) ? 'none' : 'flex';
   openModal('report-modal');
 }
 
@@ -12453,6 +12650,9 @@ function submitReport() {
     }).catch(e => console.warn('Report submit failed:', e));
   }
   closeModal('report-modal');
+  if (document.getElementById('report-block').checked && !isBlocked(_reportTargetId)) {
+    blockPlayer(_reportTargetId, { skipConfirm: true });
+  }
   toast(`Report submitted. Thanks for helping keep Slope Battles safe.`, 'ok');
 }
 
@@ -12500,7 +12700,7 @@ function cancelChallenge(id) {
 
 function renderChallenges() {
   if (!currentUser) return;
-  const incoming = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending');
+  const incoming = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending' && !isBlocked(c.fromId));
   const accepted = (S.challenges || []).filter(c =>
     (c.toId === currentUser.id || c.fromId === currentUser.id) && c.status === 'accepted');
   const sent     = (S.challenges || []).filter(c => c.fromId === currentUser.id && c.status === 'pending');
@@ -12864,6 +13064,7 @@ function createTournament() {
   if (!currentUser) return;
   const name = document.getElementById('tourney-name').value.trim();
   if (!name) { toast('Give your tournament a name.', 'err'); return; }
+  if (rejectBlockedLanguage(name, 'That tournament name')) return;
   const format = document.querySelector('input[name="tourney-format"]:checked')?.value || 'single-elim';
   const dateVal  = document.getElementById('tourney-date').value   || null;
   const resort   = document.getElementById('tourney-resort').value.trim() || null;
@@ -13575,9 +13776,9 @@ function pickRRWinner(tourneyId, matchId) {
 function checkNotifications() {
   if (!currentUser) return;
   const gameCount      = S.pending.filter(r => r.opponentId === currentUser.id && r.status === 'pending').length;
-  const inviteCount    = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending').length;
+  const inviteCount    = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending' && !isBlocked(i.fromId)).length;
   const friendCount    = (S.friendRequests || []).filter(r => r.toId === currentUser.id && r.status === 'pending').length;
-  const challengeCount  = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending').length;
+  const challengeCount  = (S.challenges || []).filter(c => c.toId === currentUser.id && c.status === 'pending' && !isBlocked(c.fromId)).length;
   const tourneyCount    = (S.tournaments || []).filter(t =>
     (t.invitees||[]).some(i => i.id === currentUser.id && i.status === 'pending')
   ).length;
@@ -13644,7 +13845,7 @@ function renderConfirmations() {
   }
 
   // ── Live Invites ──
-  const myInvites = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending');
+  const myInvites = S.liveInvites.filter(i => i.toId === currentUser.id && i.status === 'pending' && !isBlocked(i.fromId));
   document.getElementById('invite-count').textContent = myInvites.length;
   const inviteList  = document.getElementById('invite-list');
   const inviteEmpty = document.getElementById('invite-empty');
@@ -14675,6 +14876,8 @@ function renderMyProfile() {
   if (!currentUser) return;
   const p = S.players.find(x => x.id === currentUser.id);
   if (!p) return;
+  const blockedEl = document.getElementById('prof-blocked-list');
+  if (blockedEl) blockedEl.innerHTML = blockedListHtml();
 
   const t    = tier(p.rating, p.gamesPlayed);
   const profileRatedList = sorted().filter(x => x.rating != null && x.gamesPlayed >= RATED_THRESHOLD);
@@ -14867,6 +15070,7 @@ function saveProfileData() {
   if (!currentUser) return;
   const p = S.players.find(x => x.id === currentUser.id);
   if (!p) return;
+  if (rejectBlockedLanguage(['prof-bio', 'prof-resort', 'prof-instagram'].map(id => document.getElementById(id).value).join(' '), 'Your profile')) return;
 
   p.bio        = document.getElementById('prof-bio').value.trim();
   p.homeResort = document.getElementById('prof-resort').value.trim();
