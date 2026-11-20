@@ -112,12 +112,26 @@ service cloud.firestore {
 
     // ── usersPrivate/{uid} ────────────────────────────────────────────────
     // Holds PII that must NOT be exposed by users/{uid}'s public read rule
-    // (currently just birthYear, collected for the signup age gate).
+    // (birthYear for the signup age gate, and the email opt-in).
     match /usersPrivate/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if isSignedIn() && request.auth.uid == uid;
-      allow update: if isAdmin();
+      // The rider may flip only their email opt-in (Settings); birthYear stays
+      // admin-only once written.
+      allow update: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emailOptIn', 'emailOptInAt']) &&
+         request.resource.data.emailOptIn is bool);
       allow delete: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // ── config/{doc} ──────────────────────────────────────────────────────
+    // App-wide settings read by every visitor, written only by admin (the
+    // Firebase console bypasses rules anyway). config/banner drives the
+    // in-app announcement banner: { active, text, link }.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // ── avatars/{uid} ──────────────────────────────────────────────────────

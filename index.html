@@ -366,6 +366,20 @@
     body.light .topbar { background:rgba(255,253,248,0.9); }
     .topbar-brand { display:flex; align-items:center; gap:8px; }
     .topbar-brand .logo-title { font-size:15px; letter-spacing:2px; }
+    .beta-pill {
+      font-size:9px; font-weight:800; letter-spacing:1px; line-height:1;
+      padding:3px 5px; border-radius:4px;
+      color:var(--ice); background:var(--ice-glow); border:1px solid rgba(255,62,127,0.25);
+    }
+    .announce-banner {
+      display:flex; align-items:center; gap:10px;
+      margin:0 0 14px; padding:10px 12px; border-radius:12px;
+      background:var(--ice-glow); border:1px solid rgba(255,62,127,0.25);
+      font-size:13px; font-weight:600; line-height:1.4; color:var(--text-primary);
+    }
+    .announce-banner[hidden] { display:none; }
+    .announce-banner-text { flex:1; min-width:0; color:inherit; text-decoration:none; }
+    .announce-banner button { flex:none; background:none; border:0; color:var(--text-muted); cursor:pointer; padding:2px; display:flex; }
     .topbar-account {
       display:flex; align-items:center; gap:7px;
       background:var(--bg-elevated,rgba(255,255,255,0.06)); border:1px solid var(--border);
@@ -2998,6 +3012,12 @@
           I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
         </label>
       </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;">
+        <input type="checkbox" id="su-optin" style="margin-top:3px;flex:none;width:16px;height:16px;">
+        <label for="su-optin" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
+          Email me when the park opens and when park nights are on (4 emails a season, max).
+        </label>
+      </div>
       <button class="btn btn-accent auth-btn" onclick="doSignup()">Create Account <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
     </div>
 
@@ -3046,6 +3066,12 @@
           I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
         </label>
       </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;">
+        <input type="checkbox" id="sc-optin" style="margin-top:3px;flex:none;width:16px;height:16px;">
+        <label for="sc-optin" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
+          Email me when the park opens and when park nights are on (4 emails a season, max).
+        </label>
+      </div>
       <button class="btn btn-accent auth-btn" id="sc-submit" onclick="completeSocialSignup()">Finish Sign Up <svg class="icon icon-fire"><use href="#i-fire"/></svg></button>
       <div style="text-align:center;margin-top:14px;">
         <button type="button" onclick="cancelSocialSignup()" style="background:none;border:none;color:var(--text-muted);font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;"><svg class="icon icon-back"><use href="#i-back"/></svg> Cancel</button>
@@ -3063,6 +3089,7 @@
     <div class="topbar-brand" onclick="nav('live-game')" style="cursor:pointer;">
       <img src="assets/logo.svg" width="26" height="26" alt="" style="flex-shrink:0;">
       <span class="logo-title">SLOPE BATTLES</span>
+      <span class="beta-pill">BETA</span>
     </div>
     <button class="topbar-account" onclick="nav('profile');closeMoreSheet()" title="My Profile" id="topbar-account">
       <span class="avatar avatar-sm" id="sb-avatar" style="background:var(--bg-elevated);">?</span>
@@ -3110,6 +3137,9 @@
       <button class="nav-btn" data-view="tournaments" onclick="moreSheetGo('tournaments')" id="nav-tournaments">
         <span class="nav-icon"><svg class="icon icon-trophy"><use href="#i-trophy"/></svg></span><span style="flex:1;">Tourneys</span><span class="nav-badge" id="tournaments-badge" style="display:none;">0</span>
       </button>
+      <a class="nav-btn" href="mailto:ashtonattar@gmail.com?subject=Slope%20Battles%20beta%20feedback" onclick="track('feedback_opened');closeMoreSheet()" style="text-decoration:none;">
+        <span class="nav-icon"><svg class="icon icon-chat"><use href="#i-chat"/></svg></span><span style="flex:1;">Send Feedback</span>
+      </a>
       <button class="nav-btn" id="nav-install-app" onclick="installApp()" style="display:none;">
         <span class="nav-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span><span style="flex:1;">Install App</span>
       </button>
@@ -3118,6 +3148,9 @@
 
   <!-- ═══ Main ═══ -->
   <main class="main">
+
+    <!-- Announcement banner: config/banner in Firestore, edited by hand (see _startBanner) -->
+    <div id="announce-banner" class="announce-banner" hidden></div>
 
     <!-- ─── LEADERBOARD ─── -->
     <div id="view-leaderboard" class="view">
@@ -3889,6 +3922,13 @@
       </div>
 
       <div class="card" style="margin-bottom:12px;">
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;cursor:pointer;">
+          <input type="checkbox" id="prof-optin" style="margin-top:3px;flex:none;width:16px;height:16px;" onchange="setEmailOptIn(this.checked)">
+          Email me when the park opens and when park nights are on (4 emails a season, max).
+        </label>
+      </div>
+
+      <div class="card" style="margin-bottom:12px;">
         <div class="card-hdr"><span class="card-title">Blocked riders</span></div>
         <div id="prof-blocked-list"></div>
       </div>
@@ -4239,6 +4279,54 @@ const _fbConfig = {
   messagingSenderId: "451261217092",
   appId:             "1:451261217092:web:3489206a6b11033b133f11"
 };
+// ── Analytics (GA4) ──────────────────────────────────────────────────────
+// Paste the GA4 web stream's Measurement ID ("G-…") here to turn analytics
+// on. Empty = off, and track() does nothing. Event list: 02 Marketing
+// Campaign/00 Strategy/(C) Analytics Tracking Plan - 2026-10-01.md. Riders
+// are 13+, so Google Signals and ad personalization stay off, and event
+// params never carry PII (no names, emails, chat text or birth dates).
+const GA4_MEASUREMENT_ID = '';
+// First touch (utm_* from the landing URL), kept on the device so a rider who
+// comes back days later to sign up is still credited to the Reel or creator.
+const _firstTouch = (() => {
+  const q = new URLSearchParams(location.search), utm = {};
+  ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(k => {
+    const v = q.get(k); if (v) utm[k] = v.slice(0, 60);
+  });
+  try {
+    const kept = JSON.parse(localStorage.getItem('sb_first_touch') || 'null');
+    if (kept) return kept;
+    if (Object.keys(utm).length) localStorage.setItem('sb_first_touch', JSON.stringify(utm));
+  } catch (_) {}
+  return utm;
+})();
+if (GA4_MEASUREMENT_ID) {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', GA4_MEASUREMENT_ID, { allow_google_signals: false, allow_ad_personalization_signals: false });
+  const _ga = document.createElement('script');
+  _ga.async = true;
+  _ga.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
+  document.head.appendChild(_ga);
+}
+function track(event, params = {}) {
+  try { if (GA4_MEASUREMENT_ID && window.gtag) gtag('event', event, params); } catch (_) {}
+}
+// The app re-renders and re-snapshots a lot; anything keyed (a game id) fires once.
+const _trackedOnce = new Set();
+function trackOnce(key, event, params) {
+  if (_trackedOnce.has(key)) return;
+  _trackedOnce.add(key);
+  track(event, params);
+}
+function trackUser(playerId) {
+  try { if (GA4_MEASUREMENT_ID && window.gtag) gtag('set', { user_id: playerId || null }); } catch (_) {}
+}
+function _signupSource() {
+  return _pendingReferrerId ? 'ref' : (_firstTouch.utm_source || 'direct');
+}
+
 // Send a caught-and-handled error to Sentry (uncaught ones are reported automatically).
 // `area` becomes a searchable tag. Same area+message is sent once per page load, so a
 // failing listener or the 4s poll can't flood the quota. Offline/network errors are
@@ -5574,13 +5662,15 @@ async function doSignup() {
     ...(firebaseUid ? { firebaseUid } : {})
   };
 
-  await _createPlayerAccount(newUser, dob, showErr);
+  await _createPlayerAccount(newUser, dob, showErr, {
+    method: 'email', emailOptIn: document.getElementById('su-optin').checked
+  });
 }
 
 // Shared tail of every new-account flow (email signup and first-time
 // Google/Apple sign-in): writes users/ + usersPrivate/, seeds the session,
 // launches the app and sends the invite-link friend request if any.
-async function _createPlayerAccount(newUser, dob, showErr) {
+async function _createPlayerAccount(newUser, dob, showErr, { method = 'email', emailOptIn = false } = {}) {
   // Write to Firestore users collection
   try {
     await db.collection('users').doc(newUser.id).set(newUser);
@@ -5589,8 +5679,12 @@ async function _createPlayerAccount(newUser, dob, showErr) {
     // separate owner/admin-only collection because users/{uid} is publicly
     // readable (login-by-email lookup, public rider profiles) — see
     // firestore.rules' usersPrivate/{uid} rule.
+    // emailOptIn: the signup checkbox ("email me when the park opens…"). Off
+    // unless ticked; no more than 4 emails a season (launch plan).
     await db.collection('usersPrivate').doc(newUser.id).set({
-      birthYear: parseInt(dob.slice(0, 4), 10)
+      birthYear: parseInt(dob.slice(0, 4), 10),
+      emailOptIn: !!emailOptIn,
+      emailOptInAt: emailOptIn ? Date.now() : null
     });
   } catch(e) {
     showErr('Failed to create account. Please try again.');
@@ -5619,6 +5713,13 @@ async function _createPlayerAccount(newUser, dob, showErr) {
     following: [],
     createdAt: newUser.createdAt
   }];
+
+  const age = _ageFromDob(dob);
+  track('signup_completed', {
+    method, has_ref: !!_pendingReferrerId, signup_source: _signupSource(),
+    age_band: age < 16 ? '13-15' : age < 18 ? '16-17' : '18+', email_opt_in: !!emailOptIn
+  });
+  try { if (GA4_MEASUREMENT_ID && window.gtag) gtag('set', 'user_properties', { signup_source: _signupSource() }); } catch (_) {}
 
   _isNewSignup = true;
   launchApp();
@@ -5768,7 +5869,9 @@ async function completeSocialSignup() {
     firebaseUid: fbUser.uid,
     authProvider: providerId || 'social'
   };
-  if (await _createPlayerAccount(newUser, dob, showErr)) _socialPendingUser = null;
+  if (await _createPlayerAccount(newUser, dob, showErr, {
+    method: newUser.authProvider, emailOptIn: document.getElementById('sc-optin').checked
+  })) _socialPendingUser = null;
 }
 
 async function cancelSocialSignup() {
@@ -6107,6 +6210,7 @@ function launchPreview() {
 }
 
 function switchAuthTab(tab) {
+  if (tab === 'signup') track('signup_started', { source: _signupSource() });
   document.getElementById('form-forgot').style.display = 'none';
   document.getElementById('form-social-complete').style.display = 'none';
   document.getElementById('auth-social-block').style.display = 'block';
@@ -6869,6 +6973,8 @@ function launchApp() {
   if (currentUser) {
     updateSidebarAvatar();
   }
+  trackUser(currentUser?.id);
+  _startBanner();
   // Start with empty state — Firestore is the sole source of truth.
   // Do NOT pre-populate from localStorage: stale/deleted accounts stored
   // locally would flash on screen for ~1s before Firestore overwrites them.
@@ -7367,6 +7473,7 @@ function _practiceStart(sport) {
     phase: 'pick-setter', log: [], rounds: 0, winner: null, timers: [],
   };
   _practiceLog(_PX_I.skis, 'Practice duel started. Nothing here counts.');
+  track('demo_duel_start', { level: _practiceLevel });
   _practiceRender();
 }
 
@@ -7424,6 +7531,7 @@ function _practiceLetter(who) {
   if (p.letters[who] >= LETTERS.length) {
     p.winner = who === 'me' ? 'bot' : 'me';
     _practiceLog(_PX_I.trophy, p.winner === 'me' ? 'You win the practice duel.' : 'Demo Rider wins the practice duel.');
+    track('demo_duel_complete', { result: p.winner === 'me' ? 'win' : 'loss', level: p.level });
     _practiceGo('over');
     return true;
   }
@@ -9245,6 +9353,7 @@ async function submitLog() {
   if (lgResort) lgResort.value = '';
 
   checkNotifications();
+  track('duel_logged', { has_clip: !!clipUrl });
   if (db) {
     toast(`Result sent to ${opponent?.name || 'opponent'} for confirmation <svg class="icon icon-mail"><use href="#i-mail"/></svg>`, 'ok');
   } else {
@@ -10052,6 +10161,9 @@ function finishLive(winnerId, loserId) {
   addLog('<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>', `Game over! ${byId(winnerId).name} wins — ${byId(loserId).name} spelled SKI!`);
   const game = commitGame(winnerId, loserId, '', '', [...g.log], '', '', g.resort || '', g.handicap || null);
   g.over=true; g.winnerId=winnerId; g.loserId=loserId; g._game=game;
+  trackOnce(`duel:${game.id}`, 'duel_completed', {
+    type: 'live', has_judge: !!g.judgeId, handicap: !!g.handicap, resort: g.resort || ''
+  });
   // Store rating deltas as plain fields so both players receive them via Firestore snapshot
   g.ratingDelta = { winnerDelta: game.winnerDelta, loserDelta: game.loserDelta, winnerNew: game.player1EndRating, loserNew: game.player2EndRating };
   // Auto-record result in tournament bracket if this was a tournament match
@@ -10502,6 +10614,7 @@ function sendFriendRequest(toId) {
   // (they aren't told, and neither is the sender), so it isn't a bug report.
   _mirrorWrite('friend request', () => db.collection('friendRequests').doc(request.id).set(request),
     { quietCodes: ['permission-denied'] });
+  track('friend_request_sent');
   checkNotifications();
   renderPlayers();
   refreshModalFriendBtn(toId);
@@ -11222,6 +11335,7 @@ function inviteFriends() {
   if (!currentUser) return;
   const url  = `${location.origin}${location.pathname}?ref=${encodeURIComponent(currentUser.id)}`;
   const text = `${currentUser.name} wants you to join Slope Battles — log your tricks, get rated, and battle friends 1v1.`;
+  track('invite_link_shared', { channel: navigator.share ? 'share' : 'copy' });
   if (navigator.share) {
     navigator.share({ title: 'Join me on Slope Battles', text, url }).catch(() => {});
   } else if (navigator.clipboard) {
@@ -12446,6 +12560,77 @@ function sendChallenge() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  ANNOUNCEMENT BANNER + EMAIL OPT-IN (launch plan, owned channels)
+// ═══════════════════════════════════════════════════════
+// One dismissible line at the top of the app, driven by config/banner, which
+// Ashton edits by hand in the Firebase console:
+//   { active: true, text: "Slope Battles Night: Fri Dec 11, Mad River park, 6pm.", link: "" }
+// Dismissing hides that exact text on this device; new text shows again.
+let _bannerUnsub = null;
+let _banner = null;
+
+function _startBanner() {
+  if (!db || _bannerUnsub) return;
+  _bannerUnsub = db.collection('config').doc('banner').onSnapshot(
+    snap => { _banner = snap.exists ? snap.data() : null; renderBanner(); },
+    e => { console.warn('Banner listener failed:', e.code || e.message); });
+}
+
+function _bannerKey(text) { return 'sb_banner_dismissed:' + text; }
+
+function renderBanner() {
+  const el = document.getElementById('announce-banner');
+  if (!el) return;
+  const text = (_banner?.active && typeof _banner.text === 'string') ? _banner.text.trim().slice(0, 200) : '';
+  let dismissed = false;
+  try { dismissed = !!text && localStorage.getItem(_bannerKey(text)) === '1'; } catch (_) {}
+  if (!text || dismissed) { el.hidden = true; el.innerHTML = ''; return; }
+  const link = typeof _banner.link === 'string' && /^https?:\/\//.test(_banner.link) ? _banner.link : '';
+  el.innerHTML = `
+    <svg class="icon icon-bell" style="flex:none;color:var(--ice);"><use href="#i-bell"/></svg>
+    ${link
+      ? `<a class="announce-banner-text" href="${escHtml(link)}" target="_blank" rel="noopener" onclick="track('banner_clicked')">${escHtml(text)}</a>`
+      : `<span class="announce-banner-text">${escHtml(text)}</span>`}
+    <button type="button" onclick="dismissBanner()" aria-label="Dismiss"><svg class="icon icon-close"><use href="#i-close"/></svg></button>`;
+  el.hidden = false;
+}
+
+function dismissBanner() {
+  const text = (_banner?.text || '').trim().slice(0, 200);
+  try { localStorage.setItem(_bannerKey(text), '1'); } catch (_) {}
+  renderBanner();
+}
+
+// usersPrivate/{authUid}: the rider may flip only emailOptIn/emailOptInAt.
+let _optInLoadedFor = null;
+function _loadEmailOptIn() {
+  const box = document.getElementById('prof-optin');
+  const uidNow = _fbAuth?.currentUser?.uid;
+  if (!box) return;
+  const card = box.closest('.card');
+  if (card) card.style.display = uidNow ? '' : 'none'; // guests have nowhere to store it
+  if (!db || !uidNow || _optInLoadedFor === uidNow) return;
+  _optInLoadedFor = uidNow;
+  db.collection('usersPrivate').doc(uidNow).get()
+    .then(snap => { box.checked = !!snap.data()?.emailOptIn; })
+    .catch(e => { _optInLoadedFor = null; console.warn('Opt-in load failed:', e.code || e.message); });
+}
+
+function setEmailOptIn(on) {
+  const uidNow = _fbAuth?.currentUser?.uid;
+  if (!db || !uidNow) return;
+  db.collection('usersPrivate').doc(uidNow)
+    .set({ emailOptIn: !!on, emailOptInAt: on ? Date.now() : null }, { merge: true })
+    .then(() => toast(on ? "You're on the list. 4 emails a season, max." : "Unsubscribed. No more emails.", 'ok'))
+    .catch(e => {
+      _reportError(e, 'email-opt-in');
+      const box = document.getElementById('prof-optin');
+      if (box) box.checked = !on;
+      toast("Couldn't save that. Try again.", 'err');
+    });
+}
+
+// ═══════════════════════════════════════════════════════
 //  CONTENT FILTER (App Store guideline 1.2)
 // ═══════════════════════════════════════════════════════
 // Refuses slurs, sexual terms and the strongest profanity in anything other
@@ -12583,7 +12768,7 @@ function unblockPlayer(id) {
     });
   _scheduleColRefresh();
   _refreshBlockViews();
-  if (document.getElementById('profile-modal')?.classList.contains('open')) showProfile(id);
+  if (document.getElementById('profile-modal')?.classList.contains('hidden') === false) showProfile(id);
   toast(`${name} unblocked.`, 'ok');
 }
 
@@ -13098,6 +13283,7 @@ function createTournament() {
   save();
   checkNotifications();
   closeModal('create-tourney-modal');
+  track('tournament_created', { format });
   toast(`Tournament "${name}" created! ${invitees.length ? invitees.length+' invites sent.' : ''}`, 'ok');
   renderTournaments();
 }
@@ -13995,6 +14181,7 @@ function confirmGame(id) {
   if (!req) return;
 
   const game = commitGame(req.winnerId, req.loserId, req.tricks.join(','), req.notes, [], req.score || '', req.clipUrl || '', req.resort || '');
+  trackOnce(`duel:${game.id}`, 'duel_completed', { type: 'logged', resort: req.resort || '', has_clip: !!req.clipUrl });
   // Rollout step 6b dual-write. The server applies the score stored by
   // reportPendingResult and rejects a payload score that differs, so send
   // exactly what this confirmer was shown (req.score).
@@ -14138,6 +14325,7 @@ function sendLiveInvite() {
   save();
   checkNotifications();
   showInviteWaiting(invite);
+  track('duel_invite_sent', { mode: 'live', has_judge: !!judgeId });
   toast(`Invite sent to ${opponent.name}${judgeId ? ` + <svg class="icon icon-scale"><use href="#i-scale"/></svg> ${byId(judgeId).name}` : ''} <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
 }
 
@@ -14878,6 +15066,7 @@ function renderMyProfile() {
   if (!p) return;
   const blockedEl = document.getElementById('prof-blocked-list');
   if (blockedEl) blockedEl.innerHTML = blockedListHtml();
+  _loadEmailOptIn();
 
   const t    = tier(p.rating, p.gamesPlayed);
   const profileRatedList = sorted().filter(x => x.rating != null && x.gamesPlayed >= RATED_THRESHOLD);
