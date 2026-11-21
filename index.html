@@ -1052,9 +1052,8 @@
     .px-close { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
       background:var(--bg-elevated); border:1px solid var(--border); border-radius:50%; color:var(--text-primary); cursor:pointer; }
     .px-title { font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-0.02em; flex:1; }
-    .px-bot-avatar { width:64px; height:64px; border-radius:50%; background:var(--bg-elevated);
+    .px-bot-avatar { width:44px; height:44px; margin-bottom:10px; border-radius:50%; background:var(--bg-elevated);
       border:1px dashed var(--border-light); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--text-secondary); }
-    .px-bot-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
     .px-phase { text-align:center; }
     .px-phase h3:not(.phase-title) { font-size:15px; font-weight:700; margin-bottom:10px; }
     .px-phase p { font-size:13.5px; color:var(--text-secondary); margin-bottom:12px; }
@@ -1064,118 +1063,93 @@
     .px-phase .px-level-blurb { font-size:12px; color:var(--text-muted); margin-bottom:16px; }
     .px-over-title { font-family:var(--font-display); font-weight:800; font-size:28px; letter-spacing:-0.03em; margin-bottom:6px; }
     .live-board {
-      display:grid; grid-template-columns:1fr 44px 1fr;
-      gap:12px; align-items:center; margin-bottom:16px;
+      display:grid; grid-template-columns:1fr 32px 1fr;
+      gap:10px; align-items:stretch; margin-bottom:14px;
     }
 
-    /* Panels persist across snapshots (_morphChildren), so role changes ease
-       instead of jump-cutting. Only border/opacity/transform transition. */
+    /* Minimal duel card: avatar, name, letters, one role line. The ring says
+       whose move it is (teal = setting, pink = copying). Panels persist across
+       snapshots (_morphChildren); motion.dev eases the ring, CSS is the fallback. */
     .player-panel {
-      background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius-lg); padding:22px 16px 18px;
-      text-align:center; position:relative; overflow:hidden;
-      transition:border-color var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+      background:transparent; border:1px solid var(--border);
+      border-radius:var(--radius-lg); padding:18px 12px 14px;
+      text-align:center; position:relative;
+      display:flex; flex-direction:column; align-items:center;
     }
-    /* Soft wash behind whoever has the move; fades via opacity, not box-shadow. */
-    .player-panel::before {
-      content:''; position:absolute; inset:0; pointer-events:none; opacity:0;
-      background:radial-gradient(120% 70% at 50% 0%, var(--pp-glow, transparent), transparent 70%);
-      transition:opacity .32s var(--ease-out);
-    }
-    .player-panel > * { position:relative; }
-
-    /* Whose move it is reads from one ring: teal = setting, pink = copying. */
-    .player-panel.is-setter { border-color:var(--fire); --pp-glow:rgba(34,224,194,0.12); }
-    .player-panel.is-copier { border-color:var(--ice);  --pp-glow:rgba(255,62,127,0.10); }
-    .player-panel.is-setter::before, .player-panel.is-copier::before { opacity:1; }
+    html:not(.has-motion) .player-panel { transition:border-color var(--dur-base) var(--ease-out); }
+    .player-panel.is-setter { border-color:var(--fire); }
+    .player-panel.is-copier { border-color:var(--ice); }
+    .player-panel > .avatar, .player-panel > img { margin-bottom:10px; }
     .role-tag {
-      display:inline-flex; align-items:center; gap:6px; margin-top:12px;
-      padding:4px 10px; border-radius:999px;
-      font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+      margin-top:10px; font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
     }
-    .role-tag::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
-    .role-tag.role-set  { color:var(--fire); background:rgba(34,224,194,0.10); }
-    .role-tag.role-copy { color:var(--ice);  background:rgba(255,62,127,0.10); }
-    .role-hint { font-size:11px; color:var(--text-muted); margin-top:5px; line-height:1.35; }
-    /* Set by _morphChildren when a panel's role flips — the tag slides in once. */
-    .player-panel.role-changed .role-tag  { animation:roleIn .26s var(--ease-out) both; }
-    .player-panel.role-changed .role-hint { animation:roleIn .26s var(--ease-out) .04s both; }
-    @keyframes roleIn {
-      from { opacity:0; transform:translateY(6px) scale(.96); }
-      to   { opacity:1; transform:none; }
-    }
+    .role-tag.role-set  { color:var(--fire); }
+    .role-tag.role-copy { color:var(--ice); }
+    .pp-strikes { margin-top:6px; font-size:11px; color:var(--warning); }
 
     .pp-name {
       font-family:var(--font-display);font-weight:700;
-      font-size:18px; letter-spacing:-0.02em;
-      margin-bottom:6px;
+      font-size:16px; letter-spacing:-0.02em;
+      margin-bottom:12px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
-    .pp-rating { font-size:11.5px; color:var(--text-muted); margin-bottom:14px; letter-spacing:.5px; }
 
     .vs-text {
-      width:36px; height:36px; margin:0 auto; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-family:var(--font-display);font-weight:800; font-size:11px; letter-spacing:.5px;
-      color:var(--text-muted); background:var(--bg-elevated); border:1px solid var(--border);
+      align-self:center; text-align:center;
+      font-family:var(--font-display);font-weight:700; font-size:11px; letter-spacing:1px;
+      color:var(--text-muted);
     }
+    .live-meta { grid-column:1/-1; text-align:center; font-size:12px; color:var(--text-muted); }
+    .live-meta strong { color:var(--text-secondary); font-weight:600; }
 
     .trick-area {
       background:var(--bg-card); border:1px solid var(--border);
-      border-radius:var(--radius-lg); padding:20px; margin-bottom:18px;
+      border-radius:var(--radius-lg); padding:20px; margin-bottom:14px;
     }
-    /* New phase / new trick: content rises in. Re-triggered only when the phase
-       key changes (_livePhaseIn), not on every snapshot. */
-    .phase-in { animation:phaseIn .28s var(--ease-out) both; }
-    .phase-in .trick-btns > * { animation:phaseIn .28s var(--ease-out) both; }
-    .phase-in .trick-btns > :nth-child(1) { animation-delay:.05s; }
-    .phase-in .trick-btns > :nth-child(2) { animation-delay:.09s; }
-    @keyframes phaseIn {
-      from { opacity:0; transform:translateY(8px); }
-      to   { opacity:1; transform:none; }
-    }
-    .phase-title { font-family:var(--font-display); font-size:17px; font-weight:700; letter-spacing:-0.02em; line-height:1.3; margin-bottom:12px; }
-    .trick-callout {
-      display:flex; flex-direction:column; gap:3px;
-      padding:12px 14px; margin-bottom:4px;
-      background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius);
-    }
+    .phase-title { font-size:15px; font-weight:600; color:var(--text-secondary); line-height:1.4; margin-bottom:12px; }
+    /* The trick is the one thing to read at a glance: label + big name, no box. */
+    .trick-callout { display:flex; flex-direction:column; gap:2px; }
     .trick-callout-label { font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
-    .trick-callout strong { font-family:var(--font-display); font-size:18px; font-weight:700; letter-spacing:-0.02em; color:var(--primary); overflow-wrap:anywhere; }
-    .trick-callout.is-revenge strong { color:var(--fire); }
-    .trick-callout-note { font-size:12px; color:var(--text-muted); }
-    /* Waiting on the other rider: the hourglass tips over every few seconds so
-       the screen reads as live, not frozen. */
-    #phase-wait .icon-hourglass, .px-phase .icon-hourglass { animation:hourglassTip 2.4s var(--ease-impact) infinite; transform-origin:50% 50%; }
-    @keyframes hourglassTip {
-      0%, 70% { transform:rotate(0deg); }
-      90%, 100% { transform:rotate(180deg); }
+    .trick-callout strong { font-family:var(--font-display); font-size:24px; font-weight:700; letter-spacing:-0.03em; line-height:1.15; color:var(--text-primary); overflow-wrap:anywhere; }
+    .trick-callout-note { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+    .trick-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+
+    /* ── GAME LOG ── (collapsed by default; the board already shows the score) */
+    .live-log-wrap { border-top:1px solid var(--border); }
+    .live-log-wrap > summary {
+      list-style:none; cursor:pointer; padding:12px 2px;
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:.3px;
     }
-
-    .trick-btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
-
-    /* ── GAME LOG ── */
-    .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+    .live-log-wrap > summary::-webkit-details-marker { display:none; }
+    .live-log-wrap > summary::after { content:'Show'; font-weight:500; }
+    .live-log-wrap[open] > summary::after { content:'Hide'; }
+    .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-bottom:8px; }
+    .live-abandon { display:block; margin:6px auto 0; background:none; border:none; padding:10px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+    .live-abandon:hover { color:var(--danger); }
 
     .log-row {
-      background:rgba(255,62,127,0.03);
-      border:1px solid rgba(255,62,127,0.06);
-      border-radius:var(--radius-sm); padding:8px 13px;
-      font-size:12.5px; display:flex; align-items:center; gap:8px;
-      animation:slideIn .24s var(--ease-out);
+      border-radius:var(--radius-sm); padding:6px 4px;
+      font-size:12.5px; color:var(--text-secondary); display:flex; align-items:center; gap:8px;
     }
-    /* Rows restored from a snapshot are already "old" — don't re-slide them. */
-    .log-row.no-anim { animation:none; }
 
-    @keyframes slideIn {
-      from { opacity:0; transform:translateY(-6px); }
+    /* CSS fallbacks — only when motion.dev isn't running (has-motion unset).
+       With motion.dev, _moPhaseIn / _moRows / _moRole / _moGameOver drive these. */
+    html:not(.has-motion) .phase-in { animation:phaseIn .28s var(--ease-out) both; }
+    html:not(.has-motion) .row-in { animation:phaseIn .24s var(--ease-out) both; }
+    html:not(.has-motion) .player-panel.role-changed .role-tag { animation:phaseIn .26s var(--ease-out) both; }
+    @keyframes phaseIn {
+      from { opacity:0; transform:translateY(6px); }
       to   { opacity:1; transform:none; }
     }
-
+    /* Still used by .auth-error and .resort-dropdown. */
+    @keyframes slideIn {
+      from { opacity:0; transform:translateX(-8px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
     @media (prefers-reduced-motion: reduce) {
-      .player-panel, .player-panel::before { transition:none; }
-      .player-panel.role-changed .role-tag, .player-panel.role-changed .role-hint,
-      .phase-in, .phase-in .trick-btns > *, .log-row,
-      #phase-wait .icon-hourglass, .px-phase .icon-hourglass { animation:none; }
+      html:not(.has-motion) .player-panel { transition:none; }
+      .phase-in, .row-in, .player-panel.role-changed .role-tag { animation:none !important; }
     }
 
     /* ── AVATAR ── */
@@ -1350,23 +1324,9 @@
       color:var(--fire); margin-bottom:10px;
       
     }
-    /* First reveal only (go-in is added once per game in _gameOverIn): the card
-       settles in, then the headline lands with a small spring. */
-    .game-over-banner.go-in { animation:goIn .36s var(--ease-out) both; }
-    .game-over-banner.go-in h2 { animation:goTitle .42s var(--ease-spring) .08s both; }
-    .game-over-banner.go-in > p, .game-over-banner.go-in > div { animation:phaseIn .3s var(--ease-out) both; animation-delay:.16s; }
-    @keyframes goIn {
-      from { opacity:0; transform:translateY(12px) scale(.97); }
-      to   { opacity:1; transform:none; }
-    }
-    @keyframes goTitle {
-      from { opacity:0; transform:scale(.88); }
-      to   { opacity:1; transform:none; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .game-over-banner.go-in, .game-over-banner.go-in h2,
-      .game-over-banner.go-in > p, .game-over-banner.go-in > div { animation:none; }
-    }
+    /* First reveal only, CSS fallback (motion.dev path: _moGameOver). */
+    html:not(.has-motion) .game-over-banner.go-in { animation:phaseIn .32s var(--ease-out) both; }
+    @media (prefers-reduced-motion: reduce) { .game-over-banner.go-in { animation:none; } }
 
     /* ── TOAST ── */
     .toast-wrap { position:fixed; bottom:22px; right:22px; z-index:2000; display:flex; flex-direction:column; gap:8px; }
@@ -2428,13 +2388,11 @@
       .form-row { grid-template-columns:1fr; }
 
       /* ── Live game ── */
-      .live-board { grid-template-columns:1fr 26px 1fr; gap:6px; }
-      .vs-text { width:26px; height:26px; font-size:9px; }
+      .live-board { grid-template-columns:1fr 1fr; gap:8px; }
+      .vs-text { display:none; }
       .player-panel { padding:14px 8px 12px; border-radius:var(--radius); }
-      .role-tag { padding:3px 8px; font-size:9.5px; }
       .trick-area { padding:16px; }
-      .pp-name { font-size:13px; }
-      .pp-rating { font-size:10px; }
+      .pp-name { font-size:14px; }
       .ski-letter { width:32px; height:32px; font-size:14px; }
 
       /* ── Auth card ── */
@@ -3772,13 +3730,11 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-hdr">
-            <span class="card-title">Round Log</span>
-            <button class="btn btn-danger btn-sm" id="abandon-btn" onclick="abandonGame()">Abandon Game</button>
-          </div>
+        <details class="live-log-wrap">
+          <summary>Round log</summary>
           <div class="game-log" id="live-log"></div>
-        </div>
+        </details>
+        <button type="button" class="live-abandon" id="abandon-btn" onclick="abandonGame()">Abandon game</button>
       </div>
     </div>
 
@@ -7931,19 +7887,18 @@ function _practicePanel(who) {
   const cls = role === 'setter' ? 'is-setter' : role === 'copier' ? 'is-copier' : '';
   const avatar = who === 'bot'
     ? `<div class="px-bot-avatar" aria-hidden="true">${_PX_I.dice}</div>`
-    : (currentUser ? avatarHtml(currentUser, 'avatar-lg')
-                   : `<div class="avatar avatar-lg" style="background:var(--bg-elevated);color:var(--text-secondary);"><svg class="icon icon-user"><use href="#i-user"/></svg></div>`);
+    : (currentUser ? avatarHtml(currentUser, 'avatar-md')
+                   : `<div class="avatar avatar-md" style="background:var(--bg-elevated);color:var(--text-secondary);"><svg class="icon icon-user"><use href="#i-user"/></svg></div>`);
   const name = who === 'bot' ? 'Demo Rider' : (currentUser ? escHtml(currentUser.name) : 'You');
   return `
     <div class="player-panel ${cls}" data-px="${who}">
-      <div style="display:flex;justify-content:center;margin-bottom:10px;">${avatar}</div>
+      ${avatar}
       <div class="pp-name">${name}</div>
-      ${who === 'bot' ? `<div class="px-bot-label">Bot · ${_practiceLvl().label}</div>` : ''}
       <div class="ski-letters">
         ${LETTERS.map((l, i) => `<div class="ski-letter ${i < letters ? 'earned' : ''}">${l}</div>`).join('')}
       </div>
-      ${role === 'setter' ? '<div class="role-tag role-set">Setting</div><div class="role-hint">Names a trick and attempts it</div>' : ''}
-      ${role === 'copier' ? '<div class="role-tag role-copy">Copying</div><div class="role-hint">Match it or take a letter</div>' : ''}
+      ${role === 'setter' ? '<div class="role-tag role-set">Setting</div>' : ''}
+      ${role === 'copier' ? '<div class="role-tag role-copy">Copying</div>' : ''}
     </div>`;
 }
 
@@ -8019,10 +7974,10 @@ function _practiceRender() {
       </div>
       <div class="live-board" id="px-board"></div>
       <div class="trick-area px-phase" id="px-phase" aria-live="polite"></div>
-      <div class="card" style="margin-top:16px;">
-        <div class="card-hdr"><span class="card-title">Round log</span></div>
+      <details class="live-log-wrap">
+        <summary>Round log</summary>
         <div class="game-log" id="px-log"></div>
-      </div>`;
+      </details>`;
     _phaseKeys.practice = null;
   }
   _morphChildren(document.getElementById('px-board'), `
@@ -8038,8 +7993,11 @@ function _practiceRender() {
   }
   const logEl = document.getElementById('px-log');
   const fresh = p.log.slice(logEl.childElementCount);
-  if (fresh.length) logEl.insertAdjacentHTML('afterbegin', fresh.reverse()
-    .map(e => `<div class="log-row"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`).join(''));
+  if (fresh.length) {
+    logEl.insertAdjacentHTML('afterbegin', fresh.reverse()
+      .map(e => `<div class="log-row"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`).join(''));
+    _rowsIn([...logEl.children].slice(0, fresh.length));
+  }
   // Pop only letters earned since the last render (MO is null under reduced motion).
   ['me', 'bot'].forEach(who => {
     const now = p.letters[who], before = p.shown[who];
@@ -8510,7 +8468,8 @@ function _motionToastIn(el) {
 // Updates a container's children in place when the new markup has the same shape
 // (same count, same data-pid/data-px per slot), so the elements persist and their
 // CSS transitions (role ring, glow) actually run instead of jump-cutting on every
-// snapshot. A child whose class changed gets .role-changed for one entrance.
+// snapshot. A child whose role class changed gets its ring and role tag eased
+// in by motion.dev (CSS .role-changed is the fallback).
 function _morphChildren(container, html) {
   const tpl = document.createElement('template');
   tpl.innerHTML = html.trim();
@@ -8525,21 +8484,45 @@ function _morphChildren(container, html) {
     const old = prev[i];
     const roleChanged = cls(old) !== cls(el);
     if (!roleChanged && old.innerHTML === el.innerHTML) return;
+    const fromRing = roleChanged && MO ? getComputedStyle(old).borderColor : null;
     old.className = el.className;
     old.innerHTML = el.innerHTML;
-    if (roleChanged && old.querySelector('.role-tag')) {
+    if (!roleChanged) return;
+    const tag = old.querySelector('.role-tag');
+    if (MO) {
+      const toRing = getComputedStyle(old).borderColor;
+      if (fromRing !== toRing) MO.animate(old, { borderColor:[fromRing, toRing] }, { duration:0.25, ease:[0.22, 1, 0.36, 1] })
+        .then(() => { old.style.borderColor = ''; });
+      if (tag) MO.animate(tag, { opacity:[0, 1], y:[6, 0] }, SPRING_UI).then(() => _moClear(tag));
+    } else if (tag) {
       old.classList.add('role-changed');
       old.addEventListener('animationend', () => old.classList.remove('role-changed'), { once:true });
     }
   });
 }
 
+// New log rows: motion.dev slide-down, CSS .row-in fallback.
+function _rowsIn(rows) {
+  rows = [...rows];
+  if (!rows.length) return;
+  if (MO) MO.animate(rows, { opacity:[0, 1], y:[-6, 0] }, SPRING_UI).then(() => _moClear(rows));
+  else rows.forEach(r => r.classList.add('row-in'));
+}
+
 // Replays the phase entrance on `el` only when `key` differs from the last one
 // seen in this slot — snapshots re-run drawBoard constantly, the phase doesn't.
 const _phaseKeys = {};
+// motion.dev: content rises in, the action buttons follow a beat later.
 function _phaseIn(slot, el, key) {
   if (!el || _phaseKeys[slot] === key) return;
   _phaseKeys[slot] = key;
+  if (MO) {
+    MO.animate(el, { opacity:[0, 1], y:[6, 0] }, SPRING_UI).then(() => _moClear(el));
+    const btns = el.querySelectorAll('.trick-btns > *');
+    if (btns.length) MO.animate(btns, { opacity:[0, 1], y:[6, 0] }, { ...SPRING_UI, delay:MO.stagger(0.04, { startDelay:0.06 }) })
+      .then(() => _moClear(btns));
+    return;
+  }
   el.classList.remove('phase-in');
   void el.offsetWidth;
   el.classList.add('phase-in');
@@ -8551,7 +8534,12 @@ function _gameOverIn(overEl) {
   const id = S.live?.id || '';
   if (overEl.dataset.goFor === id) return;
   overEl.dataset.goFor = id;
-  overEl.querySelector('.game-over-banner')?.classList.add('go-in');
+  const banner = overEl.querySelector('.game-over-banner');
+  if (!banner) return;
+  if (!MO) { banner.classList.add('go-in'); return; }
+  MO.animate(banner, { opacity:[0, 1], y:[12, 0], scale:[0.98, 1] }, SPRING_UI).then(() => _moClear(banner));
+  const h = banner.querySelector('h2');
+  if (h) MO.animate(h, { opacity:[0, 1], scale:[0.9, 1] }, { ...SPRING_POP, delay:0.08 }).then(() => _moClear(h));
 }
 
 // Pop only letters that are new since the last render of this game — the board
@@ -9942,16 +9930,9 @@ function drawBoard() {
     <div class="vs-text">VS</div>
     ${playerPanel(p2, g, !g.setterId ? '' : g.setterId===g.p2 ? 'setter' : (nonSetPhases.includes(g.phase) ? 'copier' : ''))}
     ${judgePlayer ? `
-    <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
-      ${avatarHtml(judgePlayer, 'avatar-sm')}
-      <span style="font-size:13px;color:var(--text-muted);"><svg class="icon icon-scale"><use href="#i-scale"/></svg> <strong style="color:var(--text-primary);">${pLink(judgePlayer.id, judgePlayer.name)}</strong> is the neutral judge</span>
-    </div>` : ''}
+    <div class="live-meta">Judge · <strong>${pLink(judgePlayer.id, judgePlayer.name)}</strong></div>` : ''}
     ${g.handicap ? `
-    <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0 2px;border-top:1px solid var(--border);margin-top:4px;">
-      <span style="font-size:13px;"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg></span>
-      <span style="font-size:12px;color:#ffd700;font-weight:600;">Handicap Mode</span>
-      <span style="font-size:12px;color:var(--text-muted);">— ${pLink(g.handicap.higherId, byId(g.handicap.higherId)?.name)} started with ${LETTERS.slice(0,g.handicap.hcap).join('')}</span>
-    </div>` : ''}
+    <div class="live-meta">Handicap · <strong>${pLink(g.handicap.higherId, byId(g.handicap.higherId)?.name)}</strong> starts on ${LETTERS.slice(0,g.handicap.hcap).join('')}</div>` : ''}
   `);
   _motionLetters();
 
@@ -10119,22 +10100,18 @@ function drawBoard() {
 }
 
 function playerPanel(player, g, role) {
-  const t = tier(player.rating, player.gamesPlayed);
   const letters = g.letters[player.id] || 0;
   const isRole = role==='setter' ? 'is-setter' : role==='copier' ? 'is-copier' : '';
   return `
     <div class="player-panel ${isRole}" data-pid="${player.id}">
-      <div style="display:flex;justify-content:center;margin-bottom:10px;">
-        ${avatarHtml(player, 'avatar-lg')}
-      </div>
+      ${avatarHtml(player, 'avatar-md')}
       <div class="pp-name">${pLink(player.id, player.name)}</div>
-      <div class="pp-rating">${ratingDisplay(player.rating, player.gamesPlayed)} &nbsp; ${t.provisional ? tierBadgeHTML(t, `Provisional · ${player.gamesPlayed}/${RATED_THRESHOLD}`, {clickable:true}) : tierBadgeHTML(t, t.label, {clickable:true})}</div>
       <div class="ski-letters">
         ${LETTERS.map((l,i) => `<div class="ski-letter ${i<letters?'earned':''}">${l}</div>`).join('')}
       </div>
-      ${role==='setter' ? '<div class="role-tag role-set">Setting</div><div class="role-hint">Names a trick and attempts it</div>' : ''}
-      ${role==='copier' ? '<div class="role-tag role-copy">Copying</div><div class="role-hint">Match it or take a letter</div>' : ''}
-      ${(g.strikes && g.strikes[player.id]) ? `<div style="margin-top:8px;font-size:12px;color:var(--warning);"><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> ${g.strikes[player.id]}/3 strikes</div>` : ''}
+      ${role==='setter' ? '<div class="role-tag role-set">Setting</div>' : ''}
+      ${role==='copier' ? '<div class="role-tag role-copy">Copying</div>' : ''}
+      ${(g.strikes && g.strikes[player.id]) ? `<div class="pp-strikes">${g.strikes[player.id]}/3 strikes</div>` : ''}
     </div>`;
 }
 
@@ -10769,6 +10746,7 @@ function addLog(icon, msg) {
   const logEl = document.getElementById('live-log');
   logEl.dataset.game = S.live.id;
   logEl.insertBefore(el, logEl.firstChild);
+  _rowsIn([el]);
 }
 
 // Called on every snapshot. Rows already on screen for this game stay put; only
@@ -10781,11 +10759,14 @@ function restoreLog() {
   const row = (e, cls) => `<div class="log-row${cls}"><span>${e.icon}</span><span>${escHtml(e.msg)}</span></div>`;
   const have = logEl.childElementCount;
   if (logEl.dataset.game === S.live.id && have <= log.length) {
-    if (have < log.length) logEl.insertAdjacentHTML('afterbegin', log.slice(have).reverse().map(e => row(e, '')).join(''));
+    if (have < log.length) {
+      logEl.insertAdjacentHTML('afterbegin', log.slice(have).reverse().map(e => row(e, '')).join(''));
+      _rowsIn([...logEl.children].slice(0, log.length - have));
+    }
     return;
   }
   logEl.dataset.game = S.live.id;
-  logEl.innerHTML = [...log].reverse().map(e => row(e, ' no-anim')).join('');
+  logEl.innerHTML = [...log].reverse().map(e => row(e, '')).join('');
 }
 
 // ═══════════════════════════════════════════════════════
