@@ -1044,10 +1044,6 @@
       padding:max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     }
     #practice-overlay .px-inner { max-width:560px; margin:0 auto; }
-    /* While the trick library is open over the duel, everything under the sheet
-       is hidden: on each builder tap iOS repainted the duel's cards on top of
-       the sheet for a few frames. Only the header shows above the sheet anyway. */
-    #practice-overlay.under-sheet .px-inner > :not(.px-head) { visibility:hidden; }
     .px-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
     .px-close { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
       background:var(--bg-elevated); border:1px solid var(--border); border-radius:50%; color:var(--text-primary); cursor:pointer; }
@@ -2521,6 +2517,30 @@
     .admin-stat-val { font-family:var(--font-display);font-weight:700; font-size:24px; color:var(--primary); letter-spacing:-0.02em; }
     .admin-stat-lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
 
+    /* Entry row for the trick builder (live duel, practice, log form). A full
+       labelled row, not an icon square, so riders actually find it. */
+    .tb-open {
+      display:flex; align-items:center; gap:12px; width:100%; margin-top:10px;
+      padding:12px 14px; text-align:left; cursor:pointer;
+      background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius);
+      color:var(--text-primary); font:inherit; -webkit-tap-highlight-color:transparent;
+      transition:border-color .15s var(--ease-out), transform .12s var(--ease-out);
+    }
+    .tb-open:hover { border-color:rgba(255,62,127,0.4); }
+    .tb-open:active { transform:scale(0.98); }
+    .tb-open-icon {
+      width:36px; height:36px; flex-shrink:0; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(255,62,127,0.12); color:var(--ice);
+    }
+    .tb-open-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+    .tb-open-text strong { font-size:14px; font-weight:700; }
+    .tb-open-text span { font-size:12px; color:var(--text-muted); }
+    .tb-open-chev { flex-shrink:0; color:var(--text-muted); transform:rotate(180deg); }
+    @media (prefers-reduced-motion: reduce) { .tb-open { transition:none; } .tb-open:active { transform:none; } }
+    /* Fallback for _trickLibHideBehind() without motion.dev. */
+    .behind-sheet { visibility:hidden; }
+
     /* ── Trick Library Modal ── */
     #trick-lib-overlay {
       display:none; position:fixed; inset:0; z-index:10200;
@@ -3469,10 +3489,12 @@
 
         <div class="form-group">
           <label class="form-label">Tricks attempted (optional)</label>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input type="text" class="form-input" id="lg-tricks" placeholder="e.g. Frontflip, Cork 720…" style="flex:1;">
-            <button class="btn btn-ghost btn-sm" onclick="openTrickLib('log')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
-          </div>
+          <input type="text" class="form-input" id="lg-tricks" placeholder="e.g. Frontflip, Cork 720…">
+          <button type="button" class="tb-open" onclick="openTrickLib('log')">
+              <span class="tb-open-icon"><svg class="icon"><use href="#i-edit"/></svg></span>
+              <span class="tb-open-text"><strong>Trick builder</strong><span>Add a trick from takeoff, spin and grab</span></span>
+              <svg class="icon tb-open-chev"><use href="#i-back"/></svg>
+            </button>
         </div>
 
         <div class="form-group">
@@ -3672,11 +3694,13 @@
               <span id="setter-label"></span>, name your trick &amp; go attempt it
             </h3>
             <div class="form-group" style="margin-bottom:10px;">
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" class="form-input" id="trick-input" placeholder="Type or pick a trick…" style="flex:1;">
-                <button class="btn btn-ghost btn-sm" onclick="openTrickLib('live')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
-              </div>
+              <input type="text" class="form-input" id="trick-input" placeholder="Type a trick name…">
             </div>
+            <button type="button" class="tb-open" onclick="openTrickLib('live')">
+              <span class="tb-open-icon"><svg class="icon"><use href="#i-edit"/></svg></span>
+              <span class="tb-open-text"><strong>Trick builder</strong><span>Build it from takeoff, spin and grab</span></span>
+              <svg class="icon tb-open-chev"><use href="#i-back"/></svg>
+            </button>
             <div class="trick-btns">
               <button class="btn btn-primary" style="width:100%;" onclick="setterSubmitTrick()"><svg class="icon icon-target"><use href="#i-target"/></svg> Set Trick</button>
             </div>
@@ -6661,10 +6685,35 @@ function _filteredLibrary() {
   return TRICK_LIBRARY.filter(t => t.sport === sport || t.sport === 'both');
 }
 
+// The flash on builder taps: each pill press (its :active scale) made iOS paint
+// the screen under the sheet ON TOP of it for a few frames (seen in a screen
+// recording, 2026-11-13). Hiding that content while the sheet is open removes
+// the thing that shows through. It fades out under the dim (motion.dev, instant
+// class swap as fallback) so the page doesn't blink off, and comes back as the
+// sheet leaves. Top bar and the practice header stay: they sit above the sheet.
+let _tlBehind = [], _tlBehindGen = 0;
+function _trickLibHideBehind(hide) {
+  const gen = ++_tlBehindGen;
+  if (hide) {
+    _tlBehind = [...document.querySelectorAll('#app > main.main, #app > .tabbar, #practice-overlay .px-inner > :not(.px-head)')]
+      .filter(el => el.offsetParent !== null || getComputedStyle(el).position === 'fixed');
+    if (!MO) { _tlBehind.forEach(el => el.classList.add('behind-sheet')); return; }
+    MO.animate(_tlBehind, { opacity:0 }, { duration:0.22, ease:[0.22, 1, 0.36, 1] }).then(() => {
+      if (gen === _tlBehindGen) _tlBehind.forEach(el => el.classList.add('behind-sheet'));
+    });
+  } else {
+    const els = _tlBehind; _tlBehind = [];
+    els.forEach(el => el.classList.remove('behind-sheet'));
+    if (!MO) return;
+    // Motion commits the final opacity after the promise settles, so clear a frame later.
+    MO.animate(els, { opacity:1 }, { duration:0.2, ease:[0.22, 1, 0.36, 1] }).then(() => requestAnimationFrame(() => {
+      if (gen === _tlBehindGen) els.forEach(el => { el.style.opacity = ''; });
+    }));
+  }
+}
+
 function openTrickLib(target) {
   _trickLibTarget = target;
-  // Over the practice duel, hide the duel under the sheet (see .under-sheet)
-  document.getElementById('practice-overlay')?.classList.toggle('under-sheet', target === 'practice');
   const sport = _trickSport();
   document.querySelector('.trick-lib-sport-label').innerHTML = sport === 'snowboard' ? '<svg class="icon icon-snowboard"><use href="#i-snowboard"/></svg> Snowboard Tricks' : '<svg class="icon icon-skier"><use href="#i-skier"/></svg> Ski Tricks';
   // Both sports use the component builder
@@ -6680,13 +6729,14 @@ function openTrickLib(target) {
   trickLibOverlay.classList.remove('closing');
   trickLibOverlay.style.display = 'flex';
   _lockPage('tricklib');
+  _trickLibHideBehind(true);
   enableSheetDrag(document.getElementById('trick-lib-drag'), document.getElementById('trick-lib-sheet'), closeTrickLib);
 }
 
 function closeTrickLib() {
   const overlay = document.getElementById('trick-lib-overlay');
   _unlockPage('tricklib');
-  document.getElementById('practice-overlay')?.classList.remove('under-sheet');
+  _trickLibHideBehind(false);
   const finish = () => { overlay.style.display = 'none'; overlay.classList.remove('closing'); };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
   overlay.classList.add('closing');
@@ -7959,12 +8009,14 @@ function _practicePhaseHtml() {
     case 'me-setting': return `
       <h3 class="phase-title">Name your trick and go attempt it</h3>
       <div class="form-group" style="margin-bottom:10px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" class="form-input" id="px-trick-input" placeholder="Type or pick a trick…" autocomplete="off" style="flex:1;"
-            onkeydown="if(event.key==='Enter')practiceSubmitTrick()">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="openTrickLib('practice')" style="flex-shrink:0;padding:10px 12px;font-size:16px;" title="Trick library" aria-label="Trick library"><svg class="icon icon-book"><use href="#i-book"/></svg></button>
-        </div>
+        <input type="text" class="form-input" id="px-trick-input" placeholder="Type a trick name…" autocomplete="off"
+          onkeydown="if(event.key==='Enter')practiceSubmitTrick()">
       </div>
+      <button type="button" class="tb-open" onclick="openTrickLib('practice')">
+              <span class="tb-open-icon"><svg class="icon"><use href="#i-edit"/></svg></span>
+              <span class="tb-open-text"><strong>Trick builder</strong><span>Build it from takeoff, spin and grab</span></span>
+              <svg class="icon tb-open-chev"><use href="#i-back"/></svg>
+            </button>
       <div class="trick-btns" style="grid-template-columns:1fr;">
         <button class="btn btn-primary" style="width:100%;" onclick="practiceSubmitTrick()">${_PX_I.target} Set trick</button>
       </div>`;
