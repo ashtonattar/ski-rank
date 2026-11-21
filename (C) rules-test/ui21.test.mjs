@@ -59,6 +59,13 @@ async function main() {
     await assertFails(bob.doc('messages/m2').update({ text: 'edited' }));
     await assertFails(bob.doc('messages/m2').update({ likedBy: ['bob-uid'], text: 'edited' }));
   });
+  await check('a like may stamp likedAt (unread-like notification)', async () => {
+    await assertSucceeds(legacy.doc('messages/m3').update({ likedBy: ['legacy-old-id'], likedAt: 1790000000000 }));
+  });
+  await check('likedAt must be a number and cannot carry a text edit', async () => {
+    await assertFails(legacy.doc('messages/m1').update({ likedBy: ['legacy-old-id', 'bob-uid'], likedAt: 'now' }));
+    await assertFails(legacy.doc('messages/m2').update({ likedAt: 5, text: 'edited' }));
+  });
   await check('likedBy must be a list', async () => {
     await assertFails(bob.doc('messages/m2').update({ likedBy: 'bob-uid' }));
   });

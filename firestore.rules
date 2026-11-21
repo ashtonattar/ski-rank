@@ -175,6 +175,34 @@ service cloud.firestore {
       }
     }
 
+    // ── liveInvites/{inviteId} ────────────────────────────────────────────
+    // Moved off state/global.liveInvites 2026-11-20: every client's save()
+    // rewrote that whole array, so a stale copy silently dropped new invites.
+    // One doc per invite; `members` (sender, recipient, both players, judge)
+    // is what the client's array-contains listener queries on. Read stays as
+    // open as the old public array was (signed-in only now), which is also
+    // what lets that query through. Only the recipient answers (status), and
+    // a blocked sender can't invite the blocker.
+    match /liveInvites/{inviteId} {
+      allow read: if isSignedIn();
+      allow create: if callerIsPlayer(request.resource.data.fromId) &&
+        request.resource.data.id == inviteId &&
+        request.resource.data.toId is string && request.resource.data.toId != '' &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.members is list &&
+        request.resource.data.members.size() <= 5 &&
+        request.resource.data.members.hasAll([request.resource.data.fromId, request.resource.data.toId]) &&
+        !blockedBy(request.resource.data.toId, request.resource.data.fromId);
+      allow update: if callerIsPlayer(resource.data.toId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        request.resource.data.status in ['pending', 'accepted', 'declined'];
+      // Any member clears invites when a game ends or is cancelled. A missing
+      // doc is allowed so clearing an already-cleared invite isn't an error.
+      allow delete: if isAdmin() || resource == null ||
+        (isSignedIn() && request.auth.uid in resource.data.members) ||
+        callerIsPlayer(resource.data.fromId) || callerIsPlayer(resource.data.toId);
+    }
+
     // ── players/{playerId}, games/{gameId}, messages/{messageId}, ──────────
     // ── friendRequests/{requestId}  ─────────────────────────────────────────
     // Backend Migration Plan, sequenced rollout step 1 (see
@@ -358,8 +386,9 @@ service cloud.firestore {
         request.resource.data.toId is string && request.resource.data.toId != '' &&
         !blockedBy(request.resource.data.toId, request.resource.data.fromId);
       // UI refinement 21 (iMessage-style likes): the text stays immutable; the
-      // only editable field is likedBy, and each participant may only add or
-      // remove their OWN player id from it.
+      // only editable fields are likedBy, where each participant may only add
+      // or remove their OWN player id, and likedAt (a number), which the
+      // client stamps on a like so the author's unread count picks it up.
       allow update: if
         (callerIsPlayer(resource.data.fromId) && onlyOwnLike(resource.data.fromId)) ||
         (callerIsPlayer(resource.data.toId)   && onlyOwnLike(resource.data.toId));
@@ -369,7 +398,8 @@ service cloud.firestore {
       function onlyOwnLike(pid) {
         let before = resource.data.get('likedBy', []).toSet();
         let after  = request.resource.data.get('likedBy', []);
-        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']) &&
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy', 'likedAt']) &&
+          request.resource.data.get('likedAt', 0) is number &&
           after is list && after.size() <= 2 &&
           after.toSet().difference(before).union(before.difference(after.toSet())).hasOnly([pid]);
       }

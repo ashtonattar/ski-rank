@@ -4624,6 +4624,10 @@ function _startColReads() {
   _colUnsubs.push(db.collection('blocks').doc(me).onSnapshot(
     snap => _onMyBlocks(snap.data()?.blocked),
     onErr('blocks', () => {})));
+  _invitesSeen = null;
+  _colUnsubs.push(db.collection('liveInvites').where('members', 'array-contains', me).onSnapshot(
+    snap => _onLiveInvites(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+    onErr('liveInvites', () => {})));
   ['messages', 'friendRequests'].forEach(k => {
     [['from', 'fromId'], ['to', 'toId']].forEach(([side, field]) => {
       _colUnsubs.push(db.collection(k).where(field, '==', me).onSnapshot(snap => {
@@ -4642,12 +4646,77 @@ function _stopColReads() {
   clearTimeout(_colRefreshTimer);
   _colPlayers = null;
   _colGames = null;
+  _invitesSeen = null;
   ['messages', 'friendRequests'].forEach(k => { _colSocial[k].from = null; _colSocial[k].to = null; });
+}
+
+// ── liveInvites/{id} (2026-11-20) ───────────────────────────────────────────
+// Each live invite is its own doc. They used to be an array on state/global,
+// which every client's save() rewrote whole, so a stale copy from anyone
+// silently dropped a brand-new invite. `members` (sender, recipient, both
+// players, judge) is what the listener above queries on, so the players
+// also see the judge's invite and vice versa.
+let _invitesSeen = null; // invite id → status at the last snapshot; null before the first
+
+function _inviteMembers(inv) {
+  return [...new Set([inv.fromId, inv.toId, inv.p1Id, inv.p2Id, inv.judgeId].filter(Boolean))];
+}
+
+function _writeInvite(inv) {
+  _mirrorWrite('live invite', () => db.collection('liveInvites').doc(inv.id).set({ ...inv, members: _inviteMembers(inv) }));
+}
+
+function _setInviteStatus(id, status) {
+  const inv = (S.liveInvites || []).find(i => i.id === id);
+  if (inv) inv.status = status;
+  _mirrorWrite('live invite status', () => db.collection('liveInvites').doc(id).update({ status }));
+}
+
+// Removes the matching invites locally and deletes their docs.
+function _dropInvites(pred) {
+  const gone = (S.liveInvites || []).filter(pred);
+  S.liveInvites = (S.liveInvites || []).filter(i => !pred(i));
+  gone.forEach(i => _mirrorWrite('live invite delete', () => db.collection('liveInvites').doc(i.id).delete()));
+}
+
+// Replaces S.liveInvites and reacts to answers to MY invites (only on a real
+// status change, so a reload doesn't replay them). Resuming a game already in
+// progress is _tryResumeLiveGame()'s job.
+function _onLiveInvites(list) {
+  const prev = _invitesSeen;
+  _invitesSeen = new Map(list.map(i => [i.id, i.status]));
+  S.liveInvites = list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const me = currentUser?.id;
+  const answered = i => i.fromId === me && prev?.has(i.id) && prev.get(i.id) !== i.status;
+
+  const declined = list.filter(i => i.fromId === me && i.status === 'declined');
+  if (declined.length) {
+    _dropInvites(i => i.fromId === me && i.status === 'declined');
+    declined.filter(answered).forEach(d => {
+      const invForm = document.getElementById('live-invite-form');
+      const invWait = document.getElementById('live-invite-waiting');
+      if (invForm) invForm.style.display = 'block';
+      if (invWait) invWait.style.display = 'none';
+      toast(`${escHtml(d.toName || 'They')} declined your invite.`, 'err');
+    });
+  }
+
+  const accepted = list.find(i => i.role !== 'judge' && i.status === 'accepted' && answered(i));
+  if (accepted && (!S.live || S.live.over)) {
+    if (S.live) { unsubscribeLiveGame(); S.live = null; _gameOverDismissed = false; }
+    toast(`${escHtml(accepted.toName || 'They')} accepted! Game starting <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
+    subscribeLiveGame(accepted.gameId || accepted.id);
+    nav('live-game');
+  } else if (_activeSection === 'live-game') {
+    _tryResumeLiveGame();
+    if (!S.live) renderLiveSetup();
+  }
+  _scheduleColRefresh();
 }
 
 // Removes a player's traces from what's still on state/global, in ONE
 // targeted transaction: their challenges, and with removeAll (deleteAccount)
-// also their live invites and pending reports. Targeted, never a write-back
+// also their pending reports (live invites: deleteAccount's _dropInvites). Targeted, never a write-back
 // of local arrays, and not a debounced save(): deleteAccount() stops sync
 // right away and stopFirestoreSync() clears _saveTimer (found 2026-10-01).
 // Since step 8 the player entry, everyone's `friends` and the friendRequests/
@@ -4661,7 +4730,6 @@ function _purgeGlobalFor(playerId, { removeAll = false } = {}) {
     const d = (await tx.get(ref)).data() || {};
     const update = { challenges: (d.challenges || []).filter(notMine) };
     if (removeAll) {
-      update.liveInvites = (d.liveInvites || []).filter(notMine);
       update.pending     = (d.pending     || []).filter(r => r.winnerId !== playerId && r.loserId !== playerId);
     }
     tx.update(ref, update);
@@ -4842,6 +4910,9 @@ async function _saveToFirestore(pendingCopy) {
     // another client's concurrent write, same as the pre-fix messages bug.
     delete copy.friendRequests;
     delete copy.challenges;
+    // Live invites are docs in liveInvites/ now (_writeInvite); the array left
+    // on this doc is frozen and nothing reads it.
+    delete copy.liveInvites;
     // Explore-feed comments/likes/commentLikes are per-item maps ({itemId: [...]}),
     // mutated via targeted dot-path arrayUnion/arrayRemove updates (see postComment/
     // deleteComment/toggleLike/toggleCommentLike) — same reasoning as messages/
@@ -4972,9 +5043,11 @@ function startFirestoreSync() {
         delete fresh.games;
         delete fresh.messages;
         delete fresh.friendRequests;
+        // Live invites come only from the liveInvites/ listener (_onLiveInvites).
+        delete fresh.liveInvites;
 
         // Ensure all arrays exist
-        ['pending','liveInvites','challenges','tournaments','reports'].forEach(k => {
+        ['pending','challenges','tournaments','reports'].forEach(k => {
           if (!Array.isArray(fresh[k])) fresh[k] = [];
         });
 
@@ -4984,60 +5057,15 @@ function startFirestoreSync() {
           if (typeof t.matches === 'string') try { t.matches = JSON.parse(t.matches); } catch(_) { t.matches = []; }
         });
 
-        // Handle live-game invite events before overwriting S
-        if (currentUser) {
-          const accepted = (fresh.liveInvites || []).find(i =>
-            i.fromId === currentUser.id && i.status === 'accepted'
-          );
-          const declined = (fresh.liveInvites || []).find(i =>
-            i.fromId === currentUser.id && i.status === 'declined'
-          );
-          // A finished-but-dismissed game is intentionally left in S.live/_currentLiveGameId
-          // (see dismissLiveGameOver()) so its result stays visible — but that must not block
-          // detecting acceptance of a brand-new invite sent afterward, or the sender is stuck
-          // on the waiting screen forever. Clear it here the same way acceptLiveInvite() does
-          // on the accepter's side.
-          if (accepted && (!S.live || S.live.over)) {
-            if (S.live) { unsubscribeLiveGame(); S.live = null; _gameOverDismissed = false; }
-            Object.assign(S, fresh);
-            _applyColReads(); // step 7: collections win over the arrays
-            try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
-            checkNotifications();
-            toast(`${accepted.toName} accepted! Game starting <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
-            subscribeLiveGame(accepted.gameId || accepted.id);
-            nav('live-game');
-            return;
-          }
-          if (declined) {
-            Object.assign(S, fresh);
-            _applyColReads(); // step 7: collections win over the arrays
-            S.liveInvites = S.liveInvites.filter(i => i.id !== declined.id);
-            save();
-            const invForm = document.getElementById('live-invite-form');
-            const invWait = document.getElementById('live-invite-waiting');
-            if (invForm) invForm.style.display = 'block';
-            if (invWait) invWait.style.display = 'none';
-            toast(`${declined.toName} declined your invite.`, 'err');
-            return;
-          }
-        }
-
         // Keeping a just-signed-up user's own record, and healing a missing
         // one, now happen in _applyColReads() against players/ (step 8).
-        // Snapshot local invite statuses before overwriting — prevents a stale write
-        // from another client from reverting an already-accepted invite back to pending.
-        const _prevInvites = [...(S.liveInvites || [])];
-        // Same protection for tournaments — a stale snapshot (from a write queued
+        // Tournaments: a stale snapshot (from a write queued
         // before this client's own pending tournament change lands) must not revert
         // an invitee's accepted/declined status or drop a participant who just joined.
         const _prevTourneys = S.tournaments || [];
         // (lastRead's keep-the-newer merge lives in _applyColReads() since step 8.)
         Object.assign(S, fresh);
         _applyColReads(); // step 7: collections win over the arrays
-        S.liveInvites = (S.liveInvites || []).map(inv => {
-          const prev = _prevInvites.find(p => p.id === inv.id);
-          return (prev?.status === 'accepted' && inv.status === 'pending') ? { ...inv, status: 'accepted' } : inv;
-        });
         S.tournaments = (S.tournaments || []).map(t => {
           const prevT = _prevTourneys.find(p => p.id === t.id);
           if (!prevT) return t;
@@ -5138,7 +5166,7 @@ function stopFirestoreSync() {
 // write (posting a comment, logging a game, editing a tournament, etc).
 
 // If we're not already tracking a game, look for one via an accepted invite
-// involving the current user (liveInvites still lives on the global doc, and
+// involving the current user (from the liveInvites/ listener; a judge invite
 // carries a gameId pointing at the liveGames doc to attach to).
 // A judge attaches only via their OWN accepted judge invite (toId), never via
 // the players' invite's judgeId: that one flips to 'accepted' as soon as P2
@@ -6089,7 +6117,7 @@ function deleteAccount() {
       // Remove pending games involving this user
       S.pending = S.pending.filter(r => r.winnerId !== currentUser.id && r.loserId !== currentUser.id);
       // Remove live invites involving this user
-      S.liveInvites = S.liveInvites.filter(i => i.fromId !== currentUser.id && i.toId !== currentUser.id);
+      _dropInvites(i => i.fromId === currentUser.id || i.toId === currentUser.id);
       S.challenges  = (S.challenges||[]).filter(c => c.fromId !== currentUser.id && c.toId !== currentUser.id);
       // Not save(): stopFirestoreSync() below clears the debounce timer.
       // Order matters, since every step needs this user's auth: first the
@@ -9534,7 +9562,7 @@ function renderLiveSetup() {
         </div>
         <button class="btn btn-ghost btn-sm" onclick="
           const ji = (S.liveInvites||[]).find(i=>i.role==='judge'&&i.toId===currentUser?.id&&i.status==='accepted');
-          if(ji){ji.status='pending';save();}
+          if(ji){_setInviteStatus(ji.id,'pending');}
           document.getElementById('live-invite-form').style.display='block';
           document.getElementById('live-invite-waiting').style.display='none';
         ">Leave</button>`;
@@ -10190,9 +10218,7 @@ function finishLive(winnerId, loserId) {
     }
   }
   // Clear ALL invites tied to this game so no one gets stuck on the waiting screen
-  S.liveInvites = (S.liveInvites || []).filter(i =>
-    !(i.p1Id === g.p1 && i.p2Id === g.p2)
-  );
+  _dropInvites(i => i.p1Id === g.p1 && i.p2Id === g.p2);
   // Force an immediate Firestore write (skip debounce) so the over:true state reaches
   // all clients before the local player can click "New Game" and wipe S.live to null.
   clearTimeout(_saveTimer);
@@ -10375,9 +10401,9 @@ function resetLive() {
   // Clear ALL invites tied to this game (host, opponent and judge)
   if (S.live) {
     const p1 = S.live.p1, p2 = S.live.p2;
-    S.liveInvites = (S.liveInvites || []).filter(i => !(i.p1Id === p1 && i.p2Id === p2));
+    _dropInvites(i => i.p1Id === p1 && i.p2Id === p2);
   } else if (currentUser) {
-    S.liveInvites = (S.liveInvites || []).filter(i => i.fromId !== currentUser.id);
+    _dropInvites(i => i.fromId === currentUser.id);
   }
   S.live = null;
   save();
@@ -10766,8 +10792,14 @@ function getUnread(friendId) {
   const me = S.players.find(p => p.id === currentUser?.id);
   const lastRead = (me?.lastRead || {})[friendId] || 0;
   return (S.messages || [])
-    .filter(m => m.fromId === friendId && m.toId === currentUser?.id && m.date > lastRead)
+    .filter(m => (m.fromId === friendId && m.toId === currentUser?.id && m.date > lastRead) || _isUnreadLike(m, friendId, lastRead))
     .length;
+}
+
+// The friend liked one of my messages since I last opened the chat.
+function _isUnreadLike(m, friendId, lastRead) {
+  return m.fromId === currentUser?.id && m.toId === friendId &&
+    (m.likedAt || 0) > lastRead && (m.likedBy || []).includes(friendId);
 }
 
 function markRead(friendId) {
@@ -11568,7 +11600,11 @@ function renderFriendsView() {
     const unread  = getUnread(f.id);
     const msgs    = getConvo(f.id);
     const last    = msgs[msgs.length - 1];
-    const preview = last
+    const lastRead = (byId(currentUser.id)?.lastRead || {})[f.id] || 0;
+    const like    = msgs.filter(m => _isUnreadLike(m, f.id, lastRead)).sort((a, b) => b.likedAt - a.likedAt)[0];
+    const preview = like && like.likedAt > last.date
+      ? escHtml(`Liked "${like.text.slice(0, 20)}${like.text.length > 20 ? '…' : ''}"`)
+      : last
       ? escHtml((last.fromId === currentUser.id ? 'You: ' : '') + last.text.slice(0, 28) + (last.text.length > 28 ? '…' : ''))
       : 'No messages yet';
     return `
@@ -11785,7 +11821,11 @@ function toggleMsgLike(id, likeOnly = false) {
   if (liked && likeOnly) return;
   m.likedBy = liked ? (m.likedBy || []).filter(x => x !== me) : [...(m.likedBy || []), me];
   const FV = firebase.firestore.FieldValue;
-  _mirrorWrite('message-like', () => db.collection('messages').doc(id).update({ likedBy: liked ? FV.arrayRemove(me) : FV.arrayUnion(me) }));
+  // likedAt makes a new like count as unread for the other rider (getUnread).
+  if (!liked) m.likedAt = Date.now();
+  _mirrorWrite('message-like', () => db.collection('messages').doc(id).update(liked
+    ? { likedBy: FV.arrayRemove(me) }
+    : { likedBy: FV.arrayUnion(me), likedAt: m.likedAt }));
   if (_activeChatId) openChat(_activeChatId, false);
   if (!liked && MO) {
     const heart = document.querySelector(`#chat-messages .msg-row[data-mid="${id}"] .msg-like`);
@@ -13192,7 +13232,7 @@ function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
   const opponent = iAmP1 ? m.p2 : m.p1;
 
   // Cancel any existing pending invites from this user first
-  S.liveInvites = S.liveInvites.filter(i => !(i.fromId === currentUser.id && i.status === 'pending'));
+  _dropInvites(i => i.fromId === currentUser.id && i.status === 'pending');
 
   const invite = {
     id: uid(),
@@ -13213,6 +13253,7 @@ function startTournamentMatch(tourneyId, roundIdx, matchIdx) {
     tournamentMatchIdx: matchIdx
   };
   S.liveInvites.push(invite);
+  _writeInvite(invite);
   _writeLiveJoin(invite.id, invite.p1Id, invite.p2Id); // rollout step 6b forgery gate
   save();
   checkNotifications();
@@ -14295,7 +14336,7 @@ function sendLiveInvite() {
   const _startLetters = (_hcap?.hcap > 0) ? _hcap.letters : { [p1]: 0, [p2]: 0 };
 
   // Cancel any existing pending invites from this user
-  S.liveInvites = S.liveInvites.filter(i => !(i.fromId === currentUser.id && i.status === 'pending'));
+  _dropInvites(i => i.fromId === currentUser.id && i.status === 'pending');
 
   const invite = {
     id: uid(), fromId: currentUser.id, fromName: currentUser.name,
@@ -14306,6 +14347,7 @@ function sendLiveInvite() {
     handicap: (_hcap?.hcap > 0) ? { higherId: _hcap.higherId, hcap: _hcap.hcap } : null
   };
   S.liveInvites.push(invite);
+  _writeInvite(invite);
   // The invite's id becomes the liveGames doc id (acceptLiveInvite).
   _writeLiveJoin(invite.id, p1, p2); // rollout step 6b forgery gate
 
@@ -14320,6 +14362,7 @@ function sendLiveInvite() {
       gameId: invite.id // points at the p1/p2 invite whose id is the liveGames doc id
     };
     S.liveInvites.push(judgeInvite);
+    _writeInvite(judgeInvite);
   }
 
   save();
@@ -14339,7 +14382,7 @@ function showInviteWaiting(invite) {
 }
 
 function cancelLiveInvite() {
-  S.liveInvites = S.liveInvites.filter(i => !(i.fromId === currentUser.id && i.status === 'pending'));
+  _dropInvites(i => i.fromId === currentUser.id && i.status === 'pending');
   save();
   document.getElementById('live-invite-form').style.display    = 'block';
   document.getElementById('live-invite-waiting').style.display = 'none';
@@ -14384,13 +14427,9 @@ function acceptLiveInvite(inviteId) {
     // 'accepted' status is what a player reads to skip waiting-for-judge when
     // THEY create it (see judgeAlreadyAccepted below).
 
-    // Persist the liveInvites status change via a targeted per-item transaction
-    // (see _updateArrayField) instead of the whole-document save() — a full-doc
-    // write here can race a player's own debounced save() (or trip the "sync
-    // conflict" safety guard in _saveToFirestore) and silently drop the judge's
-    // 'accepted' status, leaving the game stuck on waiting-for-judge forever.
+    // The invite is its own liveInvites/ doc, so this can't race anyone's save().
     try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
-    _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'accepted' }));
+    _setInviteStatus(inv.id, 'accepted');
 
     checkNotifications();
     toast(`You're the judge! <svg class="icon icon-scale"><use href="#i-scale"/></svg>`, 'ok');
@@ -14415,10 +14454,8 @@ function acceptLiveInvite(inviteId) {
   _writeLiveJoin(gameId, inv.p1Id, inv.p2Id); // rollout step 6b forgery gate
 
   const _finishAccept = () => {
-    // Targeted per-item write (see _updateArrayField) instead of the whole-document
-    // save() — avoids the same lost-status race described in the judge branch above.
     try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
-    _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'accepted' }));
+    _setInviteStatus(inv.id, 'accepted');
     startLiveGamePoll();
     checkNotifications();
     toast(`Game on! <svg class="icon icon-skier"><use href="#i-skier"/></svg>`, 'ok');
@@ -14484,7 +14521,7 @@ function declineLiveInvite(inviteId) {
   if (!inv) return;
   inv.status = 'declined';
   try { localStorage.setItem(userStoreKey(), JSON.stringify(S)); } catch(_) {}
-  _updateArrayField('liveInvites', inv.id, item => ({ ...item, status: 'declined' }));
+  _setInviteStatus(inv.id, 'declined');
   checkNotifications();
   renderConfirmations();
   toast('Invite declined.', 'ok');
@@ -16037,7 +16074,7 @@ async function adminWipeGameData() {
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   if (db) {
     await db.collection('state').doc('global').set(_EMPTY_GLOBAL).catch(e => console.warn(e));
-    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames']);
+    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames', 'liveInvites']);
   }
   _wipeInProgress = false;
   toast('Game data wiped.', 'ok');
@@ -16066,7 +16103,7 @@ async function adminWipeEverything() {
       const asnap = await db.collection('avatars').get();
       for (const d of asnap.docs) await d.ref.delete();
     } catch(e) { console.warn('avatars wipe:', e); }
-    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames']);
+    await _adminWipeCollections(['players', 'games', 'messages', 'friendRequests', 'liveGames', 'liveInvites']);
   }
 
   toast('Everything wiped. Reloading…', 'ok');
