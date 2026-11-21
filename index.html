@@ -385,7 +385,7 @@
       background:var(--bg-elevated,rgba(255,255,255,0.06)); border:1px solid var(--border);
       cursor:pointer; padding:4px 12px 4px 4px; border-radius:999px; line-height:0;
     }
-    .topbar-account:active { transform:scale(0.96); }
+    html:not(.has-motion) .topbar-account:active { transform:scale(0.96); }
     .topbar-account-name {
       /* Explicit, or iOS paints button text its system blue */
       color:var(--ice);
@@ -399,7 +399,7 @@
       font-size:12.5px; font-weight:700;
     }
     .topbar-signin:hover { background:var(--pop-hover); }
-    .topbar-signin:active { transform:scale(0.96); }
+    html:not(.has-motion) .topbar-signin:active { transform:scale(0.96); }
 
     /* ── NATIVE SHELL: bottom tab bar ── */
     .tabbar {
@@ -834,8 +834,18 @@
       to { transform:scale(4); opacity:0; }
     }
 
-    /* ── Press: a small, fast scale reads as tactile without looking bouncy ── */
-    .btn:active { transform:scale(0.97) !important; }
+    /* ── Press: a small, fast scale reads as tactile without looking bouncy ──
+       With motion.dev the delegated press handler (_pressDown/_pressUp) owns this
+       as a spring; these are the CSS fallbacks. Everything inside :where() has zero
+       specificity so a component's own transition or :active rule still wins. */
+    html:not(.has-motion) .btn:active { transform:scale(0.97) !important; }
+    @media (prefers-reduced-motion: no-preference) {
+      :where(html:not(.has-motion)) :where(button, [role="button"], .chip) {
+        transition-property:transform, opacity, background-color, border-color, color, box-shadow;
+        transition-duration:.16s; transition-timing-function:cubic-bezier(.22,1,.36,1);
+      }
+      :where(html:not(.has-motion)) :where(button:not(:disabled), [role="button"], .chip):active { transform:scale(0.96); }
+    }
 
     /* ── Landed: green pulse burst ── */
     @keyframes landedPulse {
@@ -911,6 +921,52 @@
       font-size:10px; font-weight:700; color:var(--text-muted);
       text-transform:uppercase; letter-spacing:1px;
     }
+
+    /* ── Age slider (#25): drag a marker along a number line, 8–70+ ──
+       Built by _ageSliderInit. Ticks near the marker swell like a magnifier and
+       each whole year gives a haptic tick. Starts unset (neutral age gate). */
+    .age-slider {
+      --f:0; background:var(--bg-base); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 4px 6px; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+      user-select:none; -webkit-user-select:none;
+    }
+    .age-slider:focus-visible, .age-slider.dragging { border-color:var(--primary); box-shadow:0 0 0 3px rgba(255,62,127,0.15); }
+    .age-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 6px; }
+    .age-step {
+      width:34px; height:34px; border-radius:50%; flex:none;
+      border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-primary);
+      font-size:18px; line-height:1; display:grid; place-items:center; cursor:pointer;
+    }
+    .age-step:disabled { opacity:.35; cursor:default; }
+    .age-readout { display:flex; align-items:baseline; justify-content:center; gap:6px; min-height:40px; flex:1; }
+    .age-num { font-size:32px; font-weight:800; letter-spacing:-1px; color:var(--text-primary); font-variant-numeric:tabular-nums; display:inline-block; }
+    .age-unit { font-size:12px; font-weight:600; color:var(--text-secondary); }
+    .age-slider.unset .age-num { display:none; }
+    .age-slider.unset .age-unit { font-size:13px; color:var(--text-muted); align-self:center; }
+    .age-rail { position:relative; height:46px; margin:4px 0 0; touch-action:pan-y; cursor:pointer; }
+    .age-ticks { position:absolute; left:16px; right:16px; bottom:4px; height:22px; }
+    .age-tick {
+      position:absolute; bottom:0; width:1.5px; height:8px; margin-left:-0.75px; border-radius:1px;
+      background:var(--text-muted); opacity:.55; transform-origin:bottom;
+    }
+    .age-tick.major { height:14px; opacity:.9; }
+    .age-tick.on { background:var(--primary); opacity:1; }
+    .age-marker {
+      position:absolute; top:0; bottom:0; width:0;
+      left:calc(16px + var(--f) * (100% - 32px)); pointer-events:none;
+    }
+    .age-knob {
+      position:absolute; top:2px; left:-11px; width:22px; height:22px; border-radius:50%;
+      background:var(--primary); box-shadow:0 0 0 4px rgba(255,62,127,0.2), 0 4px 12px rgba(0,0,0,0.35);
+    }
+    .age-needle { position:absolute; top:18px; bottom:4px; left:-1px; width:2px; border-radius:1px; background:var(--primary); }
+    .age-slider.unset .age-marker { opacity:0; }
+    .age-labels { position:relative; height:14px; margin:0 16px; font-size:10px; font-weight:600; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+    .age-labels span { position:absolute; transform:translateX(-50%); }
+    html:not(.has-motion) .age-slider:not(.dragging) .age-marker { transition:left .25s var(--ease-out), opacity .2s; }
+    /* Hidden iOS 18+ switch: toggling it from a gesture plays the system haptic. */
+    .haptic-switch { position:fixed; left:-100px; top:0; width:1px; height:1px; opacity:0; pointer-events:none; }
 
     .form-input, .form-select, .form-textarea {
       background:var(--bg-base); border:1px solid var(--border);
@@ -992,7 +1048,7 @@
       transition:transform var(--dur-fast) var(--ease-out);
     }
     .tier-badge[onclick] { cursor:pointer; }
-    .tier-badge[onclick]:active { transform:scale(.96); }
+    html:not(.has-motion) .tier-badge[onclick]:active { transform:scale(.96); }
     .tier-badge-icon {
       display:inline-flex; align-items:center; justify-content:center;
       width:16px; height:16px; border-radius:50%; flex-shrink:0;
@@ -1199,7 +1255,7 @@
       cursor:pointer; -webkit-tap-highlight-color:transparent;
       transition:transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
     }
-    .rider-act:active { transform:scale(0.92); }
+    html:not(.has-motion) .rider-act:active { transform:scale(0.92); }
     .rider-act .icon { color:currentColor; width:16px; height:16px; }
     .rider-act.add { color:var(--ice); border-color:rgba(255,62,127,0.45); }
     .rider-act.accept { background:var(--pop); color:var(--pop-ink); border-color:transparent; }
@@ -1481,6 +1537,8 @@
     .auth-screen.animating-out { animation:authScreenOut .3s ease forwards; pointer-events:none; }
     .auth-card.animating-out   { animation:authCardOut   .2s var(--ease-in) forwards; }
     #app.animating-in          { animation:appIn         .3s var(--ease-out) forwards; }
+    /* motion.dev runs the auth card's entrance (showAuthScreen); this is its CSS fallback. */
+    html.has-motion .auth-card:not(.animating-out) { animation:none; }
 
     /* ── BOOT LOADING SCREEN ── */
     /* Shown while we determine session state, so returning users never see a
@@ -1582,7 +1640,7 @@
       font-size:14px; font-weight:600; font-family:inherit;
       transition:transform .12s, opacity .15s;
     }
-    .social-btn:active { transform:scale(.98); }
+    html:not(.has-motion) .social-btn:active { transform:scale(.98); }
     .social-btn:disabled { opacity:0.6; cursor:not-allowed; pointer-events:none; }
     .social-btn svg { width:18px; height:18px; flex:none; }
     .social-btn-google { background:#fff; color:#1f1f1f; border:1px solid #dadce0; }
@@ -1963,7 +2021,8 @@
       transition:background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     }
     .post-clip-fab .icon { width:22px; height:22px; color:#fff; stroke-width:2.4; }
-    .post-clip-fab:active { transform:scale(0.92); background:rgba(0,0,0,0.45); }
+    .post-clip-fab:active { background:rgba(0,0,0,0.45); }
+    html:not(.has-motion) .post-clip-fab:active { transform:scale(0.92); }
     .reel-action-label {
       font-size: 10.5px; color: rgba(255,255,255,0.8);
       font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,0.7);
@@ -2314,7 +2373,7 @@
         -webkit-tap-highlight-color:transparent;
         white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       }
-      .nav-btn:active { transform:scale(0.92); }
+      html:not(.has-motion) .nav-btn:active { transform:scale(0.92); }
       .nav-btn .nav-icon { font-size:18px; line-height:1; }
       .nav-btn::before { display:none; }
       .nav-btn .nav-badge { position:absolute; top:2px; right:6px; margin-left:0; }
@@ -2435,7 +2494,8 @@
       .view-header h2 { font-size:22px; }
 
       /* ── Touch feedback on tappable rows ── */
-      tr[onclick]:active, [onclick]:not(button):not(a):active {
+      tr[onclick] { transition:opacity .15s ease; }
+      tr[onclick]:active, html:not(.has-motion) [onclick]:not(button):not(a):active {
         opacity:0.7;
       }
 
@@ -2527,7 +2587,7 @@
       transition:border-color .15s var(--ease-out), transform .12s var(--ease-out);
     }
     .tb-open:hover { border-color:rgba(255,62,127,0.4); }
-    .tb-open:active { transform:scale(0.98); }
+    html:not(.has-motion) .tb-open:active { transform:scale(0.98); }
     .tb-open-icon {
       width:36px; height:36px; flex-shrink:0; border-radius:10px;
       display:flex; align-items:center; justify-content:center;
@@ -2638,7 +2698,7 @@
       color:var(--text-secondary); cursor:pointer; transition:all .15s;
       -webkit-tap-highlight-color:transparent;
     }
-    .builder-pill:active { transform:scale(0.94); }
+    html:not(.has-motion) .builder-pill:active { transform:scale(0.94); }
     .builder-pill.selected { background:rgba(255,62,127,0.14); border-color:rgba(255,62,127,0.5); color:var(--ice); }
     .builder-preview {
       background:rgba(255,62,127,0.06); border:1px solid rgba(255,62,127,0.2);
@@ -2681,7 +2741,8 @@
     }
     .ob-back { font-size:18px; }
     .ob-skip { justify-content:flex-end; }
-    .ob-back:active, .ob-skip:active { transform:scale(0.92); color:var(--text-primary); }
+    .ob-back:active, .ob-skip:active { color:var(--text-primary); }
+    html:not(.has-motion) .ob-back:active, html:not(.has-motion) .ob-skip:active { transform:scale(0.92); }
     .ob-back.ob-hidden { opacity:0; pointer-events:none; transform:translateX(-6px); }
     /* Progress: 6px dots, 10px apart; one pill slides between them (transform only) */
     .ob-dots { position:relative; display:flex; gap:10px; align-items:center; height:6px; }
@@ -3143,9 +3204,8 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Date of Birth</label>
-        <input type="date" class="form-input" id="su-dob" autocomplete="bday"
-               onkeydown="if(event.key==='Enter')document.getElementById('su-password').focus()">
+        <label class="form-label" id="su-age-label">Age</label>
+        <div class="age-slider" id="su-age" data-next="su-password" aria-labelledby="su-age-label"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
@@ -3208,8 +3268,8 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Date of Birth</label>
-        <input type="date" class="form-input" id="sc-dob" autocomplete="bday">
+        <label class="form-label" id="sc-age-label">Age</label>
+        <div class="age-slider" id="sc-age" aria-labelledby="sc-age-label"></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 4px;">
         <input type="checkbox" id="sc-agree" style="margin-top:3px;flex:none;width:16px;height:16px;">
@@ -5755,23 +5815,10 @@ function _paintRiderTypeButtons(prefix, type) {
   }
 }
 
-// Whole years between a YYYY-MM-DD date-of-birth string and today, accounting
-// for whether this year's birthday has happened yet.
-function _ageFromDob(dobStr) {
-  const dob = new Date(dobStr + 'T00:00:00');
-  if (isNaN(dob.getTime())) return null;
-  const now = new Date();
-  let age = now.getFullYear() - dob.getFullYear();
-  const monthDayNotYetReached = (now.getMonth() < dob.getMonth()) ||
-    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
-  if (monthDayNotYetReached) age--;
-  return age;
-}
-
 async function doSignup() {
   const name     = document.getElementById('su-name').value.trim();
   const email    = document.getElementById('su-email').value.trim().toLowerCase();
-  const dob      = document.getElementById('su-dob').value;
+  const age      = _ageVal('su-age');
   const agreed   = document.getElementById('su-agree').checked;
   const password = document.getElementById('su-password').value;
   const confirm  = document.getElementById('su-confirm').value;
@@ -5789,11 +5836,9 @@ async function doSignup() {
   if (hasBlockedLanguage(name)) return showErr("That name has language that isn't allowed. Pick a different one.");
   if (!email)           return showErr('Email is required.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Please enter a valid email address.');
-  if (!dob)              return showErr('Date of birth is required.');
-  const age = _ageFromDob(dob);
+  if (age === null)      return showErr('Please set your age.');
   // COPPA: we cannot knowingly collect data from under-13s, so signup is
   // blocked outright rather than merely warned — see PRIVACY_POLICY.md.
-  if (age === null || age < 0) return showErr('Please enter a valid date of birth.');
   if (age < 13)          return showErr('You must be at least 13 years old to create a Slope Battles account.');
   if (!agreed)           return showErr('Please confirm you agree to the Terms of Service and Privacy Policy.');
   if (!password)        return showErr('Password is required.');
@@ -5847,7 +5892,7 @@ async function doSignup() {
     ...(firebaseUid ? { firebaseUid } : {})
   };
 
-  await _createPlayerAccount(newUser, dob, showErr, {
+  await _createPlayerAccount(newUser, age, showErr, {
     method: 'email', emailOptIn: document.getElementById('su-optin').checked
   });
 }
@@ -5855,11 +5900,12 @@ async function doSignup() {
 // Shared tail of every new-account flow (email signup and first-time
 // Google/Apple sign-in): writes users/ + usersPrivate/, seeds the session,
 // launches the app and sends the invite-link friend request if any.
-async function _createPlayerAccount(newUser, dob, showErr, { method = 'email', emailOptIn = false } = {}) {
+async function _createPlayerAccount(newUser, age, showErr, { method = 'email', emailOptIn = false } = {}) {
   // Write to Firestore users collection
   try {
     await db.collection('users').doc(newUser.id).set(newUser);
-    // Birth YEAR only (not full DOB) — enough to re-verify the 13+ gate later
+    // Birth YEAR only, from the age slider (may be a year early if this year's
+    // birthday hasn't happened yet) — enough to re-verify the 13+ gate later
     // without retaining more precise birthdate PII than needed. Kept in a
     // separate owner/admin-only collection because users/{uid} is publicly
     // readable (login-by-email lookup, public rider profiles) — see
@@ -5867,7 +5913,7 @@ async function _createPlayerAccount(newUser, dob, showErr, { method = 'email', e
     // emailOptIn: the signup checkbox ("email me when the park opens…"). Off
     // unless ticked; no more than 4 emails a season (launch plan).
     await db.collection('usersPrivate').doc(newUser.id).set({
-      birthYear: parseInt(dob.slice(0, 4), 10),
+      birthYear: new Date().getFullYear() - age,
       emailOptIn: !!emailOptIn,
       emailOptInAt: emailOptIn ? Date.now() : null
     });
@@ -5899,7 +5945,6 @@ async function _createPlayerAccount(newUser, dob, showErr, { method = 'email', e
     createdAt: newUser.createdAt
   }];
 
-  const age = _ageFromDob(dob);
   track('signup_completed', {
     method, has_ref: !!_pendingReferrerId, signup_source: _signupSource(),
     age_band: age < 16 ? '13-15' : age < 18 ? '16-17' : '18+', email_opt_in: !!emailOptIn
@@ -5991,7 +6036,7 @@ async function doSocialSignIn(kind) {
 }
 
 // First Google/Apple sign-in: the Auth account exists but there's no player
-// record yet. Collect what email signup collects (name, rider type, DOB for the
+// record yet. Collect what email signup collects (name, rider type, age for the
 // 13+ gate, ToS agreement) before writing anything to Firestore.
 function showSocialCompleteForm(fbUser) {
   _socialPendingUser = fbUser;
@@ -6005,7 +6050,7 @@ function showSocialCompleteForm(fbUser) {
 
   document.getElementById('sc-name').value   = (fbUser.displayName || '').trim();
   document.getElementById('sc-resort').value = '';
-  document.getElementById('sc-dob').value    = '';
+  document.getElementById('sc-age')._ageSet?.(null);
   document.getElementById('sc-agree').checked = false;
   document.getElementById('sc-email').textContent = fbUser.email || '';
   document.getElementById('sc-email-wrap').style.display = fbUser.email ? '' : 'none';
@@ -6019,7 +6064,7 @@ function showSocialCompleteForm(fbUser) {
 async function completeSocialSignup() {
   const fbUser   = _socialPendingUser || (_fbAuth && _fbAuth.currentUser);
   const name     = document.getElementById('sc-name').value.trim();
-  const dob      = document.getElementById('sc-dob').value;
+  const age      = _ageVal('sc-age');
   const agreed   = document.getElementById('sc-agree').checked;
   const errEl    = document.getElementById('auth-error');
   const btn      = document.getElementById('sc-submit');
@@ -6033,10 +6078,8 @@ async function completeSocialSignup() {
   if (!name)            return showErr('Please enter your full name.');
   if (name.length < 2)  return showErr('Name must be at least 2 characters.');
   if (hasBlockedLanguage(name)) return showErr("That name has language that isn't allowed. Pick a different one.");
-  if (!dob)             return showErr('Date of birth is required.');
-  const age = _ageFromDob(dob);
+  if (age === null)     return showErr('Please set your age.');
   // Same COPPA gate as doSignup() — see PRIVACY_POLICY.md.
-  if (age === null || age < 0) return showErr('Please enter a valid date of birth.');
   if (age < 13)         return showErr('You must be at least 13 years old to create a Slope Battles account.');
   if (!agreed)          return showErr('Please confirm you agree to the Terms of Service and Privacy Policy.');
   if (!db)              return showErr('Unable to connect. Please try again.');
@@ -6054,7 +6097,7 @@ async function completeSocialSignup() {
     firebaseUid: fbUser.uid,
     authProvider: providerId || 'social'
   };
-  if (await _createPlayerAccount(newUser, dob, showErr, {
+  if (await _createPlayerAccount(newUser, age, showErr, {
     method: newUser.authProvider, emailOptIn: document.getElementById('sc-optin').checked
   })) _socialPendingUser = null;
 }
@@ -6319,16 +6362,58 @@ function armBootLoadingMsg() {
 }
 
 // Fades out the boot-loading screen shown while we determine session state.
-// Safe to call more than once — a no-op once the screen is already hidden.
+// Safe to call more than once — a no-op once the screen is hidden or leaving.
+// With Motion (#27): the brand lifts and softens away while the ski scene drops,
+// then the backdrop dissolves over the app/auth screen already rising in beneath
+// it — one continuous crossfade with no blank frame between them.
 function hideBootLoading() {
   clearTimeout(_bootLoadingMsgTimer);
   const boot = document.getElementById('boot-loading');
-  if (!boot || boot.style.display === 'none') return;
-  boot.classList.add('animating-out');
-  setTimeout(() => {
+  if (!boot || boot.style.display === 'none' || boot.dataset.leaving) return;
+  boot.dataset.leaving = '1';
+  const done = () => {
     boot.style.display = 'none'; boot.classList.remove('animating-out');
+    delete boot.dataset.leaving;
     (window._bootAnims || []).forEach(a => a.stop());
-  }, 300);
+  };
+  if (MO) {
+    boot.style.pointerEvents = 'none';
+    const ease = [.4, 0, .2, 1];
+    MO.animate(boot.querySelector('.auth-logo'), { opacity:0, transform:['scale(1)', 'scale(1.06)'], filter:['blur(0px)', 'blur(6px)'] }, { duration:0.32, ease });
+    MO.animate(boot.querySelector('.boot-ski-scene'), { opacity:0, transform:['translateY(0px)', 'translateY(10px)'] }, { duration:0.22, ease:'easeIn' });
+    MO.animate(boot.querySelector('.boot-loading-msg'), { opacity:0 }, { duration:0.15 });
+    MO.animate(boot, { opacity:0 }, { duration:0.38, delay:0.12, ease }).then(done);
+    return;
+  }
+  boot.classList.add('animating-out');
+  setTimeout(done, 300);
+}
+
+// The app shell arriving (from boot or the auth screen). With Motion the shell
+// fades up while the top bar settles down and the tab bar springs up into place;
+// the view's own content cascades in via _motionNav. Deliberately no transform on
+// #app itself — that would make it the containing block for the fixed bars and FABs.
+function _appEnter() {
+  const appEl = document.getElementById('app');
+  if (!MO) {
+    appEl.classList.add('animating-in');
+    setTimeout(() => appEl.classList.remove('animating-in'), 500);
+    return;
+  }
+  MO.animate(appEl, { opacity:[0, 1] }, { duration:0.4, ease:[.22, 1, .36, 1] }).then(() => { appEl.style.opacity = ''; });
+  // Coming out of boot, the boot screen still covers the app for ~0.15s — hold
+  // the bars at their start positions so their motion plays as it dissolves.
+  const hold = document.getElementById('boot-loading')?.dataset.leaving ? 0.2 : 0;
+  const top = appEl.querySelector('.topbar'), tab = appEl.querySelector('.tabbar');
+  if (top) {
+    top.style.transform = 'translateY(-14px)';
+    MO.animate(top, { transform:['translateY(-14px)', 'translateY(0px)'] }, { ...SPRING_UI, delay:0.05 + hold }).then(() => _moClear(top));
+  }
+  if (tab) {
+    tab.style.transform = 'translateY(28px)';
+    MO.animate(tab, { transform:['translateY(28px)', 'translateY(0px)'] }, { ...SPRING_SNAP, delay:0.08 + hold })
+      .then(() => { _moClear(tab); _motionTabPill(true); });
+  }
 }
 
 function showAuthScreen(hint='') {
@@ -6336,13 +6421,21 @@ function showAuthScreen(hint='') {
   const screen = document.getElementById('auth-screen');
   screen.style.display = 'flex';
   screen.classList.remove('animating-out');
-  screen.classList.add('animating-in');
-  setTimeout(() => screen.classList.remove('animating-in'), 350);
+  if (MO) {
+    MO.animate(screen, { opacity:[0, 1] }, { duration:0.35, ease:[.22, 1, .36, 1] }).then(() => { screen.style.opacity = ''; });
+    const card = screen.querySelector('.auth-card');
+    if (card) MO.animate(card, { opacity:[0, 1], transform:['translateY(16px) scale(0.98)', 'translateY(0px) scale(1)'] },
+      { type:'spring', visualDuration:0.4, bounce:0.15, delay:0.08 }).then(() => _moClear(card));
+  } else {
+    screen.classList.add('animating-in');
+    setTimeout(() => screen.classList.remove('animating-in'), 350);
+  }
   switchAuthTab('login');
   document.getElementById('auth-error').classList.remove('visible');
   ['li-email','li-password','su-name','su-email','su-resort','su-password','su-confirm'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  document.getElementById('su-age')._ageSet?.(null);
   // Reset submit buttons — a previous submission may have left them disabled
   // with "Signing in…"/"Creating account…" text if the screen was closed mid-request.
   const loginBtn = document.querySelector('#form-login .auth-btn');
@@ -6380,9 +6473,7 @@ function launchPreview() {
   try { localStorage.removeItem(userStoreKey()); } catch(_) {}
   startFirestoreSync(); // populates leaderboard from Firestore
   nav(_pendingReelId ? 'explore' : 'live-game');
-  const appEl = document.getElementById('app');
-  appEl.classList.add('animating-in');
-  setTimeout(() => appEl.classList.remove('animating-in'), 500);
+  _appEnter();
   // Arrived via a friend's invite link (?ref=<playerId>) — steer straight into
   // signup instead of leaving them to find it themselves. History is cleaned
   // immediately since _pendingReferrerId already holds the id we need.
@@ -7273,9 +7364,7 @@ function launchApp() {
   startFirestoreSync(); // Firestore snapshot will populate S and re-render
   nav(_pendingReelId ? 'explore' : 'live-game');
   // Animate the app in
-  const appEl = document.getElementById('app');
-  appEl.classList.add('animating-in');
-  setTimeout(() => appEl.classList.remove('animating-in'), 500);
+  _appEnter();
 
   // Show onboarding immediately for brand-new signups — no need to wait for Firestore
   // since we already pre-seeded S.players with the new account before calling launchApp()
@@ -8548,6 +8637,227 @@ function _motionToastIn(el) {
   if (!MO) return;
   MO.animate(el, { opacity:[0, 1], y:[12, 0], scale:[0.96, 1] }, SPRING_SNAP).then(() => _moClear(el));
 }
+
+// Press feedback for everything tappable (#24): a quick spring dip on press and a
+// springy release, so taps feel physical instead of snapping. One delegated
+// listener covers buttons rendered later. The dip scales with size — a small icon
+// button sinks ~5%, a full-width card barely 2% — so big rows don't lurch.
+// Animates the transform string so Motion runs it on WAAPI, which a component's
+// own CSS transform transition can't fight. CSS :active rules are the fallback.
+const _PRESS_SEL = 'button, .btn, a[href], [role="button"], [onclick], label[for], .chip, summary';
+const _press = { el:null, t:0, gen:0, timer:0, x:0, y:0, started:false };
+const _pressMine = new WeakSet(); // elements whose inline transform is ours to clear
+// Current rendered scale. Passed as an explicit first keyframe: from a computed
+// 'none' Motion can't infer the start and would spring up from scale(0).
+const _pressScaleNow = el => new DOMMatrix(getComputedStyle(el).transform).a || 1;
+
+function _pressTarget(target) {
+  const el = target && target.closest && target.closest(_PRESS_SEL);
+  if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return null;
+  if (el.matches('input, select, textarea, tr, td, th, [data-no-press]')) return null;
+  if (el.closest('#boot-loading, [data-no-press]')) return null;
+  const cs = getComputedStyle(el);
+  if (cs.display === 'inline' || cs.display === 'contents') return null;
+  // Already transformed by something else (centering translate, an entrance
+  // still running): scaling would overwrite it.
+  if (cs.transform !== 'none' && !_pressMine.has(el)) return null;
+  const r = el.getBoundingClientRect();
+  // Full-screen overlays carry onclick for tap-outside-to-close; never shrink those.
+  if (r.width > innerWidth * 0.95 && r.height > innerHeight * 0.6) return null;
+  return { el, scale: 1 - Math.min(0.05, 8 / Math.max(r.width, r.height, 1)) };
+}
+
+function _pressDip() {
+  const p = _press;
+  if (!p.el || p.started) return;
+  p.started = true; p.t = performance.now();
+  _pressMine.add(p.el);
+  MO.animate(p.el, { transform:[`scale(${_pressScaleNow(p.el)})`, `scale(${p.scale})`] }, { type:'spring', visualDuration:0.1, bounce:0 });
+}
+
+function _pressUp() {
+  const p = _press;
+  clearTimeout(p.timer);
+  if (!p.el) return;
+  const el = p.el, gen = p.gen;
+  if (!p.started) _pressDip(); // a tap faster than the touch delay still shows the dip
+  p.el = null;
+  // Let the dip land before springing back, or a quick tap looks like nothing happened.
+  const wait = Math.max(0, 80 - (performance.now() - p.t));
+  setTimeout(() => {
+    if (gen !== _press.gen && _press.el === el) return; // pressed again meanwhile
+    // Motion commits the end value inline after the promise settles, so clear a frame later.
+    MO.animate(el, { transform:[`scale(${_pressScaleNow(el)})`, 'scale(1)'] }, { type:'spring', visualDuration:0.3, bounce:0.4 }).then(() => requestAnimationFrame(() => {
+      if (_press.el !== el) { el.style.transform = ''; _pressMine.delete(el); }
+    }));
+  }, wait);
+}
+
+if (MO) {
+  document.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    const hit = _pressTarget(e.target);
+    if (!hit) return;
+    if (_press.el) _pressUp();
+    Object.assign(_press, { el:hit.el, scale:hit.scale, gen:_press.gen + 1, x:e.clientX, y:e.clientY, started:false });
+    // Touch waits a beat so the start of a scroll doesn't dip every row it passes.
+    if (e.pointerType === 'touch') _press.timer = setTimeout(_pressDip, 45);
+    else _pressDip();
+  }, { capture:true, passive:true });
+  document.addEventListener('pointermove', e => {
+    if (_press.el && Math.hypot(e.clientX - _press.x, e.clientY - _press.y) > 10) {
+      if (!_press.started) { clearTimeout(_press.timer); _press.el = null; } else _pressUp();
+    }
+  }, { capture:true, passive:true });
+  ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, e => {
+    if (t === 'pointercancel' && !_press.started) { clearTimeout(_press.timer); _press.el = null; return; }
+    _pressUp();
+  }, { capture:true, passive:true }));
+}
+
+// Haptic tick, best available: the native Taptic Engine inside the iOS app
+// (@capacitor/haptics, once that plugin is installed and synced), vibrate() on
+// Android, and on iOS Safari 18+ the system haptic that plays when a
+// <input type=checkbox switch> toggles. No-ops anywhere none of these exist —
+// callers always pair it with a visual tick.
+const _IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let _hapticLabel = null, _hapticLast = 0;
+function _hapticTick() {
+  const now = performance.now();
+  if (now - _hapticLast < 30) return;
+  _hapticLast = now;
+  try {
+    const H = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Haptics;
+    if (H && H.selectionChanged) { H.selectionChanged().catch(() => {}); return; }
+    if (navigator.vibrate) { navigator.vibrate(5); return; }
+    if (!_IS_IOS) return;
+    if (!_hapticLabel) {
+      _hapticLabel = document.createElement('label');
+      _hapticLabel.className = 'haptic-switch';
+      _hapticLabel.setAttribute('aria-hidden', 'true');
+      _hapticLabel.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+      document.body.appendChild(_hapticLabel);
+    }
+    _hapticLabel.click();
+  } catch (_) {}
+}
+
+// Age slider (#25). Signup's 13+ gate: a marker you drag along a number line
+// from 8 to 70+ (under-13s can pick their real age and get blocked, so nothing
+// nudges anyone toward "old enough"). Starts unset. Value lives in data-age.
+const AGE_MIN = 8, AGE_MAX = 70;
+function _ageVal(id) {
+  const v = document.getElementById(id)?.dataset.age;
+  return v ? +v : null;
+}
+function _ageSliderInit(root) {
+  const span = AGE_MAX - AGE_MIN;
+  const ticks = [], labels = [];
+  for (let a = AGE_MIN; a <= AGE_MAX; a++) {
+    ticks.push(`<i class="age-tick${a % 5 === 0 ? ' major' : ''}" style="left:${(a - AGE_MIN) / span * 100}%"></i>`);
+    if (a % 10 === 0) labels.push(`<span style="left:${(a - AGE_MIN) / span * 100}%">${a === AGE_MAX ? '70+' : a}</span>`);
+  }
+  root.innerHTML = `
+    <div class="age-head">
+      <button type="button" class="age-step" data-d="-1" aria-label="Younger" tabindex="-1">−</button>
+      <div class="age-readout" aria-hidden="true"><span class="age-num"></span><span class="age-unit"></span></div>
+      <button type="button" class="age-step" data-d="1" aria-label="Older" tabindex="-1">+</button>
+    </div>
+    <div class="age-rail"><div class="age-ticks">${ticks.join('')}</div><div class="age-marker"><span class="age-needle"></span><span class="age-knob"></span></div></div>
+    <div class="age-labels" aria-hidden="true">${labels.join('')}</div>`;
+  root.tabIndex = 0;
+  root.setAttribute('role', 'slider');
+  root.setAttribute('aria-valuemin', AGE_MIN);
+  root.setAttribute('aria-valuemax', AGE_MAX);
+  const rail = root.querySelector('.age-rail'), tickEls = [...root.querySelectorAll('.age-tick')];
+  const num = root.querySelector('.age-num'), unit = root.querySelector('.age-unit');
+  const marker = root.querySelector('.age-marker'), steps = root.querySelectorAll('.age-step');
+  let f = 0, anim = null, dragging = false;
+
+  // Position (0–1) → marker, plus the magnifier swell on ticks near it.
+  const place = v => {
+    f = v;
+    root.style.setProperty('--f', v.toFixed(4));
+    const at = root.dataset.age ? AGE_MIN + v * span : -99; // no swell while unset
+    tickEls.forEach((t, i) => {
+      const d = Math.abs(AGE_MIN + i - at);
+      t.style.transform = d < 4 ? `scaleY(${1 + (1 - d / 4) * 1.1})` : '';
+    });
+  };
+  const glide = to => {
+    if (anim) anim.stop();
+    if (!MO) { place(to); return; }
+    anim = MO.animate(f, to, { type:'spring', visualDuration:0.28, bounce:0.25, onUpdate:place });
+  };
+  const render = () => {
+    const age = root.dataset.age ? +root.dataset.age : null;
+    root.classList.toggle('unset', age === null);
+    num.textContent = age === null ? '' : age === AGE_MAX ? '70+' : age;
+    unit.textContent = age === null ? 'Slide to set your age' : 'years old';
+    root.setAttribute('aria-valuenow', age ?? '');
+    root.setAttribute('aria-valuetext', age === null ? 'Not set' : `${age === AGE_MAX ? '70 or older' : age} years old`);
+    steps[0].disabled = age === null || age <= AGE_MIN;
+    steps[1].disabled = age === null || age >= AGE_MAX;
+    tickEls.forEach((t, i) => t.classList.toggle('on', age === AGE_MIN + i));
+  };
+  // Set the age; `glideTo` springs the marker onto that year's tick.
+  const set = (age, glideTo = true) => {
+    const prev = root.dataset.age ? +root.dataset.age : null;
+    if (age === null) { delete root.dataset.age; render(); place(0); return; }
+    age = Math.max(AGE_MIN, Math.min(AGE_MAX, Math.round(age)));
+    if (age !== prev) {
+      root.dataset.age = age;
+      render();
+      _hapticTick();
+      if (MO) {
+        MO.animate(num, { transform:['scale(1.18)', 'scale(1)'] }, { type:'spring', visualDuration:0.22, bounce:0.4 });
+        if (prev === null) MO.animate(marker, { opacity:[0, 1], transform:['scale(0.5)', 'scale(1)'] }, SPRING_POP).then(() => _moClear(marker));
+      }
+    }
+    if (glideTo) glide((age - AGE_MIN) / span);
+  };
+  root._ageSet = set;
+
+  const fracAt = x => {
+    const r = rail.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (x - r.left - 16) / (r.width - 32)));
+  };
+  rail.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    rail.setPointerCapture(e.pointerId);
+    dragging = true; root.classList.add('dragging');
+    const v = fracAt(e.clientX);
+    set(AGE_MIN + v * span, false);
+    glide(v); // the tap itself springs the marker over to the finger
+  });
+  rail.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    if (anim) { anim.stop(); anim = null; }
+    const v = fracAt(e.clientX);
+    place(v); // follows the finger 1:1; the value ticks over each whole year
+    set(AGE_MIN + v * span, false);
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false; root.classList.remove('dragging');
+    if (root.dataset.age) glide((+root.dataset.age - AGE_MIN) / span); // settle onto the tick
+  };
+  rail.addEventListener('pointerup', end);
+  rail.addEventListener('pointercancel', end);
+  steps.forEach(b => b.addEventListener('click', () => {
+    if (root.dataset.age) set(+root.dataset.age + +b.dataset.d);
+  }));
+  root.addEventListener('keydown', e => {
+    const age = root.dataset.age ? +root.dataset.age : null;
+    const d = { ArrowLeft:-1, ArrowDown:-1, ArrowRight:1, ArrowUp:1, PageDown:-5, PageUp:5 }[e.key];
+    if (d) { e.preventDefault(); set(age === null ? (d > 0 ? AGE_MIN : AGE_MAX) : age + d); }
+    else if (e.key === 'Home') { e.preventDefault(); set(AGE_MIN); }
+    else if (e.key === 'End') { e.preventDefault(); set(AGE_MAX); }
+    else if (e.key === 'Enter' && root.dataset.next) { e.preventDefault(); document.getElementById(root.dataset.next)?.focus(); }
+  });
+  render(); place(0);
+}
+document.querySelectorAll('.age-slider').forEach(_ageSliderInit);
 
 // Updates a container's children in place when the new markup has the same shape
 // (same count, same data-pid/data-px per slot), so the elements persist and their

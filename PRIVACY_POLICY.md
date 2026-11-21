@@ -81,7 +81,7 @@ If you are a California resident, the California Consumer Privacy Act, as amende
 
 ## 6. Children's Privacy
 
-The App is not directed to children under 13 (or the relevant minimum age in your jurisdiction), and we do not knowingly collect personal information from children under that age. Signup requires entering a date of birth, and the App blocks account creation for anyone under 13 — we retain only the resulting birth year (see §1), not the full date, and only to enforce this gate. If you believe a child has bypassed this gate and provided us information, contact us and we will delete it.
+The App is not directed to children under 13 (or the relevant minimum age in your jurisdiction), and we do not knowingly collect personal information from children under that age. Signup requires entering your age, and the App blocks account creation for anyone under 13 — we retain only the resulting birth year (see §1), not the full date, and only to enforce this gate. If you believe a child has bypassed this gate and provided us information, contact us and we will delete it.
 
 ## 7. Security
 
