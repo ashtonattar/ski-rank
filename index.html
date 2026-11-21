@@ -2821,6 +2821,7 @@
 <symbol id="i-rail" viewBox="0 0 24 24"><path d="M2 8.5h20"/><path d="M6 8.5V19M18 8.5V19"/><path d="M3.5 19h5M15.5 19h5"/></symbol>
 <symbol id="i-bolt" viewBox="0 0 24 24"><polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2" class="icon-fill"/></symbol>
 <symbol id="i-skis" viewBox="0 0 24 24"><path d="M8 22V6c0-2 1.5-3 3-2M16 22V6c0-2-1.5-3-3-2"/><line x1="6" y1="22" x2="10" y2="22"/><line x1="14" y1="22" x2="18" y2="22"/></symbol>
+<symbol id="i-kicker" viewBox="0 0 24 24"><path d="M2 20h20"/><path d="M2.5 20c5 0 8-1.5 10-6.5h1.5V20"/><path d="M16 10.5c1.6-4 4.2-5 6-2.5"/></symbol>
 <symbol id="i-poles-crossed" viewBox="0 0 24 24"><path d="M5 4L19 20"/><path d="M19 4L5 20"/><circle cx="15.5" cy="16" r="2.4" class="icon-fill"/><circle cx="8.5" cy="16" r="2.4" class="icon-fill"/><path d="M3.8 5.1L6.2 2.9"/><path d="M17.8 2.9L20.2 5.1"/></symbol>
 <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
 <symbol id="i-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
@@ -7124,7 +7125,7 @@ const ONBOARDING_STEPS = [
         ${_obTier('fire',     'Legend',   '14.00+',      '#f97316', 0)}
         ${_obTier('star',     'Sender',   '10.00–13.99', '#60a5fa', 1)}
         ${_obTier('trend-up', 'Shredder', '7.00–9.99',   '#34d399', 2)}
-        ${_obTier('skis',     'Park Rat', '4.00–6.99',   '#fbbf24', 3)}
+        ${_obTier('kicker',   'Park Rat', '4.00–6.99',   '#fbbf24', 3)}
         ${_obTier('mountain', 'Rookie',   '0.00–3.99',   '#94a3b8', 4)}
       </div>`,
     cta: 'Next'
@@ -7478,7 +7479,7 @@ function tier(raw, gamesPlayed) {
   if (r >= 14) return { label:'Legend',   color:'#f97316', icon:'<svg class="icon icon-fire"><use href="#i-fire"/></svg>' };
   if (r >= 10) return { label:'Sender',   color:'#60a5fa', icon:'<svg class="icon icon-star"><use href="#i-star"/></svg>' };
   if (r >=  7) return { label:'Shredder', color:'#34d399', icon:'<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>' };
-  if (r >=  4) return { label:'Park Rat', color:'#fbbf24', icon:'<svg class="icon icon-skis"><use href="#i-skis"/></svg>' };
+  if (r >=  4) return { label:'Park Rat', color:'#fbbf24', icon:'<svg class="icon icon-kicker"><use href="#i-kicker"/></svg>' };
   return              { label:'Rookie',   color:'#64748b', icon:'<svg class="icon icon-mountain"><use href="#i-mountain"/></svg>' };
 }
 
@@ -16635,7 +16636,7 @@ async function adminWipeEverything() {
         <span style="font-size:12.5px;color:var(--text-secondary);">7.00 – 9.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);">
-        <span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Park Rat</span>
+        <span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-kicker"><use href="#i-kicker"/></svg> Park Rat</span>
         <span style="font-size:12.5px;color:var(--text-secondary);">4.00 – 6.99</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:10px;background:rgba(100,116,139,0.08);border:1px solid rgba(100,116,139,0.22);">
