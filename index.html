@@ -2639,6 +2639,8 @@
       font-size:30px; color:var(--pop);
     }
     .ob-icon .icon { color:var(--pop); }
+    /* Welcome step: the real multi-colour logo, bare — no tinted tile behind it */
+    .ob-icon.ob-logo { width:96px; height:96px; background:none; border:none; box-shadow:none; border-radius:0; }
     .ob-stage > .ob-icon { animation-name:obIconIn; }
     @keyframes obIconIn { from { opacity:0; transform:scale(.82); } to { opacity:1; transform:none; } }
     .ob-title { font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-0.02em; text-align:center; margin-bottom:10px; color:var(--text-primary); }
@@ -6986,7 +6988,7 @@ const _obTier = (ic, name, range, color, i) =>
 
 const ONBOARDING_STEPS = [
   {
-    icon: 'poles-crossed',
+    logo: true,
     title: 'Welcome to Slope Battles',
     body: `Trick duels for the mountain. Challenge any rider, set tricks, and see who folds first.<br><strong>No rating needed</strong> to start.`,
     cta: 'How do I play?'
@@ -7072,7 +7074,9 @@ function _renderOnboardStep(dir, animateOut = true) {
     stage.classList.remove('ob-leaving');
     stage.style.setProperty('--dir', dir);
     stage.innerHTML =
-      `<div class="ob-icon" style="--i:0">${_obIc(step.icon)}</div>` +
+      (step.logo
+        ? `<div class="ob-icon ob-logo" style="--i:0"><img src="assets/logo.svg" width="96" height="96" alt="Slope Battles"></div>`
+        : `<div class="ob-icon" style="--i:0">${_obIc(step.icon)}</div>`) +
       `<div class="ob-title" style="--i:1">${step.title}</div>` +
       `<div class="ob-body" style="--i:2">${step.body}</div>`;
     const scrollEl = document.getElementById('onboard-scroll');
