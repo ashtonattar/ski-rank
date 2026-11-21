@@ -1125,8 +1125,25 @@
     .live-log-wrap > summary::after { content:'Show'; font-weight:500; }
     .live-log-wrap[open] > summary::after { content:'Hide'; }
     .game-log { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-bottom:8px; }
-    .live-abandon { display:block; margin:6px auto 0; background:none; border:none; padding:10px; font-size:12px; color:var(--text-muted); cursor:pointer; }
-    .live-abandon:hover { color:var(--danger); }
+    .btn.live-abandon {
+      display:flex; width:100%; justify-content:center; gap:8px; margin-top:14px; padding:13px 16px;
+      background:rgba(255,90,95,0.12); border:1px solid rgba(255,90,95,0.28); border-radius:var(--radius);
+      color:var(--danger); font-size:14px; font-weight:600;
+    }
+    .btn.live-abandon:hover { background:rgba(255,90,95,0.2); }
+
+    /* ── LIVE GAME STATS ── label | rider | rider; the better number reads brighter. */
+    .gs-card { border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px 12px; margin-bottom:14px; }
+    .gs-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+    .gs-title { font-size:10.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
+    .gs-meta { font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+    .gs-grid { display:grid; grid-template-columns:1fr 1fr 1fr; row-gap:8px; align-items:baseline; }
+    .gs-grid > span { font-size:13px; font-variant-numeric:tabular-nums; text-align:center; color:var(--text-secondary); }
+    .gs-grid > .gs-label { text-align:left; font-size:12px; color:var(--text-muted); }
+    .gs-grid > .gs-name { font-size:12px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 4px; }
+    .gs-grid > .gs-lead { color:var(--text-primary); font-weight:700; }
+    .gs-grid > [data-k] { display:inline-block; }
+    html:not(.has-motion) .gs-bump { animation:phaseIn .24s var(--ease-out) both; }
 
     .log-row {
       border-radius:var(--radius-sm); padding:6px 4px;
@@ -3730,11 +3747,12 @@
           </div>
         </div>
 
+        <div id="live-stats"></div>
         <details class="live-log-wrap">
           <summary>Round log</summary>
           <div class="game-log" id="live-log"></div>
         </details>
-        <button type="button" class="live-abandon" id="abandon-btn" onclick="abandonGame()">Abandon game</button>
+        <button type="button" class="btn live-abandon" id="abandon-btn" onclick="abandonGame()"><svg class="icon icon-flag"><use href="#i-flag"/></svg> Abandon game</button>
       </div>
     </div>
 
@@ -7776,7 +7794,9 @@ function _practiceBotResolve(phase) {
   if (phase === 'bot-setting') {
     const t = _practicePickBotTrick();
     p.trick = t.name; p.trickDiff = t.diff; p.rounds++;
-    if (_practiceBotLands(t.diff, 'own')) {
+    const lands = _practiceBotLands(t.diff, 'own');
+    _statsRecord(_statsOf(p), 'bot', lands, true);
+    if (lands) {
       _practiceLog(_PX_I.check, `Demo Rider landed ${t.name}. Your turn to copy it.`);
       _practiceGo('me-copy');
     } else {
@@ -7784,7 +7804,9 @@ function _practiceBotResolve(phase) {
       _practiceGo('me-revenge');
     }
   } else if (phase === 'bot-copy') {
-    if (_practiceBotLands(p.trickDiff, 'copy')) {
+    const lands = _practiceBotLands(p.trickDiff, 'copy');
+    _statsRecord(_statsOf(p), 'bot', lands, false);
+    if (lands) {
       _practiceLog(_PX_I.check, `Demo Rider copied ${p.trick}. You keep setting.`);
       p.trick = null; _practiceGo('me-setting');
     } else {
@@ -7792,7 +7814,9 @@ function _practiceBotResolve(phase) {
       if (!_practiceLetter('bot')) { p.trick = null; _practiceGo('me-setting'); }
     }
   } else if (phase === 'bot-revenge') {
-    if (_practiceBotLands(p.trickDiff, 'copy')) {
+    const lands = _practiceBotLands(p.trickDiff, 'copy');
+    _statsRecord(_statsOf(p), 'bot', lands, false);
+    if (lands) {
       _practiceLog(_PX_I.fire, `Demo Rider landed the revenge. You get "${LETTERS[p.letters.me]}".`);
       if (!_practiceLetter('me')) { p.setter = 'bot'; p.trick = null; _practiceGo('bot-setting'); }
     } else {
@@ -7827,6 +7851,7 @@ function practicePickSetter(who) {
   const p = _practice;
   if (!p || p.phase !== 'pick-setter' || (who !== 'me' && who !== 'bot')) return;
   p.setter = who;
+  _statsOf(p).startedAt = Date.now();
   _practiceLog(_PX_I.skis, `Demo Rider is on ${_practiceLvl().label}.`);
   _practiceLog(_PX_I.dice, who === 'me' ? 'You set first.' : 'Demo Rider sets first.');
   _practiceGo(who === 'me' ? 'me-setting' : 'bot-setting');
@@ -7846,6 +7871,7 @@ function practiceSubmitTrick() {
 function practiceMySet(landed) {
   const p = _practice;
   if (!p || p.phase !== 'me-set-attempt') return;
+  _statsRecord(_statsOf(p), 'me', landed, true);
   if (landed) {
     _practiceLog(_PX_I.check, `You landed ${p.trick}. Demo Rider must copy.`);
     _practiceGo('bot-copy');
@@ -7858,6 +7884,7 @@ function practiceMySet(landed) {
 function practiceMyCopy(landed) {
   const p = _practice;
   if (!p || p.phase !== 'me-copy') return;
+  _statsRecord(_statsOf(p), 'me', landed, false);
   if (landed) {
     _practiceLog(_PX_I.check, `You copied ${p.trick}. Demo Rider keeps setting.`);
     p.trick = null; _practiceGo('bot-setting');
@@ -7870,6 +7897,7 @@ function practiceMyCopy(landed) {
 function practiceMyRevenge(landed) {
   const p = _practice;
   if (!p || p.phase !== 'me-revenge') return;
+  _statsRecord(_statsOf(p), 'me', landed, false);
   if (landed) {
     _practiceLog(_PX_I.fire, `You landed the revenge. Demo Rider gets "${LETTERS[p.letters.bot]}".`);
     if (!_practiceLetter('bot')) { p.setter = 'me'; p.trick = null; _practiceGo('me-setting'); }
@@ -7974,6 +8002,7 @@ function _practiceRender() {
       </div>
       <div class="live-board" id="px-board"></div>
       <div class="trick-area px-phase" id="px-phase" aria-live="polite"></div>
+      <div id="px-stats"></div>
       <details class="live-log-wrap">
         <summary>Round log</summary>
         <div class="game-log" id="px-log"></div>
@@ -7991,6 +8020,8 @@ function _practiceRender() {
     phaseEl.querySelectorAll('.seg').forEach(_initSegPill);
     _phaseIn('practice', phaseEl, key);
   }
+  _renderStats(document.getElementById('px-stats'), p.stats, [
+    { id:'me', name: currentUser ? currentUser.name : 'You' }, { id:'bot', name:'Demo Rider' }], p.phase !== 'over');
   const logEl = document.getElementById('px-log');
   const fresh = p.log.slice(logEl.childElementCount);
   if (fresh.length) {
@@ -9912,6 +9943,76 @@ function startLive() {
   drawBoard();
 }
 
+// ── LIVE GAME STATS ──
+// Per-rider attempt tally kept on the game object (S.live.stats / _practice.stats)
+// so it syncs with the rest of the duel. Recorded only where a call is final:
+// the judge functions, or applyPendingCall once a no-judge call is confirmed.
+const _LANDED_CALLS = ['setterLanded', 'copierLand', 'revengeLanded'];
+function _statsOf(g) { return g.stats || (g.stats = { startedAt:null, lastAt:null, tricks:0, by:{} }); }
+function _statsRecord(st, who, landed, newTrick) {
+  const now = Date.now();
+  if (!st.startedAt) st.startedAt = now;
+  st.lastAt = now;
+  if (newTrick) st.tricks++;
+  const r = st.by[who] || (st.by[who] = { att:0, land:0, streak:0, best:0 });
+  r.att++;
+  if (landed) { r.land++; r.streak++; r.best = Math.max(r.best, r.streak); } else r.streak = 0;
+}
+function _liveRecordCall(type, setterId, copierId) {
+  const setterTurn = type === 'setterLanded' || type === 'setterBailed';
+  _statsRecord(_statsOf(S.live), setterTurn ? setterId : copierId, _LANDED_CALLS.includes(type), setterTurn);
+}
+function _fmtClock(ms) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
+
+// riders: [{ id, name }] in board order. `live` keeps the clock ticking;
+// otherwise it shows first trick → last call. Changed numbers pop (motion.dev,
+// CSS .gs-bump fallback).
+function _renderStats(container, st, riders, live) {
+  if (!container) return;
+  if (!st || !st.startedAt) { container.innerHTML = ''; return; }
+  const row = id => st.by[id] || { att:0, land:0, streak:0, best:0 };
+  const rate = r => r.att ? Math.round(100 * r.land / r.att) : null;
+  const [a, b] = riders.map(x => row(x.id));
+  const cells = (label, key, fa, fb, va, vb) => {
+    const lead = va == null || vb == null || va === vb ? '' : (va > vb ? 0 : 1);
+    return `<span class="gs-label">${label}</span>` +
+      [fa, fb].map((txt, i) => `<span data-k="${key}${i}" class="${lead === i ? 'gs-lead' : ''}">${txt}</span>`).join('');
+  };
+  const before = {};
+  container.querySelectorAll('[data-k]').forEach(el => { before[el.dataset.k] = el.textContent; });
+  const clock = live
+    ? `<span class="gs-clock" data-start="${st.startedAt}">${_fmtClock(Date.now() - st.startedAt)}</span>`
+    : `<span>${_fmtClock((st.lastAt || st.startedAt) - st.startedAt)}</span>`;
+  container.innerHTML = `
+    <div class="gs-card">
+      <div class="gs-head"><span class="gs-title">Game stats</span><span class="gs-meta">${clock} · ${st.tricks} trick${st.tricks === 1 ? '' : 's'}</span></div>
+      <div class="gs-grid">
+        <span></span>${riders.map(x => `<span class="gs-name">${escHtml(x.name)}</span>`).join('')}
+        ${cells('Landed', 'l', `${a.land}/${a.att}`, `${b.land}/${b.att}`, a.land, b.land)}
+        ${cells('Land rate', 'r', rate(a) == null ? '–' : rate(a) + '%', rate(b) == null ? '–' : rate(b) + '%', rate(a), rate(b))}
+        ${cells('Best streak', 's', a.best, b.best, a.best, b.best)}
+      </div>
+    </div>`;
+  const changed = [...container.querySelectorAll('[data-k]')].filter(el => el.dataset.k in before && before[el.dataset.k] !== el.textContent);
+  if (changed.length) {
+    if (MO) MO.animate(changed, { opacity:[0, 1], scale:[0.8, 1] }, SPRING_POP).then(() => _moClear(changed));
+    else changed.forEach(el => el.classList.add('gs-bump'));
+  }
+  if (live) _statsClockStart();
+}
+let _statsClockTimer = null;
+function _statsClockStart() {
+  if (_statsClockTimer) return;
+  _statsClockTimer = setInterval(() => {
+    const clocks = document.querySelectorAll('.gs-clock[data-start]');
+    if (!clocks.length) { clearInterval(_statsClockTimer); _statsClockTimer = null; return; }
+    clocks.forEach(el => { el.textContent = _fmtClock(Date.now() - Number(el.dataset.start)); });
+  }, 1000);
+}
+
 function drawBoard() {
   const g = S.live;
   const [p1, p2]  = [byId(g.p1), byId(g.p2)];
@@ -9935,6 +10036,7 @@ function drawBoard() {
     <div class="live-meta">Handicap · <strong>${pLink(g.handicap.higherId, byId(g.handicap.higherId)?.name)}</strong> starts on ${LETTERS.slice(0,g.handicap.hcap).join('')}</div>` : ''}
   `);
   _motionLetters();
+  _renderStats(document.getElementById('live-stats'), g.stats, [p1, p2], !g.over);
 
   if (!g.over) {
     // Hide all phase panels first
@@ -10176,6 +10278,7 @@ function resolveSetterVoteIfReady() {
   }
   g.setterId    = starterId;
   g.phase       = 'setting';
+  _statsOf(g).startedAt = Date.now();
   g.setterVotes = {};
   save(); drawBoard();
 }
@@ -10186,6 +10289,7 @@ function judgePickSetter(playerId) {
   if (!g || g.phase !== 'judge-pick-setter') return;
   g.setterId = playerId;
   g.phase    = 'setting';
+  _statsOf(g).startedAt = Date.now();
   addLog('<svg class="icon icon-scale"><use href="#i-scale"/></svg>', `Judge chose ${byId(playerId).name} to set first.`);
   save(); drawBoard();
 }
@@ -10196,6 +10300,7 @@ function judgeSetterLanded() {
   // No judge → enter dispute phase so both players confirm/deny
   if (!g.judgeId) { enterDisputePhase('setterLanded'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('setterLanded', g.setterId, copierId);
   addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(g.setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
   g.phase = 'copying';
   save(); drawBoard();
@@ -10208,6 +10313,7 @@ function judgeSetterBailed() {
   if (!g.judgeId) { enterDisputePhase('setterBailed'); return; }
   const setterName = byId(g.setterId).name;
   const copierId   = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('setterBailed', g.setterId, copierId);
   addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${setterName} bailed! ${byId(copierId).name} gets a revenge attempt…`);
   g.phase = 'revenge';
   save(); drawBoard();
@@ -10218,6 +10324,7 @@ function copierLand() {
   const g = S.live;
   if (!g.judgeId) { enterDisputePhase('copierLand'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('copierLand', g.setterId, copierId);
   addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(copierId).name} landed the copy! ${byId(g.setterId).name} keeps setting.`);
   g.trick = null; g.phase = 'setting';
   save(); drawBoard();
@@ -10228,6 +10335,7 @@ function copierMiss() {
   const g = S.live;
   if (!g.judgeId) { enterDisputePhase('copierMiss'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('copierMiss', g.setterId, copierId);
   g.letters[copierId] = (g.letters[copierId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[copierId]).join('');
   addLog('<svg class="icon icon-x-circle icon-danger"><use href="#i-x-circle"/></svg>', `${byId(copierId).name} missed! Gets "${earned[earned.length-1]}" → ${earned}. ${byId(g.setterId).name} keeps setting.`);
@@ -10243,6 +10351,7 @@ function revengeAttemptLanded() {
   if (!g.judgeId) { enterDisputePhase('revengeLanded'); return; }
   const setterId = g.setterId;
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('revengeLanded', setterId, copierId);
   g.letters[setterId] = (g.letters[setterId] || 0) + 1;
   const earned = LETTERS.slice(0, g.letters[setterId]).join('');
   addLog('<svg class="icon icon-fire"><use href="#i-fire"/></svg>', `${byId(copierId).name} landed the revenge! ${byId(setterId).name} gets "${earned[earned.length-1]}" → ${earned}.`);
@@ -10258,6 +10367,7 @@ function revengeAttemptMissed() {
   if (!g || g.phase !== 'revenge') return;
   if (!g.judgeId) { enterDisputePhase('revengeMissed'); return; }
   const copierId = g.setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall('revengeMissed', g.setterId, copierId);
   addLog('<svg class="icon icon-wind"><use href="#i-wind"/></svg>', `${byId(copierId).name} couldn't land it either. ${byId(copierId).name} sets next.`);
   g.setterId = copierId;
   g.trick = null; g.phase = 'setting';
@@ -10394,6 +10504,7 @@ function applyPendingCall(reversed) {
 
   const setterId = g.setterId;
   const copierId = setterId === g.p1 ? g.p2 : g.p1;
+  _liveRecordCall(type, setterId, copierId);
 
   if (type === 'setterLanded') {
     addLog('<svg class="icon icon-check-circle icon-success"><use href="#i-check-circle"/></svg>', `${byId(setterId).name} landed ${g.trick}! ${byId(copierId).name} must now copy.`);
