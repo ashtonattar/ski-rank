@@ -2586,7 +2586,7 @@
       align-items:flex-end; justify-content:center;
     }
     #onboard-card {
-      background:rgba(11,13,16,0.99); border:1px solid rgba(255,62,127,0.2);
+      background:var(--bg-elevated); border:1px solid rgba(255,62,127,0.2);
       border-top-left-radius:28px; border-top-right-radius:28px;
       border-bottom-left-radius:0; border-bottom-right-radius:0;
       padding:12px 24px 0; width:100%; max-width:520px;
@@ -2597,13 +2597,90 @@
     }
     #onboard-drag-handle {
       width:40px; height:5px; border-radius:99px;
-      background:rgba(255,255,255,0.18); margin:0 auto 20px;
+      background:rgba(255,255,255,0.18); margin:0 auto 14px;
       flex-shrink:0; touch-action:none; cursor:grab;
     }
-    #onboard-scroll {
-      overflow-y:auto; -webkit-overflow-scrolling:touch;
-      flex:1; padding-bottom:8px;
+    /* Top bar: back · progress · skip */
+    .ob-top { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; margin-bottom:18px; }
+    .ob-back, .ob-skip {
+      background:none; border:none; cursor:pointer; -webkit-tap-highlight-color:transparent;
+      color:var(--text-muted); font-size:13px; font-weight:600; min-width:56px; height:36px; padding:0 4px;
+      display:flex; align-items:center;
+      transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
+    .ob-back { font-size:18px; }
+    .ob-skip { justify-content:flex-end; }
+    .ob-back:active, .ob-skip:active { transform:scale(0.92); color:var(--text-primary); }
+    .ob-back.ob-hidden { opacity:0; pointer-events:none; transform:translateX(-6px); }
+    /* Progress: 6px dots, 10px apart; one pill slides between them (transform only) */
+    .ob-dots { position:relative; display:flex; gap:10px; align-items:center; height:6px; }
+    .ob-dot { width:6px; height:6px; border-radius:99px; background:var(--border-light); border:none; padding:0; cursor:pointer; position:relative; }
+    .ob-dot::after { content:''; position:absolute; inset:-10px -5px; } /* 26px tap target */
+    .ob-pill {
+      position:absolute; left:-5px; top:0; width:16px; height:6px; border-radius:99px;
+      background:var(--pop); pointer-events:none;
+      transform:translateX(calc(var(--step, 0) * 16px));
+      transition:transform .3s var(--ease-out);
+    }
+    /* Step content: children enter staggered from the side we're moving toward */
+    .ob-stage { --dir:1; }
+    .ob-stage > *, .ob-stagger > * {
+      animation:obIn .32s var(--ease-out) both;
+      animation-delay:calc(var(--i, 0) * 45ms);
+    }
+    #onboard-card .ob-stage.ob-leaving > * { animation:obOut .12s var(--ease-in) both; }
+    @keyframes obIn  { from { opacity:0; transform:translateX(calc(var(--dir) * 22px)); } to { opacity:1; transform:none; } }
+    @keyframes obOut { to   { opacity:0; transform:translateX(calc(var(--dir) * -14px)); } }
+    .ob-icon {
+      width:68px; height:68px; margin:4px auto 18px; border-radius:22px;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--pop-soft); border:1px solid rgba(255,62,127,0.28);
+      box-shadow:0 10px 30px rgba(255,62,127,0.18), var(--shadow-surface);
+      font-size:30px; color:var(--pop);
+    }
+    .ob-icon .icon { color:var(--pop); }
+    .ob-stage > .ob-icon { animation-name:obIconIn; }
+    @keyframes obIconIn { from { opacity:0; transform:scale(.82); } to { opacity:1; transform:none; } }
+    .ob-title { font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:-0.02em; text-align:center; margin-bottom:10px; color:var(--text-primary); }
+    .ob-body { font-size:15px; line-height:1.6; color:var(--text-secondary); text-align:center; }
+    .ob-body strong { color:var(--text-primary); }
+    /* S·K·I letter tiles */
+    .ob-letters { display:flex; justify-content:center; gap:10px; margin:6px 0 18px; }
+    .ob-letter {
+      width:52px; height:58px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-display); font-weight:800; font-size:26px; color:var(--text-primary);
+      background:var(--bg-card); border:1px solid var(--border-light); box-shadow:var(--shadow-surface);
+    }
+    .ob-letter.ob-lit { color:var(--pop); border-color:rgba(255,62,127,0.45); background:var(--pop-soft); }
+    .ob-letters.ob-stagger > * { animation-name:obLetterIn; animation-delay:calc(180ms + var(--i, 0) * 90ms); }
+    @keyframes obLetterIn { from { opacity:0; transform:translateY(10px) scale(.9); } to { opacity:1; transform:none; } }
+    /* Feature / tier rows */
+    .ob-rows { display:flex; flex-direction:column; gap:8px; margin-top:16px; text-align:left; }
+    .ob-rows.ob-stagger > * { animation-delay:calc(120ms + var(--i, 0) * 50ms); }
+    .ob-row {
+      display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:14px;
+      background:var(--bg-card); border:1px solid var(--border); box-shadow:var(--shadow-surface-sm);
+    }
+    .ob-row-ic {
+      width:36px; height:36px; border-radius:11px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      background:var(--pop-soft); font-size:17px;
+    }
+    .ob-row-ic .icon { color:var(--pop); }
+    .ob-row-t { font-weight:700; font-size:14px; color:var(--text-primary); line-height:1.3; }
+    .ob-row-d { font-size:12.5px; color:var(--text-muted); line-height:1.4; margin-top:1px; }
+    .ob-tier { justify-content:space-between; padding:9px 14px; }
+    .ob-tier span:first-child { font-weight:700; }
+    .ob-tier span:last-child { color:var(--text-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+    #onboard-cta { transition:transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out); }
+    /* Fixed sheet height so the card doesn't jump size between steps; short
+       steps center vertically, tall ones scroll. overflow-x hidden hides the
+       22px slide-in offset that would otherwise flash a horizontal scrollbar. */
+    #onboard-card { height:min(640px, 92svh); }
+    #onboard-scroll {
+      overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+      flex:1; padding-bottom:8px; display:flex; flex-direction:column;
+    }
+    #onboard-stage { margin:auto 0; }
     #onboard-footer {
       flex-shrink:0; padding:16px 0;
       padding-bottom:max(16px, env(safe-area-inset-bottom));
@@ -6898,85 +6975,152 @@ function selectTrick(name) {
 // ═══════════════════════════════════════════════════════
 //  ONBOARDING
 // ═══════════════════════════════════════════════════════
+// Each step's body is plain markup; blocks marked ob-stagger animate their
+// children in sequence after the title lands. Kept short on purpose: one idea
+// per step, scannable rows instead of paragraphs.
+const _obIc = (id) => `<svg class="icon"><use href="#i-${id}"/></svg>`;
+const _obRow = (ic, t, d, i) =>
+  `<div class="ob-row" style="--i:${i}"><div class="ob-row-ic">${_obIc(ic)}</div><div><div class="ob-row-t">${t}</div><div class="ob-row-d">${d}</div></div></div>`;
+const _obTier = (ic, name, range, color, i) =>
+  `<div class="ob-row ob-tier" style="--i:${i};background:${color}14;border-color:${color}40;"><span style="color:${color};">${_obIc(ic).replace('class="icon"', `class="icon" style="color:${color};"`)} ${name}</span><span>${range}</span></div>`;
+
 const ONBOARDING_STEPS = [
   {
-    icon: '<svg class="icon icon-skis"><use href="#i-skis"/></svg>',
+    icon: 'poles-crossed',
     title: 'Welcome to Slope Battles',
-    body: `Slope Battles is trick duels for the mountain. Challenge any rider, set tricks, and see who folds first. No rating needed — just find someone and play.`,
-    cta: 'How do I play? →'
+    body: `Trick duels for the mountain. Challenge any rider, set tricks, and see who folds first.<br><strong>No rating needed</strong> to start.`,
+    cta: 'How do I play?'
   },
   {
-    icon: '<svg class="icon icon-target"><use href="#i-target"/></svg>',
+    icon: 'target',
     title: 'How It Works',
-    body: `One rider sets a trick — the other must match it. Miss it and you collect a letter: <strong style="color:var(--ice);">S → K → I</strong>. Collect all three and you lose.<br><br>Challenge someone right now with <strong><svg class="icon icon-bolt"><use href="#i-bolt"/></svg> Play</strong> — they get an invite on their phone and you\'re in a live game.<br><br>Already played it out on the hill? Use <strong>Log Game</strong> to record the result after the fact instead of playing live.<br><br>Want more? Jump into <strong>Explore</strong> to watch clips from the community, or start a <strong>Tournament</strong> to run a bracket with your friends.`,
-    cta: 'Next →'
+    body: `<div class="ob-letters ob-stagger">
+        <div class="ob-letter ob-lit" style="--i:0">S</div><div class="ob-letter ob-lit" style="--i:1">K</div><div class="ob-letter ob-lit" style="--i:2">I</div>
+      </div>
+      One rider sets a trick. The other has to match it.<br>Miss and you take a letter. <strong>Spell S·K·I and you're out.</strong>`,
+    cta: 'Next'
   },
   {
-    icon: '<svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg>',
-    title: 'Ratings (Optional)',
-    body: `After a few games, you\'ll unlock a rating. Beat higher-rated riders and you climb. Lose to lower-ranked riders and you drop.`,
-    cta: 'Next →'
-  },
-  {
-    icon: '<svg class="icon icon-trophy"><use href="#i-trophy"/></svg>',
-    title: 'Rank Tiers',
-    body: `Your rating places you in a tier:<br><br>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;text-align:left;">
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);"><span style="font-weight:700;color:#f97316;"><svg class="icon icon-fire"><use href="#i-fire"/></svg> Legend</span><span style="color:var(--text-muted);font-size:12px;">14.00+</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);"><span style="font-weight:700;color:#60a5fa;"><svg class="icon icon-star"><use href="#i-star"/></svg> Sender</span><span style="color:var(--text-muted);font-size:12px;">10.00–13.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);"><span style="font-weight:700;color:#34d399;"><svg class="icon icon-trend-up"><use href="#i-trend-up"/></svg> Shredder</span><span style="color:var(--text-muted);font-size:12px;">7.00–9.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);"><span style="font-weight:700;color:#fbbf24;"><svg class="icon icon-skis"><use href="#i-skis"/></svg> Park Rat</span><span style="color:var(--text-muted);font-size:12px;">4.00–6.99</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;border-radius:8px;background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.25);"><span style="font-weight:700;color:#94a3b8;"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg> Rookie</span><span style="color:var(--text-muted);font-size:12px;">0.00–3.99</span></div>
+    icon: 'bolt',
+    title: 'Ways to Play',
+    body: `<div class="ob-rows ob-stagger">
+        ${_obRow('bolt',  'Play live',            'Challenge a rider. They get an invite and you\'re in.', 0)}
+        ${_obRow('dice',  'Practice vs. Demo Rider', 'Warm up solo. Nothing counts.', 1)}
+        ${_obRow('edit',  'Log a Game',           'Already played on the hill? Record it after.', 2)}
+        ${_obRow('trophy','Explore & Tourneys',   'Watch clips or run a bracket with friends.', 3)}
       </div>`,
-    cta: 'Next →'
+    cta: 'Next'
   },
   {
-    icon: '🚀',
-    title: 'You\'re All Set!',
-    body: `Add friends, send challenges, and start playing. The leaderboard updates in real time — every win moves you up.<br><br>Head to <strong>Log Game</strong> to record your first game, or tap <strong>Live Game</strong> to play in real time. Good luck! <svg class="icon icon-mountain"><use href="#i-mountain"/></svg>`,
-    cta: 'Start Riding <svg class="icon icon-skis"><use href="#i-skis"/></svg>'
+    icon: 'trend-up',
+    title: 'Climb the Ranks',
+    body: `Play a few games to unlock a rating. Beat higher-rated riders to climb.
+      <div class="ob-rows ob-stagger">
+        ${_obTier('fire',     'Legend',   '14.00+',      '#f97316', 0)}
+        ${_obTier('star',     'Sender',   '10.00–13.99', '#60a5fa', 1)}
+        ${_obTier('trend-up', 'Shredder', '7.00–9.99',   '#34d399', 2)}
+        ${_obTier('skis',     'Park Rat', '4.00–6.99',   '#fbbf24', 3)}
+        ${_obTier('mountain', 'Rookie',   '0.00–3.99',   '#94a3b8', 4)}
+      </div>`,
+    cta: 'Next'
+  },
+  {
+    icon: 'mountain',
+    title: 'You\'re All Set',
+    body: `Tap <strong>Play</strong> to challenge a friend, or warm up against <strong>Demo Rider</strong> first.<br>Every win moves you up the board.`,
+    cta: 'Start Riding'
   }
 ];
 
 let _onboardStep = 0;
+let _obSwapTimer = null;
 
 function showOnboarding() {
   _onboardStep = 0;
-  _renderOnboardStep();
+  const card = document.getElementById('onboard-card');
+  // A drag-dismiss leaves its inline transform behind; clear it so the slide-up runs.
+  card.style.transform = ''; card.style.transition = '';
+  _buildOnboardDots();
+  _renderOnboardStep(1, false);
   const overlay = document.getElementById('onboard-overlay');
   overlay.classList.remove('closing');
   overlay.style.display = 'flex';
   _lockPage('onboarding');
-  enableSheetDrag(document.getElementById('onboard-drag-handle'), document.getElementById('onboard-card'), closeOnboarding);
+  enableSheetDrag(document.getElementById('onboard-drag-handle'), card, closeOnboarding);
+  _wireOnboardSwipe(card);
 }
 
-function _renderOnboardStep() {
+function _buildOnboardDots() {
+  document.getElementById('onboard-dots').innerHTML =
+    ONBOARDING_STEPS.map((s, i) => `<button class="ob-dot" role="tab" aria-label="Step ${i + 1}: ${s.title}" onclick="onboardGo(${i})"></button>`).join('') +
+    '<div class="ob-pill"></div>';
+}
+
+// dir: 1 = forward (content enters from the right), -1 = back.
+// animateOut: fade the current step out first (~120ms) — skipped on first open.
+function _renderOnboardStep(dir, animateOut = true) {
+  const stage = document.getElementById('onboard-stage');
   const step = ONBOARDING_STEPS[_onboardStep];
-  // Scroll content back to top on each step
-  const scrollEl = document.getElementById('onboard-scroll');
-  if (scrollEl) scrollEl.scrollTop = 0;
-  // Animate content in
-  const card = document.getElementById('onboard-card');
-  card.style.animation = 'none';
-  void card.offsetWidth;
-  // Populate
-  document.getElementById('onboard-icon').innerHTML = step.icon;
-  document.getElementById('onboard-title').textContent = step.title;
-  document.getElementById('onboard-body').innerHTML = step.body;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Chrome (progress, back, CTA) updates immediately — it's the instant feedback for the tap.
+  document.getElementById('onboard-dots').style.setProperty('--step', _onboardStep);
+  document.querySelectorAll('#onboard-dots .ob-dot').forEach((d, i) => d.setAttribute('aria-selected', i === _onboardStep));
+  document.getElementById('onboard-back').classList.toggle('ob-hidden', _onboardStep === 0);
   document.getElementById('onboard-cta').innerHTML = step.cta;
-  // Dots
-  document.getElementById('onboard-dots').innerHTML = ONBOARDING_STEPS.map((_,i) =>
-    `<div style="width:${i===_onboardStep?22:7}px;height:7px;border-radius:99px;background:${i===_onboardStep?'var(--ice)':'rgba(255,255,255,0.18)'};transition:all .3s cubic-bezier(.22,.68,0,1.2);"></div>`
-  ).join('');
+  const swapIn = () => {
+    _obSwapTimer = null;
+    stage.classList.remove('ob-leaving');
+    stage.style.setProperty('--dir', dir);
+    stage.innerHTML =
+      `<div class="ob-icon" style="--i:0">${_obIc(step.icon)}</div>` +
+      `<div class="ob-title" style="--i:1">${step.title}</div>` +
+      `<div class="ob-body" style="--i:2">${step.body}</div>`;
+    const scrollEl = document.getElementById('onboard-scroll');
+    if (scrollEl) scrollEl.scrollTop = 0;
+  };
+  // Interruptible: a second tap mid-transition just jumps straight to the new step.
+  clearTimeout(_obSwapTimer);
+  if (!animateOut || reduced || !stage.children.length || stage.classList.contains('ob-leaving')) { swapIn(); return; }
+  stage.style.setProperty('--dir', dir);
+  stage.classList.add('ob-leaving');
+  _obSwapTimer = setTimeout(swapIn, 120);
+}
+
+function onboardGo(i) {
+  if (i === _onboardStep || i < 0 || i >= ONBOARDING_STEPS.length) return;
+  const dir = i > _onboardStep ? 1 : -1;
+  _onboardStep = i;
+  _renderOnboardStep(dir);
 }
 
 function onboardNext() {
-  if (_onboardStep < ONBOARDING_STEPS.length - 1) {
-    _onboardStep++;
-    _renderOnboardStep();
-  } else {
-    closeOnboarding();
-  }
+  if (_onboardStep < ONBOARDING_STEPS.length - 1) onboardGo(_onboardStep + 1);
+  else closeOnboarding();
+}
+
+function onboardBack() { onboardGo(_onboardStep - 1); }
+
+// Horizontal swipe between steps. Vertical drag-to-dismiss is enableSheetDrag's
+// job; a swipe only counts when it's clearly sideways.
+function _wireOnboardSwipe(card) {
+  if (card.dataset.swipeWired) return;
+  card.dataset.swipeWired = '1';
+  let x0 = 0, y0 = 0, t0 = 0;
+  card.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive:true });
+  card.addEventListener('touchend', (e) => {
+    const t = e.changedTouches[0]; if (!t) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - t0 > 700) return;
+    if (dx < 0) { if (_onboardStep < ONBOARDING_STEPS.length - 1) onboardGo(_onboardStep + 1); }
+    else onboardBack();
+  });
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') onboardGo(_onboardStep + 1);
+    if (e.key === 'ArrowLeft')  onboardBack();
+  });
 }
 
 function closeOnboarding() {
@@ -16233,17 +16377,19 @@ async function adminWipeEverything() {
   <div id="onboard-card">
     <!-- drag handle -->
     <div id="onboard-drag-handle"></div>
+    <!-- back · progress · skip -->
+    <div class="ob-top">
+      <button id="onboard-back" class="ob-back ob-hidden" onclick="onboardBack()" aria-label="Previous step"><svg class="icon" style="color:currentColor;"><use href="#i-back"/></svg></button>
+      <div id="onboard-dots" class="ob-dots" role="tablist" aria-label="Tutorial progress"></div>
+      <button class="ob-skip" onclick="closeOnboarding()">Skip</button>
+    </div>
     <!-- scrollable content -->
     <div id="onboard-scroll">
-      <div id="onboard-icon" style="font-size:62px;text-align:center;margin-bottom:14px;line-height:1;"></div>
-      <div id="onboard-title" style="font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.02em;text-align:center;margin-bottom:12px;color:var(--text-primary);"></div>
-      <div id="onboard-body" style="font-size:15px;line-height:1.7;color:var(--text-secondary);text-align:center;margin-bottom:8px;"></div>
+      <div id="onboard-stage" class="ob-stage" aria-live="polite"></div>
     </div>
     <!-- sticky footer -->
     <div id="onboard-footer">
-      <button id="onboard-cta" class="btn btn-primary" onclick="onboardNext()" style="width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:16px;"></button>
-      <div id="onboard-dots" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;"></div>
-      <button onclick="closeOnboarding()" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:6px 12px;-webkit-tap-highlight-color:transparent;">Skip tutorial</button>
+      <button id="onboard-cta" class="btn btn-primary" onclick="onboardNext()" style="width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:16px;justify-content:center;"></button>
     </div>
   </div>
 </div>
