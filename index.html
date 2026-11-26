@@ -3220,7 +3220,7 @@
       <div style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 4px;">
         <input type="checkbox" id="su-agree" style="margin-top:3px;flex:none;width:16px;height:16px;">
         <label for="su-agree" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
-          I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+          I confirm I am at least 13 years old and I agree to the <a href="https://ashtonattar.github.io/ski-rank/terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="https://ashtonattar.github.io/ski-rank/privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
         </label>
       </div>
       <div style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;">
@@ -3274,7 +3274,7 @@
       <div style="display:flex;align-items:flex-start;gap:8px;margin:14px 0 4px;">
         <input type="checkbox" id="sc-agree" style="margin-top:3px;flex:none;width:16px;height:16px;">
         <label for="sc-agree" style="font-size:12px;color:var(--text-muted);line-height:1.5;cursor:pointer;">
-          I confirm I am at least 13 years old and I agree to the <a href="terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
+          I confirm I am at least 13 years old and I agree to the <a href="https://ashtonattar.github.io/ski-rank/terms.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Terms of Service</a> and <a href="https://ashtonattar.github.io/ski-rank/privacy.html" target="_blank" rel="noopener" style="color:var(--text-muted);text-decoration:underline;">Privacy Policy</a>.
         </label>
       </div>
       <div style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 4px;">
@@ -3350,6 +3350,13 @@
       </button>
       <a class="nav-btn" href="mailto:ashtonattar@gmail.com?subject=Slope%20Battles%20beta%20feedback" onclick="track('feedback_opened');closeMoreSheet()" style="text-decoration:none;">
         <span class="nav-icon"><svg class="icon icon-chat"><use href="#i-chat"/></svg></span><span style="flex:1;">Send Feedback</span>
+      </a>
+      <!-- Absolute URLs so the iOS app hands them to Safari (App Review 5.1.1 wants the policy reachable in-app) -->
+      <a class="nav-btn" href="https://ashtonattar.github.io/ski-rank/privacy.html" target="_blank" rel="noopener" onclick="closeMoreSheet()" style="text-decoration:none;">
+        <span class="nav-icon"><svg class="icon icon-lock"><use href="#i-lock"/></svg></span><span style="flex:1;">Privacy Policy</span>
+      </a>
+      <a class="nav-btn" href="https://ashtonattar.github.io/ski-rank/terms.html" target="_blank" rel="noopener" onclick="closeMoreSheet()" style="text-decoration:none;">
+        <span class="nav-icon"><svg class="icon icon-book"><use href="#i-book"/></svg></span><span style="flex:1;">Terms of Service</span>
       </a>
       <button class="nav-btn" id="nav-install-app" onclick="installApp()" style="display:none;">
         <span class="nav-icon"><svg class="icon icon-mountain"><use href="#i-mountain"/></svg></span><span style="flex:1;">Install App</span>
