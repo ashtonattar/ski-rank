@@ -493,6 +493,50 @@
     .more-sheet .nav-btn::before { display:none; }
     .more-sheet .nav-badge { position:static; margin-left:auto; }
 
+    /* Share sheet (P3): card preview + actions, laid out like an iOS sheet —
+       centered title with a round close button, one filled action, then an
+       inset-grouped list. Sits above modals so a profile can open it too. */
+    .share-sheet-overlay { z-index:10001; }
+    .share-sheet { z-index:10002; padding:8px 16px calc(16px + env(safe-area-inset-bottom)); gap:14px; }
+    .share-sheet-head { display:grid; grid-template-columns:30px 1fr 30px; align-items:center; }
+    .share-sheet-title { grid-column:2; text-align:center; font-size:17px; font-weight:600; letter-spacing:-0.01em; }
+    .share-sheet-close {
+      width:30px; height:30px; border-radius:50%; border:none; padding:0; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--halogen-glow); color:var(--text-secondary); font-size:13px;
+    }
+    .share-preview {
+      position:relative; align-self:center; aspect-ratio:9 / 16;
+      height:min(50vh, 440px); border-radius:18px; overflow:hidden;
+      background:var(--bg-card); box-shadow:0 18px 50px rgba(0,0,0,0.45), 0 0 0 1px var(--border);
+    }
+    .share-preview img { position:absolute; inset:0; width:100%; height:100%; display:block; opacity:0; transition:opacity .25s; }
+    .share-preview img.ready { opacity:1; }
+    .share-preview-spin {
+      position:absolute; left:50%; top:50%; width:26px; height:26px; margin:-13px 0 0 -13px;
+      border-radius:50%; border:2.5px solid var(--border-light); border-top-color:var(--text-secondary);
+      animation:spin .8s linear infinite;
+    }
+    .share-preview img.ready + .share-preview-spin { display:none; }
+    .share-primary {
+      width:100%; height:50px; border:none; border-radius:14px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      background:var(--pop); color:#fff; font:600 17px/1 'Inter',sans-serif; letter-spacing:-0.01em;
+    }
+    .share-primary:disabled { opacity:.5; cursor:default; }
+    .share-group { border-radius:14px; overflow:hidden; background:var(--halogen-glow); }
+    .share-row {
+      width:100%; display:flex; align-items:center; gap:12px; padding:0 16px; min-height:48px;
+      border:none; background:none; cursor:pointer; text-align:left;
+      color:var(--text-primary); font:500 16px/1.2 'Inter',sans-serif;
+    }
+    .share-row + .share-row { box-shadow:inset 0 0.5px 0 var(--border-light); }
+    .share-row .icon { color:var(--text-secondary); font-size:17px; width:20px; }
+    .share-row:active { background:var(--border); }
+    .share-sheet .share-primary .icon { color:#fff; font-size:18px; }
+    .share-sheet .share-sheet-close .icon { color:var(--text-secondary); }
+    .share-sheet .share-row .icon { color:var(--text-secondary); }
+
     /* ── VIEW HEADER ── */
     .view-header { margin-bottom:26px; }
     .view-header h2 {
@@ -3331,6 +3375,20 @@
   </nav>
 
   <!-- ═══ More sheet (overflow nav + account) ═══ -->
+  <div class="more-sheet-overlay share-sheet-overlay" id="share-sheet-overlay" onclick="closeShareSheet()"></div>
+  <div class="more-sheet share-sheet" id="share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-sheet-title">
+    <div class="more-sheet-handle" id="share-sheet-drag" onclick="closeShareSheet()" role="button" aria-label="Close"></div>
+    <div class="share-sheet-head">
+      <div class="share-sheet-title" id="share-sheet-title">Share</div>
+      <button class="share-sheet-close" onclick="closeShareSheet()" aria-label="Close"><svg class="icon icon-close"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="share-preview"><img id="share-preview-img" alt="Share card preview"><div class="share-preview-spin"></div></div>
+    <button class="share-primary" id="share-primary-btn" onclick="shareCardShare()" disabled><svg class="icon icon-upload"><use href="#i-upload"/></svg> Share</button>
+    <div class="share-group">
+      <button class="share-row" id="share-save-row" onclick="shareCardSave()"><svg class="icon icon-camera"><use href="#i-camera"/></svg> Save Image</button>
+      <button class="share-row" onclick="shareCardCopyLink()"><svg class="icon icon-link"><use href="#i-link"/></svg> Copy Link</button>
+    </div>
+  </div>
   <div class="more-sheet-overlay" id="more-sheet-overlay" onclick="closeMoreSheet()"></div>
   <div class="more-sheet" id="more-sheet">
     <div class="more-sheet-handle" id="more-sheet-drag" onclick="closeMoreSheet()" role="button" aria-label="Close menu"></div>
@@ -11005,15 +11063,21 @@ function finishLive(winnerId, loserId) {
   drawBoard();
 }
 
-function shareGameResult(winnerName, loserName) {
-  const text = `<svg class="icon icon-skis"><use href="#i-skis"/></svg> ${winnerName} just beat ${loserName} in a game of S-K-I on Slope Battles! Challenge them at slopebattles.app`;
-  if (navigator.share) {
-    navigator.share({ title: 'Slope Battles Result', text }).catch(() => {});
-  } else {
-    navigator.clipboard?.writeText(text).then(() => toast('Result copied to clipboard!', 'ok')).catch(() => {
-      toast(`${winnerName} beat ${loserName} — share manually!`, 'ok');
-    });
-  }
+// Post-duel share card (P3). showGameOver snapshots the result here, because
+// S.live is wiped as soon as a player taps New Game.
+let _lastResult = null;
+function shareGameResult() {
+  const r = _lastResult;
+  if (!r) return;
+  const winner = byId(r.winnerId), loser = byId(r.loserId);
+  if (!winner || !loser) return;
+  _openShareSheet({
+    kind: 'result',
+    title: 'Share Result',
+    text: `${winner.name} beat ${loser.name} in a game of S-K-I on Slope Battles.`,
+    url: _publicAppUrl(currentUser ? `ref=${encodeURIComponent(currentUser.id)}` : ''),
+    draw: ctx => _drawResultCard(ctx, r, winner, loser),
+  });
 }
 
 function showMatchCancelled() {
@@ -11064,6 +11128,11 @@ function showGameOver(winnerId, loserId, game) {
   }
   const rd = S.live?.ratingDelta;
   const hasRatings = rd && winner.gamesPlayed >= 3 && loser.gamesPlayed >= 3;
+  _lastResult = {
+    winnerId, loserId, rd: hasRatings ? rd : null, ts: Date.now(),
+    letters: { ...(S.live?.letters || {}), [loserId]: LETTERS.length },
+    resort: S.live?.resort || '', forfeit: S.live?.forfeitBy === loserId,
+  };
   const ratingLine = hasRatings
     ? `<div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
         <div style="text-align:center;">
@@ -11087,7 +11156,7 @@ function showGameOver(winnerId, loserId, game) {
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${S.live?.forfeitBy === loserId ? `${pLink(loser.id, loser.name)} abandoned the game` : `${pLink(loser.id, loser.name)} spells S·K·I`}</p>
       ${ratingLine}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="shareGameResult('${escHtml(winner.name.replace(/'/g,"\\'"))}','${escHtml(loser.name.replace(/'/g,"\\'"))}')">
+        <button class="btn btn-primary" onclick="shareGameResult()">
           <svg class="icon icon-upload"><use href="#i-upload"/></svg> Share Result
         </button>
         <button class="btn btn-ghost btn-sm" id="lv-submit-btn" onclick="submitLiveClipAndReset()">New Game</button>
@@ -12134,7 +12203,7 @@ function shareReel(itemId) {
   }
   // Point the viewer at the app's own Explore feed (not the raw Cloudinary asset URL) so
   // opening the link lands them in SKI Rank with the reel scrolled into view.
-  const url = `${location.origin}${location.pathname}?reel=${encodeURIComponent(itemId)}`;
+  const url = _publicAppUrl(`reel=${encodeURIComponent(itemId)}`);
   // No playable source yet (still an idb: reference) — nothing meaningful to link to.
   if (!item.clipUrl || item.clipUrl.startsWith('idb:')) {
     navigator.clipboard?.writeText(text).then(() => toast('Link copied!', 'ok')).catch(() => toast('Could not copy link.', 'err'));
@@ -12155,15 +12224,433 @@ function shareReel(itemId) {
 // sends the inviter a friend request (see doSignup()).
 function inviteFriends() {
   if (!currentUser) return;
-  const url  = `${location.origin}${location.pathname}?ref=${encodeURIComponent(currentUser.id)}`;
-  const text = `${currentUser.name} wants you to join Slope Battles — log your tricks, get rated, and battle friends 1v1.`;
-  track('invite_link_shared', { channel: navigator.share ? 'share' : 'copy' });
-  if (navigator.share) {
-    navigator.share({ title: 'Join me on Slope Battles', text, url }).catch(() => {});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(`${text} ${url}`).then(() => toast('Invite link copied! <svg class="icon icon-link"><use href="#i-link"/></svg>', 'ok')).catch(() => toast('Could not copy link.', 'err'));
+  const me = byId(currentUser.id) || currentUser;
+  _openShareSheet({
+    kind: 'invite',
+    title: 'Invite Friends',
+    text: `${me.name} wants you to join Slope Battles — log your tricks, get rated, and battle friends 1v1.`,
+    url: _publicAppUrl(`ref=${encodeURIComponent(currentUser.id)}`),
+    draw: ctx => _drawInviteCard(ctx, me),
+  });
+}
+
+// ── Share cards (P3) ───────────────────────────────────
+// A Story-sized (1080×1920) PNG drawn on a canvas, previewed in a bottom sheet,
+// then handed to the platform's own share sheet: @capacitor/share in the iOS
+// app, the Web Share API with the image attached in mobile browsers, and a
+// download + copied link on desktop.
+const PUBLIC_APP_URL = 'https://ashtonattar.github.io/ski-rank/';
+const _isNativeApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+// Shared links must point at the live site — inside the iOS app, location is capacitor://localhost.
+function _publicAppUrl(query = '') {
+  const base = _isNativeApp() ? PUBLIC_APP_URL : `${location.origin}${location.pathname}`;
+  return query ? `${base}?${query}` : base;
+}
+
+const CARD_W = 1080, CARD_H = 1920;
+const CARD_FONT = "'Inter Tight', 'Inter', -apple-system, sans-serif";
+let _shareCard = null;    // { kind, title, text, url, blob, objUrl } for the open sheet
+let _shareCardGen = 0;    // a newer open supersedes a slower render still in flight
+
+async function _openShareSheet(opts) {
+  const gen = ++_shareCardGen;
+  if (_shareCard?.objUrl) URL.revokeObjectURL(_shareCard.objUrl);
+  _shareCard = { ...opts, blob: null, objUrl: null };
+  const img = document.getElementById('share-preview-img');
+  const btn = document.getElementById('share-primary-btn');
+  document.getElementById('share-sheet-title').textContent = opts.title;
+  img.classList.remove('ready'); img.removeAttribute('src');
+  btn.disabled = true;
+  // The native share sheet already offers Save Image; only desktop needs its own.
+  document.getElementById('share-save-row').style.display = (_isNativeApp() || navigator.canShare) ? 'none' : '';
+  document.getElementById('share-sheet').classList.add('open');
+  document.getElementById('share-sheet-overlay').classList.add('open');
+  _lockPage('share');
+  enableDrawerDrag(document.getElementById('share-sheet-drag'), document.getElementById('share-sheet'), closeShareSheet, 'translateX(-50%)');
+  try {
+    const blob = await _renderShareCard(opts.draw);
+    if (gen !== _shareCardGen) return;
+    _shareCard.blob = blob;
+    _shareCard.objUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      img.classList.add('ready');
+      if (MO) MO.animate(img, { opacity:[0, 1], scale:[0.97, 1] }, SPRING_UI).then(() => _moClear(img));
+    };
+    img.src = _shareCard.objUrl;
+    btn.disabled = false;
+  } catch (e) {
+    console.warn('share card render failed', e);
+    if (gen !== _shareCardGen) return;
+    btn.disabled = false; // still shareable as a plain link
+  }
+}
+
+function closeShareSheet() {
+  document.getElementById('share-sheet')?.classList.remove('open');
+  document.getElementById('share-sheet-overlay')?.classList.remove('open');
+  _unlockPage('share');
+}
+
+function _shareCardTrack(channel) {
+  const c = _shareCard;
+  track('share_card_shared', { card: c.kind, channel, has_image: !!c.blob });
+  if (c.kind === 'invite') track('invite_link_shared', { channel });
+}
+
+async function shareCardShare() {
+  const c = _shareCard;
+  if (!c) return;
+  const fileName = `slope-battles-${c.kind}.png`;
+  try {
+    if (_isNativeApp() && Capacitor.Plugins?.Share) {
+      const { Share, Filesystem } = Capacitor.Plugins;
+      let files;
+      if (c.blob && Filesystem) {
+        const data = await _blobToBase64(c.blob);
+        const { uri } = await Filesystem.writeFile({ path: fileName, data, directory: 'CACHE' });
+        files = [uri];
+      }
+      await Share.share({ title: c.title, text: c.text, url: c.url, files });
+      _shareCardTrack('native');
+      return;
+    }
+    const file = c.blob && new File([c.blob], fileName, { type: 'image/png' });
+    if (file && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: c.title, text: `${c.text} ${c.url}` });
+      _shareCardTrack('web_share');
+      return;
+    }
+    if (navigator.share) {
+      await navigator.share({ title: c.title, text: c.text, url: c.url });
+      _shareCardTrack('web_share_link');
+      return;
+    }
+    shareCardSave();
+    shareCardCopyLink();
+  } catch (e) {
+    // Dismissing the share sheet rejects too — that's not an error to the rider.
+    if (!/cancel|abort/i.test(`${e?.name} ${e?.message}`)) {
+      console.warn('share failed', e);
+      toast('Could not open sharing. Try Copy Link.', 'err');
+    }
+  }
+}
+
+function shareCardSave() {
+  const c = _shareCard;
+  if (!c?.objUrl) return;
+  const a = document.createElement('a');
+  a.href = c.objUrl; a.download = `slope-battles-${c.kind}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+  _shareCardTrack('download');
+}
+
+function shareCardCopyLink() {
+  const c = _shareCard;
+  if (!c) return;
+  if (!navigator.clipboard) { toast('Copying isn\'t supported here.', 'err'); return; }
+  navigator.clipboard.writeText(c.url)
+    .then(() => { toast('Link copied <svg class="icon icon-check"><use href="#i-check"/></svg>', 'ok'); _shareCardTrack('copy'); })
+    .catch(() => toast('Could not copy link.', 'err'));
+}
+
+function _blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function _renderShareCard(draw) {
+  // Canvas text needs the web fonts loaded first, or it silently falls back.
+  await Promise.all(['800 100px "Inter Tight"', '700 100px "Inter Tight"', '500 40px "Inter"', '600 40px "Inter"']
+    .map(f => document.fonts?.load(f).catch(() => {})));
+  const canvas = document.createElement('canvas');
+  canvas.width = CARD_W; canvas.height = CARD_H;
+  const ctx = canvas.getContext('2d');
+  await draw(ctx);
+  return new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('toBlob failed')), 'image/png'));
+}
+
+function _cardImg(src) {
+  return new Promise(res => {
+    if (!src) return res(null);
+    const im = new Image();
+    // Remote avatars without CORS headers fail to load (→ initials) instead of tainting the canvas.
+    if (!src.startsWith('data:') && !src.startsWith('blob:')) im.crossOrigin = 'anonymous';
+    im.onload = () => res(im);
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+}
+
+function _cardRRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function _cardFont(ctx, weight, size, family = CARD_FONT) { ctx.font = `${weight} ${size}px ${family}`; }
+
+// Shrinks the font until the text fits, then ellipsizes as a last resort.
+function _cardFitText(ctx, text, maxW, weight, size, minSize = size * 0.6) {
+  let s = size;
+  _cardFont(ctx, weight, s);
+  while (s > minSize && ctx.measureText(text).width > maxW) { s -= 2; _cardFont(ctx, weight, s); }
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
+// Letter-spaced text (ctx.letterSpacing isn't in every WebKit we ship to).
+function _cardSpaced(ctx, text, x, y, spacing, align = 'left') {
+  const chars = [...text];
+  const w = chars.reduce((s, ch) => s + ctx.measureText(ch).width, 0) + spacing * (chars.length - 1);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  const prev = ctx.textAlign;
+  ctx.textAlign = 'left';
+  chars.forEach(ch => { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; });
+  ctx.textAlign = prev;
+}
+
+async function _cardAvatar(ctx, player, cx, cy, r) {
+  const im = await _cardImg(player.avatarUrl || _avatarCache[player.id]);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+  if (im) {
+    const s = Math.max((r * 2) / im.width, (r * 2) / im.height);
+    ctx.drawImage(im, cx - (im.width * s) / 2, cy - (im.height * s) / 2, im.width * s, im.height * s);
   } else {
-    toast('Share not supported on this device.', 'err');
+    ctx.fillStyle = avatarGrad(player.id);
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.fillStyle = '#f2f4f6';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    _cardFont(ctx, 700, Math.round(r * 0.78));
+    ctx.fillText(initials(player.name || '?'), cx, cy + r * 0.04);
+  }
+  ctx.restore();
+}
+
+// Shared frame: night-sky base with the brand's pink/teal glows, logo lockup
+// up top, handle + link at the bottom.
+async function _cardFrame(ctx, rightLabel) {
+  ctx.fillStyle = '#0b0d10';
+  ctx.fillRect(0, 0, CARD_W, CARD_H);
+  const glow = (x, y, r, rgb, a) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, CARD_W, CARD_H);
+  };
+  glow(120, 300, 950, '255,62,127', 0.26);
+  glow(1000, 1650, 900, '34,224,194', 0.18);
+
+  const logo = await _cardImg('assets/icon-192.png');
+  if (logo) {
+    ctx.save(); _cardRRect(ctx, 80, 110, 92, 92, 22); ctx.clip();
+    ctx.drawImage(logo, 80, 110, 92, 92); ctx.restore();
+  }
+  ctx.fillStyle = '#f2f4f6'; ctx.textBaseline = 'middle';
+  _cardFont(ctx, 800, 38);
+  _cardSpaced(ctx, 'SLOPE BATTLES', logo ? 196 : 80, 158, 3);
+  if (rightLabel) {
+    ctx.fillStyle = 'rgba(242,244,246,0.5)';
+    _cardFont(ctx, 600, 30, 'Inter, sans-serif');
+    ctx.textAlign = 'right'; ctx.fillText(rightLabel, CARD_W - 80, 158); ctx.textAlign = 'left';
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  ctx.fillRect(80, 1740, CARD_W - 160, 2);
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#f2f4f6';
+  _cardFont(ctx, 700, 36);
+  ctx.fillText('@slopebattles', 80, 1810);
+  ctx.fillStyle = 'rgba(242,244,246,0.5)';
+  _cardFont(ctx, 500, 30, 'Inter, sans-serif');
+  ctx.textAlign = 'right';
+  ctx.fillText(PUBLIC_APP_URL.replace(/^https:\/\//, '').replace(/\/$/, ''), CARD_W - 80, 1810);
+  ctx.textAlign = 'left';
+}
+
+async function _drawResultCard(ctx, r, winner, loser) {
+  const date = new Date(r.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  await _cardFrame(ctx, date);
+  const meId = currentUser?.id;
+  const headline = meId === winner.id ? 'VICTORY' : meId === loser.id ? 'GG' : 'FINAL';
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ff3e7f';
+  _cardFont(ctx, 700, 32);
+  _cardSpaced(ctx, ('S·K·I DUEL' + (r.resort ? ` · ${r.resort}` : '')).toUpperCase().slice(0, 40), 80, 420, 5);
+
+  ctx.fillStyle = '#f2f4f6';
+  _cardFont(ctx, 800, 210);
+  _cardSpaced(ctx, headline, 72, 620, -6);
+
+  ctx.fillStyle = 'rgba(242,244,246,0.62)';
+  const sub = `${winner.name} ${r.forfeit ? `wins — ${loser.name} left` : `beat ${loser.name}`}`;
+  ctx.fillText(_cardFitText(ctx, sub, CARD_W - 160, 600, 46), 80, 706);
+
+  // Matchup panel: one row per rider, winner first.
+  const px = 80, pw = CARD_W - 160, py = 790, rowH = 250;
+  ctx.fillStyle = 'rgba(255,255,255,0.045)';
+  _cardRRect(ctx, px, py, pw, rowH * 2, 44); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(px + 40, py + rowH - 1, pw - 80, 2);
+
+  const rows = [[winner, true], [loser, false]];
+  for (let i = 0; i < rows.length; i++) {
+    const [p, won] = rows[i];
+    const cy = py + rowH * i + rowH / 2;
+    await _cardAvatar(ctx, p, px + 110, cy, 66);
+    if (won) {
+      ctx.fillStyle = '#22e0c2';
+      ctx.beginPath(); ctx.arc(px + 160, cy + 48, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#15191e'; ctx.lineWidth = 6; ctx.stroke();
+      ctx.fillStyle = '#07211c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      _cardFont(ctx, 800, 28); ctx.fillText('W', px + 160, cy + 49);
+      ctx.textAlign = 'left';
+    }
+    const t = tier(p.rating, p.gamesPlayed);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f2f4f6';
+    ctx.fillText(_cardFitText(ctx, p.name, 400, 700, 52, 34), px + 214, cy - 4);
+    const delta = r.rd ? (won ? r.rd.winnerDelta : r.rd.loserDelta) : null;
+    _cardFont(ctx, 600, 32, 'Inter, sans-serif');
+    ctx.fillStyle = t.color;
+    const tl = t.label;
+    ctx.fillText(tl, px + 214, cy + 46);
+    if (delta != null) {
+      const tw = ctx.measureText(tl + '  ').width;
+      ctx.fillStyle = delta >= 0 ? '#3ddc97' : '#ff5a5f';
+      ctx.fillText(`${delta >= 0 ? '+' : '−'}${Math.abs(delta)}`, px + 214 + tw, cy + 46);
+    }
+    // S · K · I tiles, earned letters lit.
+    const earned = Math.min(LETTERS.length, r.letters[p.id] || 0);
+    const tile = 62, gap = 12, tx0 = px + pw - 40 - (tile * 3 + gap * 2);
+    LETTERS.forEach((L, j) => {
+      const tx = tx0 + j * (tile + gap), ty = cy - tile / 2;
+      _cardRRect(ctx, tx, ty, tile, tile, 16);
+      ctx.fillStyle = j < earned ? '#ff3e7f' : 'rgba(255,255,255,0.06)'; ctx.fill();
+      ctx.fillStyle = j < earned ? '#1a0610' : 'rgba(242,244,246,0.28)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      _cardFont(ctx, 800, 34); ctx.fillText(L, tx + tile / 2, ty + tile / 2 + 2);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  // Hero stat: the sharer's own rating move, or the winner's when a judge/spectator shares.
+  ctx.textBaseline = 'alphabetic';
+  const heroP = meId === loser.id ? loser : winner;
+  const heroDelta = r.rd ? (heroP === winner ? r.rd.winnerDelta : r.rd.loserDelta) : null;
+  if (heroDelta != null) {
+    const before = heroP === winner ? r.rd.winnerNew - r.rd.winnerDelta : r.rd.loserNew - r.rd.loserDelta;
+    const after = heroP === winner ? r.rd.winnerNew : r.rd.loserNew;
+    ctx.fillStyle = 'rgba(242,244,246,0.5)';
+    _cardFont(ctx, 700, 30);
+    _cardSpaced(ctx, 'RATING', 80, 1420, 5);
+    ctx.fillStyle = heroDelta >= 0 ? '#3ddc97' : '#ff5a5f';
+    _cardFont(ctx, 800, 168);
+    _cardSpaced(ctx, `${heroDelta >= 0 ? '+' : '−'}${Math.abs(heroDelta)}`, 72, 1580, -4);
+    ctx.fillStyle = 'rgba(242,244,246,0.62)';
+    _cardFont(ctx, 600, 40, 'Inter, sans-serif');
+    ctx.fillText(`${fmt(before)}  →  ${fmt(after)}`, 80, 1652);
+  } else {
+    ctx.fillStyle = 'rgba(242,244,246,0.62)';
+    _cardFont(ctx, 700, 64);
+    ctx.fillText('Think you can beat us?', 80, 1520);
+    ctx.fillStyle = 'rgba(242,244,246,0.45)';
+    _cardFont(ctx, 500, 36, 'Inter, sans-serif');
+    ctx.fillText('Log a duel. Get rated. Climb the board.', 80, 1588);
+  }
+}
+
+let _qrLib = null;
+function _loadQrLib() {
+  if (window.qrcode) return Promise.resolve(window.qrcode);
+  return _qrLib ||= new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'assets/vendor/qrcode-generator-1.4.4.min.js';
+    s.onload = () => res(window.qrcode || null);
+    s.onerror = () => { _qrLib = null; res(null); };
+    document.head.appendChild(s);
+  });
+}
+
+async function _drawInviteCard(ctx, me) {
+  await _cardFrame(ctx);
+  const cx = CARD_W / 2;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ff3e7f';
+  _cardFont(ctx, 700, 32);
+  _cardSpaced(ctx, 'YOU\'VE BEEN CHALLENGED', cx, 380, 6, 'center');
+
+  // Avatar with a pink→teal ring.
+  const ay = 570, ar = 140;
+  const ring = ctx.createLinearGradient(cx - ar, ay - ar, cx + ar, ay + ar);
+  ring.addColorStop(0, '#ff3e7f'); ring.addColorStop(1, '#22e0c2');
+  ctx.fillStyle = ring;
+  ctx.beginPath(); ctx.arc(cx, ay, ar + 12, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#0b0d10';
+  ctx.beginPath(); ctx.arc(cx, ay, ar + 4, 0, Math.PI * 2); ctx.fill();
+  await _cardAvatar(ctx, me, cx, ay, ar);
+
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2f4f6';
+  ctx.fillText(_cardFitText(ctx, me.name || 'A rider', CARD_W - 200, 800, 92, 56), cx, 840);
+  const t = tier(me.rating, me.gamesPlayed);
+  ctx.fillStyle = t.color;
+  _cardFont(ctx, 600, 38, 'Inter, sans-serif');
+  ctx.fillText(t.provisional || me.rating == null ? t.label : `${t.label} · ${fmt(me.rating)}`, cx, 904);
+  ctx.textAlign = 'left';
+
+  // Stat tiles.
+  const wins = me.wins || 0, losses = me.losses || 0, played = wins + losses;
+  const stats = [['DUELS', String(played)], ['WINS', String(wins)], ['WIN %', played ? `${Math.round((wins / played) * 100)}` : '—']];
+  const sw = 280, sg = 20, sx0 = cx - (sw * 3 + sg * 2) / 2, sy = 970, sh = 170;
+  stats.forEach(([label, val], i) => {
+    const sx = sx0 + i * (sw + sg);
+    _cardRRect(ctx, sx, sy, sw, sh, 32);
+    ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f2f4f6'; _cardFont(ctx, 800, 72);
+    ctx.fillText(val, sx + sw / 2, sy + 96);
+    ctx.fillStyle = 'rgba(242,244,246,0.5)'; _cardFont(ctx, 700, 26);
+    _cardSpaced(ctx, label, sx + sw / 2, sy + 140, 4, 'center');
+  });
+  ctx.textAlign = 'left';
+
+  // QR to the invite link, so a Story viewer can scan straight into signup.
+  const qrLib = await _loadQrLib();
+  const url = _publicAppUrl(`ref=${encodeURIComponent(me.id)}`);
+  if (qrLib) {
+    const qr = qrLib(0, 'M'); qr.addData(url); qr.make();
+    const n = qr.getModuleCount(), box = 380, pad = 34, qy = 1230;
+    const cell = (box - pad * 2) / n, qx = cx - box / 2;
+    _cardRRect(ctx, qx, qy, box, box, 40); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.fillStyle = '#0b0d10';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      if (qr.isDark(r, c)) ctx.fillRect(qx + pad + c * cell, qy + pad + r * cell, Math.ceil(cell), Math.ceil(cell));
+    }
+    ctx.fillStyle = 'rgba(242,244,246,0.62)'; ctx.textAlign = 'center';
+    _cardFont(ctx, 600, 36, 'Inter, sans-serif');
+    ctx.fillText('Scan to battle me 1v1', cx, 1680);
+    ctx.textAlign = 'left';
+  } else {
+    ctx.textAlign = 'center'; ctx.fillStyle = '#f2f4f6';
+    _cardFont(ctx, 800, 96); ctx.fillText('Battle me 1v1.', cx, 1420);
+    ctx.fillStyle = 'rgba(242,244,246,0.5)';
+    _cardFont(ctx, 500, 38, 'Inter, sans-serif');
+    ctx.fillText('Log your tricks. Get rated. Climb the board.', cx, 1500);
+    ctx.textAlign = 'left';
   }
 }
 
